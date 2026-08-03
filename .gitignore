@@ -1,0 +1,33 @@
+# Dependencies and builds
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Test output
+playwright-report/
+test-results/
+
+# Local servers and temporary files
+*.log
+*.pid
+tmp/
+temp/

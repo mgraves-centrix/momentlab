@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050a0e">
+  <title>MomentLab Build Reference</title>
+  <meta name="description" content="Implementation reference pack for the MomentLab Agentic Cinema hackathon build.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="MomentLab reference home">
+      <span class="brand-mark">M</span>
+      <span>MOMENTLAB</span>
+    </a>
+    <div class="header-meta"><span class="status-dot"></span> BUILD REFERENCE <span class="version">v1.0</span></div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="eyebrow">ANTIGRAVITY HANDOFF · PROJECT NORTHLIGHT</div>
+      <h1>One visual contract.<br><span>Every screen mapped.</span></h1>
+      <p class="hero-copy">A production-focused reference set for the MomentLab desktop and mobile experience. Use these screens to reconstruct the product with live React components—never as UI backgrounds.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="#reference-grid">Review screens <span>↓</span></a>
+        <a class="button secondary" href="README.md">Open build map</a>
+      </div>
+      <dl class="stats" aria-label="Reference pack summary">
+        <div><dt>14</dt><dd>reference assets</dd></div>
+        <div><dt>08</dt><dd>desktop views</dd></div>
+        <div><dt>03</dt><dd>mobile routes</dd></div>
+        <div><dt>02</dt><dd>system boards</dd></div>
+      </dl>
+    </section>
+
+    <section class="contract" aria-labelledby="contract-title">
+      <div>
+        <div class="eyebrow">CANONICAL DEMO CONTRACT</div>
+        <h2 id="contract-title">Keep the story coherent</h2>
+      </div>
+      <div class="contract-grid">
+        <div><span>Moment</span><strong>00:37</strong></div>
+        <div><span>Affected range</span><strong>00:33–00:41</strong></div>
+        <div><span>Response cliff</span><strong class="coral">−28%</strong></div>
+        <div><span>Respondents</span><strong>4,732</strong></div>
+        <div><span>Hypothesis</span><strong>Move reveal 6s earlier</strong></div>
+        <div><span>Confidence</span><strong class="lime">91%</strong></div>
+      </div>
+    </section>
+
+    <section class="library" id="reference-grid" aria-labelledby="library-title">
+      <div class="section-heading">
+        <div><div class="eyebrow">SCREEN LIBRARY</div><h2 id="library-title">Implementation references</h2></div>
+        <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search screens" aria-label="Search reference screens"></label>
+      </div>
+      <div class="filters" role="group" aria-label="Filter reference screens">
+        <button class="filter active" data-filter="all">All <span>14</span></button>
+        <button class="filter" data-filter="desktop">Desktop <span>8</span></button>
+        <button class="filter" data-filter="mobile">Mobile <span>4</span></button>
+        <button class="filter" data-filter="system">System <span>2</span></button>
+      </div>
+      <div class="grid" id="screen-grid"></div>
+      <p class="empty" id="empty-state" hidden>No references match that search.</p>
+    </section>
+
+    <section class="handoff">
+      <div class="eyebrow">BUILD RULE</div>
+      <blockquote>“Reconstruct the hierarchy and behavior with accessible components. Preserve the evidence chain. Do not ship the raster references as the interface.”</blockquote>
+      <div class="handoff-links">
+        <a href="HANDOFF.md">Antigravity instructions ↗</a>
+        <a href="GENERATION-PROMPTS.md">Generation record ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <footer><span>MOMENTLAB · AGENTIC CINEMA</span><span>SIMULATED DEMO DATA · NO BIOMETRICS</span></footer>
+
+  <dialog id="viewer" aria-labelledby="viewer-title">
+    <button class="close" id="close-viewer" aria-label="Close image viewer">×</button>
+    <button class="nav previous" id="previous" aria-label="Previous screen">←</button>
+    <figure>
+      <img id="viewer-image" alt="">
+      <figcaption>
+        <div><span class="viewer-index" id="viewer-index"></span><h2 id="viewer-title"></h2></div>
+        <p id="viewer-description"></p>
+        <a id="open-original" href="" target="_blank" rel="noreferrer">Open full resolution ↗</a>
+      </figcaption>
+    </figure>
+    <button class="nav next" id="next" aria-label="Next screen">→</button>
+  </dialog>
+  <script src="app.js"></script>
+</body>
+</html>
