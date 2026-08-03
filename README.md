@@ -17,6 +17,7 @@ This initial commit is the complete product/design handoff. It intentionally doe
 ```text
 MOMENTLAB-BUILD-PROMPT.md        Locked implementation and hackathon specification
 GEMINI.md                        Antigravity/Gemini repository instructions
+idea-lab/                        Self-contained product blueprint; no hosted dependency
 momentlab-reference-pack/
   index.html                     Searchable local review gallery
   HANDOFF.md                     Recommended implementation sequence
@@ -32,15 +33,16 @@ design/reference-originals/      Original approved desktop/mobile mockups
 From the repository root:
 
 ```powershell
-python -m http.server 4173 --bind 127.0.0.1 --directory momentlab-reference-pack
+python -m http.server 4173 --bind 127.0.0.1
 ```
 
-Then open `http://127.0.0.1:4173/`.
+Then open `http://127.0.0.1:4173/idea-lab/` for the product blueprint or `http://127.0.0.1:4173/momentlab-reference-pack/` for the full screen library.
 
 ## Product invariants
 
 - ClickHouse is the selected partner track and analytical system of record.
-- Gemini provides the agentic reasoning layer; GCP hosts the application services.
+- Gemini on Vertex AI provides the only model inference; Google ADK provides agent orchestration; Google Cloud hosts identity, media, application services, secrets, and observability.
+- ClickHouse and ordinary open-source application libraries are the only non-Google infrastructure/tooling exceptions required to build the selected track cleanly.
 - Observations, inferences, uncertainty, and forecasts remain visibly distinct.
 - A server-confirmed authorized human must approve an experiment before launch.
 - Demo forecasts/results are clearly labeled as simulated.

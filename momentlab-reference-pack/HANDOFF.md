@@ -10,7 +10,7 @@ Before writing product code, open `README.md`, inspect all 14 assets in the LAN 
 4. Build routes 09–11 from their dedicated references. Do not make up a generic collapsed desktop view.
 5. Implement screens 01–03 for the end-to-end demo entry path.
 6. Implement every state from screen 13 with an explicit recovery or next-safe action.
-7. Connect Gemini agent orchestration and ClickHouse MCP evidence behind typed server APIs.
+7. Connect Gemini on Vertex AI through Google ADK and expose ClickHouse MCP evidence behind typed Cloud Run APIs.
 8. Add Playwright visual tests and compare each route with its corresponding reference.
 
 ## Non-negotiables

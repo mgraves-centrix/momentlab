@@ -31,7 +31,7 @@ Treat these as release-blocking requirements:
 
 - The entry is a newly created web application built during the contest period.
 - The AI agent is powered only by Gemini through Vertex AI and is built with Google Agent Development Kit (`google-adk`) as part of Vertex AI Agent Builder.
-- Do not add OpenAI, Anthropic, AWS, Azure AI, non-Google models, non-Google agent frameworks, or hidden fallback AI services.
+- Do not add any non-Google model, non-Google agent framework, or hidden fallback AI service.
 - The ClickHouse track integration must actively use the official `ClickHouse/mcp-clickhouse` server at runtime against ClickHouse Cloud or a self-hosted ClickHouse cluster. Importing a package or mentioning ClickHouse in documentation is insufficient.
 - Judge-visible analysis must contain real MCP tool calls and real query results. Display a sanitized tool trail with tool name, duration, row count, query purpose, and timestamp. Do not expose credentials or raw sensitive SQL parameters.
 - Use Google Cloud for the product and deployment. The hosted app must behave exactly as shown in the demo.
@@ -75,9 +75,9 @@ Use this stack unless an official source proves a component unavailable. Any sub
 
 The following are **prohibited in the submitted project**, including runtime, build scripts, evaluation, fallbacks, browser code, server code, notebooks, and hidden optional paths:
 
-- OpenAI models/APIs/SDKs, Anthropic/Claude, AWS Bedrock, Azure AI, Microsoft AI services, Cohere, Mistral, xAI, Hugging Face hosted inference, Ollama/local language models, or any other non-Google AI model/API.
-- LangChain, LangGraph, LlamaIndex, CrewAI, AutoGen/AG2, Semantic Kernel, Vercel AI SDK agent abstractions, or any agent framework other than Google ADK. Ordinary non-AI libraries remain allowed.
-- Runtime AI from IBM, Grafana, Parallel, or Replit. MomentLab is a ClickHouse-track submission; do not dilute or confuse the partner story with other track integrations.
+- Any non-Google hosted or local language model, model API, model SDK, or fallback inference service.
+- Any agent framework or orchestration abstraction other than Google ADK. Ordinary non-AI application libraries remain allowed.
+- Runtime AI or platform integrations associated with other partner tracks. MomentLab is a ClickHouse-track submission; do not dilute or confuse the partner story with unrelated integrations.
 - A direct Gemini Developer API/AI Studio key as the production inference path. Use Vertex AI credentials and the entrant’s Google Cloud project so the Google Cloud runtime is provable.
 - A custom or imitation MCP server represented as ClickHouse MCP. Use the official `ClickHouse/mcp-clickhouse` distribution/repository and record its pinned commit or released version.
 - A static ClickHouse dashboard without agent tool calls, direct SQL presented as MCP, prerecorded/fabricated MCP activity, or fallback demo data silently shown when ClickHouse/MCP is unavailable.
@@ -166,8 +166,8 @@ Reproduce the premium editorial-workstation character of the MomentLab concept i
 
 Treat the published MomentLab Idea Lab page and mockup as the authoritative visual/product target:
 
-- Blueprint: `https://agentic-cinema-idea-lab.mgraves01.chatgpt.site/ideas/momentlab`
-- Full-resolution interface reference: `https://agentic-cinema-idea-lab.mgraves01.chatgpt.site/mockups/momentlab.png`
+- Local product blueprint: `idea-lab/index.html`
+- Full-resolution interface reference: `design/reference-originals/momentlab-desktop.png`
 - Canonical desktop reference asset: `design/reference-originals/momentlab-desktop.png`
 - Canonical mobile reference asset: `design/reference-originals/momentlab-mobile.png`
 - Complete screen-level implementation pack: `momentlab-reference-pack/README.md`

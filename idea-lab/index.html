@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MomentLab product blueprint and implementation case.">
+  <meta name="theme-color" content="#070a0e">
+  <title>MomentLab — Product Blueprint</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#overview"><span>M</span>MOMENTLAB</a>
+    <nav aria-label="Blueprint sections">
+      <a href="#product">Product</a><a href="#market">Market</a><a href="#evidence">Evidence</a><a href="#build">Build</a>
+    </nav>
+    <div class="track"><i></i> CLICKHOUSE TRACK</div>
+  </header>
+
+  <main>
+    <section class="hero" id="overview">
+      <div class="hero-copy">
+        <p class="kicker">PRODUCT BLUEPRINT / VALIDATION READY</p>
+        <h1>Turn audience behavior into the <em>next edit experiment.</em></h1>
+        <p class="lede">MomentLab connects consented audience-response events to exact creative moments, investigates the evidence through ClickHouse MCP, and uses Gemini on Vertex AI to propose a falsifiable edit test for human approval.</p>
+        <div class="actions"><a class="primary" href="#product">Explore the product ↓</a><a href="../momentlab-reference-pack/index.html">Open screen library ↗</a></div>
+      </div>
+      <aside class="scoreboard" aria-label="Concept scores">
+        <div><strong>9.0</strong><span>FEASIBILITY / 10</span></div>
+        <div><strong>9.2</strong><span>JUDGE IMPACT / 10</span></div>
+        <div><strong>4–5</strong><span>WEEKS TO DEMO</span></div>
+        <div><strong>02</strong><span>PORTFOLIO RANK</span></div>
+      </aside>
+    </section>
+
+    <section class="principle-band">
+      <span>DETECT</span><b>→</b><span>INVESTIGATE</span><b>→</b><span>EXPLAIN</span><b>→</b><span>PROPOSE</span><b>→</b><span>APPROVE</span><b>→</b><span>TEST</span><b>→</b><span>EVALUATE</span>
+    </section>
+
+    <section class="product" id="product">
+      <header class="section-header"><p class="kicker">01 / PRODUCT VISION</p><h2>See the decisive moment.</h2><p>A dense editorial workspace keeps playback, audience evidence, agent reasoning, partner proof, and human control visible in one coherent decision flow.</p></header>
+      <figure class="desktop-frame">
+        <div class="screen"><img src="assets/momentlab-desktop.png" alt="MomentLab desktop editorial experiment workspace"></div>
+        <figcaption><span>DIRECTIONAL PRODUCT REFERENCE</span><b>DESKTOP ANALYSIS WORKSPACE</b></figcaption>
+      </figure>
+      <div class="screen-list" aria-label="Core screens">
+        <div><span>01</span>Screening intake</div><div><span>02</span>Response timeline</div><div><span>03</span>Cohort compare</div><div><span>04</span>Moment evidence</div><div><span>05</span>Edit hypothesis</div><div><span>06</span>A/B result</div>
+      </div>
+    </section>
+
+    <section class="mobile-section">
+      <div class="mobile-copy">
+        <p class="kicker">RESPONSIVE PRODUCT / MOBILE WORKFLOW</p>
+        <h2>The same decision—built for the phone.</h2>
+        <p>MomentLab reorganizes the workspace into three focused, connected routes. It does not shrink the desktop dashboard or discard the evidence chain.</p>
+        <ol>
+          <li><span>01</span><div><strong>Finding</strong><p>Watch the scene, compare cohorts, and locate the 00:37 response cliff.</p></div></li>
+          <li><span>02</span><div><strong>Evidence</strong><p>Inspect synchronized frames, uncertainty, the edit hypothesis, and live ClickHouse MCP proof.</p></div></li>
+          <li><span>03</span><div><strong>Test</strong><p>Compare Cut A and Cut B, review expected impact, and explicitly approve the experiment.</p></div></li>
+        </ol>
+      </div>
+      <figure><img src="assets/momentlab-mobile.png" alt="MomentLab Finding, Evidence, and Test mobile screens"><figcaption>FINDING → EVIDENCE → TEST</figcaption></figure>
+    </section>
+
+    <section class="glance">
+      <header class="section-header"><p class="kicker">02 / IDEA AT A GLANCE</p><h2>The case for MomentLab.</h2></header>
+      <div class="card-grid">
+        <article><span>THE PROBLEM</span><h3>Feedback loses the moment</h3><p>Test screenings produce averages and scattered comments, but editors cannot reliably connect a response change to the exact creative beat—or know which edit to test next.</p></article>
+        <article><span>THE EXPERIENCE</span><h3>Evidence becomes an experiment</h3><p>The system aligns consented responses to timecode, detects a response cliff, investigates cohorts through MCP, retrieves only relevant scene context, and drafts a bounded edit hypothesis.</p></article>
+        <article><span>THE VALUE</span><h3>A falsifiable creative decision</h3><p>Editors receive a testable hypothesis instead of a sentiment dashboard. Researchers retain raw signals, uncertainty, experiment history, and the reason a decision changed.</p></article>
+        <article><span>THE WINNING CASE</span><h3>A visible closed loop</h3><p>The demo proves detect, investigate, explain, propose, approve, test, and evaluate—with ClickHouse indispensable and human control explicit.</p></article>
+      </div>
+    </section>
+
+    <section class="market" id="market">
+      <header class="section-header"><p class="kicker">03 / ADDRESSABLE OPPORTUNITY</p><h2>Who uses it—and who pays.</h2></header>
+      <div class="market-grid">
+        <article><span>01</span><b>PRIMARY USERS</b><p>Audience researchers, editors, trailer teams, creative executives, and independent filmmakers.</p></article>
+        <article><span>02</span><b>ECONOMIC BUYER</b><p>Studios, streamers, trailer agencies, screening vendors, and advertising creative teams.</p></article>
+        <article><span>03</span><b>BEACHHEAD</b><p>Independent filmmakers and trailer teams running controlled remote screenings of two short cuts.</p></article>
+        <article><span>04</span><b>EXPANSION</b><p>Pilot testing, episodic recaps, game cinematics, advertising optimization, and live-event programming.</p></article>
+      </div>
+    </section>
+
+    <section class="evidence" id="evidence">
+      <header class="section-header"><p class="kicker">04 / EVIDENCE PLAN</p><h2>What the demo must prove.</h2><p>Judges need a visible result and reproducible evidence—not only a plausible architecture.</p></header>
+      <div class="evidence-grid">
+        <article><span>TRACK GATE</span><h3>Mandatory partner proof</h3><p>The official ClickHouse MCP queries the live screening-event dataset at runtime. Cohort queries, latency, evidence rows, and the tool trail remain visible.</p></article>
+        <article><span>SUCCESS TEST</span><h3>Evaluation judges can trust</h3><p>Generate 1,000 deterministic sessions across three cohorts and two cuts, seed a response cliff at 00:37, and verify it with an opt-in holdout.</p></article>
+        <article class="verdict"><span>LAB VERDICT</span><h3>Best ClickHouse hackathon bet</h3><p>A memorable agentic loop, measurable outcome, polished cinematic interface, and partner technology that is essential rather than decorative.</p></article>
+      </div>
+      <div class="metrics">
+        <div><strong>9.7</strong><b>PARTNER FIT</b><p>Event-time cohort queries and experiment history.</p></div>
+        <div><strong>9.4</strong><b>MEASURABILITY</b><p>Known anomalies, latency, agreement, and uplift.</p></div>
+        <div><strong>8.6</strong><b>MONETIZATION</b><p>Per-screening plans and enterprise subscriptions.</p></div>
+        <div><strong>8.2</strong><b>ACQUISITION</b><p>Accessible indie, trailer, and agency beachhead.</p></div>
+      </div>
+    </section>
+
+    <section class="build" id="build">
+      <header class="section-header"><p class="kicker">05 / GOOGLE-FIRST BUILD</p><h2>Technical shape.</h2><p>All model inference, agent orchestration, application hosting, identity, media, secrets, and observability stay on Google Cloud. ClickHouse remains the required partner analytical system; standard open-source application libraries are implementation utilities only.</p></header>
+      <div class="component-grid">
+        <article><span>01</span><b>MODEL</b><p>Gemini through Vertex AI</p></article>
+        <article><span>02</span><b>AGENT</b><p>Google ADK + Vertex AI Agent Builder</p></article>
+        <article><span>03</span><b>EVENTS</b><p>Cloud Run ingestion; Pub/Sub scale path</p></article>
+        <article><span>04</span><b>ANALYTICS</b><p>ClickHouse Cloud + materialized views</p></article>
+        <article><span>05</span><b>TOOLS</b><p>Official ClickHouse MCP</p></article>
+        <article><span>06</span><b>MEDIA</b><p>Google Cloud Storage signed URLs</p></article>
+        <article><span>07</span><b>IDENTITY</b><p>Google Cloud Identity Platform</p></article>
+        <article><span>08</span><b>SAFETY</b><p>Aggregation + server-enforced approval</p></article>
+      </div>
+      <div class="phases">
+        <article><strong>WEEK 1</strong><p>Screening player, consent, event schema, Cut A/B intake.</p><span>PROOF: responses align to timecode</span></article>
+        <article><strong>WEEK 2</strong><p>ClickHouse ingestion, cohorts, views, and official MCP.</p><span>PROOF: 00:37 is retrieved live</span></article>
+        <article><strong>WEEK 3</strong><p>ADK investigation, Gemini context, and hypothesis workflow.</p><span>PROOF: evidence-backed edit test</span></article>
+        <article><strong>WEEK 4</strong><p>Variant evaluation, holdout, timeline polish, and demo.</p><span>PROOF: measured loop closure</span></article>
+      </div>
+      <div class="tradeoffs">
+        <article><h3><span>+</span> Advantages</h3><ul><li>ClickHouse is architecturally essential</li><li>Closed-loop agent behavior</li><li>Objective evaluation metrics</li><li>Polished cinematic demo</li><li>Human-controlled consequential actions</li></ul></article>
+        <article><h3><span>−</span> Tradeoffs</h3><ul><li>Real screening recruitment takes effort</li><li>Synthetic scale needs a real holdout</li><li>Creative causality remains probabilistic</li><li>Minimum cohort sizes must be enforced</li></ul></article>
+      </div>
+    </section>
+
+    <section class="closing"><p class="kicker">BUILD PRINCIPLE</p><blockquote>Build the smallest version that proves the thesis.</blockquote><a class="primary" href="../MOMENTLAB-BUILD-PROMPT.md">Open master build prompt ↗</a></section>
+  </main>
+  <footer><span>MOMENTLAB / PRODUCT BLUEPRINT</span><span>LOCAL, SELF-CONTAINED REFERENCE</span></footer>
+</body>
+</html>
