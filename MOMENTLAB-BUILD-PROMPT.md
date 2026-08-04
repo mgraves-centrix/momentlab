@@ -598,5 +598,6 @@ Start now.
 6. Prefer real integrations. If a credential is unavailable, implement a contract-faithful adapter and local integration test, clearly label the blocked live step, and provide the exact command the owner must run. Never disguise a mock as production.
 7. Keep a visible checklist with `DONE`, `IN PROGRESS`, `BLOCKED`, and `NOT STARTED`.
 8. When reporting completion, include only verifiable outcomes, commands to reproduce them, known limitations, remaining credential-dependent steps, and the next highest-leverage action.
+9. Hackathon link: https://agentic-cinema.devpost.com/?ref_feature=challenge&ref_medium=your-open-hackathons&ref_content=Submissions+open&_gl=1*d8n7qp*_gcl_au*MTM4ODk0OTQ3Ni4xNzg1ODAyNzk5*_ga*NzM3Mjc5Mjg3LjE3ODU4MDI3OTk.*_ga_0YHJK3Y10M*czE3ODU4MDI3OTkkbzEkZzEkdDE3ODU4MDI4MDckajUyJGwwJGgw
 
 The winning standard is not maximum feature count. It is a coherent, beautiful, production-credible product in which Gemini makes a bounded creative decision, ClickHouse MCP is visibly indispensable, a human controls consequential action, and the demo proves the result with reproducible evidence.

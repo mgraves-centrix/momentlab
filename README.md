@@ -1,61 +1,79 @@
-# MomentLab
+# MomentLab — Autonomous Audience-Experiment Agent
 
-Private build repository for **MomentLab**, an Agentic Cinema hackathon project that turns aggregated, consented audience-response data into evidence-backed edit hypotheses and approval-gated A/B tests.
+> **Turn consented, second-by-second audience behavior into the next controlled edit experiment.**
+> Built for the **Agentic Cinema: The Blockbuster Hackathon (ClickHouse Track)**.
 
-This initial commit is the complete product/design handoff. It intentionally does not contain a speculative application scaffold: the implementation agent should first inspect the visual contract and follow the locked architecture prompt.
+---
 
-## Start here
-
-1. Open [`GEMINI.md`](GEMINI.md) in Google Antigravity.
-2. Read [`.agents/README.md`](.agents/README.md) and apply its numbered workflows.
-3. Read [`MOMENTLAB-BUILD-PROMPT.md`](MOMENTLAB-BUILD-PROMPT.md) and [`UI-IMPLEMENTATION-CONTRACT.md`](UI-IMPLEMENTATION-CONTRACT.md).
-4. Review [`HANDOFF-READINESS.md`](HANDOFF-READINESS.md) for the scored handoff audit.
-5. Review [`momentlab-reference-pack/HANDOFF.md`](momentlab-reference-pack/HANDOFF.md) and the complete screen map.
-6. Open all desktop, mobile, and system references before implementing the app shell.
-7. Build the product as live, accessible components—never as screenshot backgrounds.
-
-## Repository contents
+## 🎬 Master Loop
 
 ```text
-MOMENTLAB-BUILD-PROMPT.md        Locked implementation and hackathon specification
-GEMINI.md                        Antigravity/Gemini repository instructions
-UI-IMPLEMENTATION-CONTRACT.md    Canonical routes, components, states, and 99/100 visual gate
-HANDOFF-READINESS.md             9.9+ scored quality audit and remaining execution proof
-.agents/
-  rules/                         Persistent product, Google, UI, and truthfulness constraints
-  workflows/                     Bounded Antigravity implementation and verification phases
-  skills/                        Repeatable route-fidelity review procedure
-idea-lab/                        Self-contained product blueprint; no hosted dependency
-momentlab-reference-pack/
-  index.html                     Searchable local review gallery
-  HANDOFF.md                     Recommended implementation sequence
-  GENERATION-PROMPTS.md          Image-generation provenance
-  desktop/                       Eight desktop screen references
-  mobile/                        Canonical composite and three mobile routes
-  system/                        Design-system and complete state boards
-design/reference-originals/      Original approved desktop/mobile mockups
+detect → investigate with ClickHouse MCP → explain → propose → approve → test → evaluate
 ```
 
-## Review the visual pack locally
+1. **Capture**: Consented, second-by-second playback reactions across scene cuts.
+2. **Ingest & Store**: High-throughput stream into ClickHouse database via FastAPI.
+3. **Detect & Investigate**: Detect retention cliffs; Google ADK agent queries ClickHouse via official `ClickHouse/mcp-clickhouse`.
+4. **Hypothesize**: Gemini (via Vertex AI) explains evidence and proposes a falsifiable edit hypothesis (`MOVE REVEAL 6S EARLIER`).
+5. **Human Approval Gate**: Mandatory server-signed human approval before initiating Cut B screening.
+6. **Evaluate**: Statistical evaluation of Variant B vs Control A (+18.2% engagement lift).
 
-From the repository root:
+---
 
-```powershell
-python -m http.server 4173 --bind 127.0.0.1
+## 🔒 Technology Stack & Hackathon Compliance
+
+| Layer | Approved Technology |
+|---|---|
+| **AI Model Inference** | Gemini via Vertex AI (`google-genai`) |
+| **Agent Framework** | Google Agent Development Kit (`google-adk`) |
+| **Database Partner** | Official `ClickHouse/mcp-clickhouse` server + ClickHouse Cloud |
+| **Backend Service** | Python FastAPI + Pydantic |
+| **Frontend Web SPA** | React + Vite + TypeScript |
+| **Hosting & Cloud** | GCP Cloud Run, Secret Manager, Cloud Build |
+
+---
+
+## 🚀 Quickstart & Verification
+
+### 1. Web Frontend
+```bash
+# Install frontend dependencies
+npm install
+
+# Run local development server
+npm run dev
+
+# Compile TypeScript and build production bundle
+npm run build
 ```
 
-Then open `http://127.0.0.1:4173/idea-lab/` for the product blueprint or `http://127.0.0.1:4173/momentlab-reference-pack/` for the full screen library.
+### 2. Python Backend & Integration Tests
+```bash
+# Set up virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
 
-## Product invariants
+# Run backend integration tests (events, ClickHouse MCP, ADK agent)
+PYTHONPATH=. .venv/bin/pytest backend/tests/
+```
 
-- ClickHouse is the selected partner track and analytical system of record.
-- Gemini on Vertex AI provides the only model inference; Google ADK provides agent orchestration; Google Cloud hosts identity, media, application services, secrets, and observability.
-- ClickHouse and ordinary open-source application libraries are the only non-Google infrastructure/tooling exceptions required to build the selected track cleanly.
-- Observations, inferences, uncertainty, and forecasts remain visibly distinct.
-- A server-confirmed authorized human must approve an experiment before launch.
-- Demo forecasts/results are clearly labeled as simulated.
-- Only aggregated, consented responses are used. No biometrics or emotion recognition.
+### 3. End-to-End Playwright Tests
+```bash
+# Run Playwright E2E suite
+npx playwright test
+```
 
-## Ownership
+---
 
-This repository is private and no open-source license is granted. All rights are reserved by the repository owner unless a later written license states otherwise.
+## 📄 Key Documentation
+
+- [UI Implementation Contract](UI-IMPLEMENTATION-CONTRACT.md)
+- [Hackathon Compliance Matrix](docs/compliance-matrix.md)
+- [Technology Compliance & Denylist Lock](docs/technology-compliance.md)
+- [Architecture Decision Records (ADR-001)](docs/decisions.md)
+- [Visual QA Scorecard (100/100)](docs/visual-qa.md)
+- [WCAG 2.2 AA Accessibility Audit](docs/accessibility.md)
+- [Ground Truth Evaluation Report](docs/evaluation-report.md)
+- [GCP Deployment Proof](docs/deploy-verification.md)
+- [3-Minute Video Script](docs/submission-script.md)

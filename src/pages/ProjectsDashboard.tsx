@@ -1,0 +1,140 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Film, Users, Play, Plus, ChevronRight } from 'lucide-react';
+import { AppShell } from '../components/AppShell';
+import { NORTHLIGHT_PROJECT } from '../fixtures/northlight';
+
+export const ProjectsDashboard: React.FC = () => {
+  return (
+    <AppShell>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
+        {/* Page Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text)', marginBottom: '4px' }}>
+              Project Dashboard
+            </h1>
+            <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
+              Active film projects and audience screening experiments
+            </p>
+          </div>
+
+          <button
+            style={{
+              backgroundColor: 'var(--violet)',
+              color: '#fff',
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '13px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Plus size={16} />
+            <span>NEW PROJECT</span>
+          </button>
+        </div>
+
+        {/* Primary Project Card */}
+        <div
+          style={{
+            backgroundColor: 'var(--surface-1)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            marginBottom: '32px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'var(--violet)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                <Film size={24} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
+                  {NORTHLIGHT_PROJECT.name}
+                </h2>
+                <p style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                  {NORTHLIGHT_PROJECT.description}
+                </p>
+              </div>
+            </div>
+
+            <span className="badge badge-connected">
+              {NORTHLIGHT_PROJECT.status}
+            </span>
+          </div>
+
+          {/* Metrics Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', backgroundColor: 'var(--surface-2)', padding: '16px', borderRadius: 'var(--radius-md)', marginBottom: '20px' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase' }}>Consented Respondents</div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }} className="tabular-nums">
+                <Users size={18} color="var(--violet)" />
+                <span>{NORTHLIGHT_PROJECT.totalRespondents.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase' }}>Active Scenes</div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)' }} className="tabular-nums">
+                {NORTHLIGHT_PROJECT.sceneCount} Scenes
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase' }}>Active Experiment</div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--coral)' }}>
+                Experiment 23A
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Link
+              to={`/projects/${NORTHLIGHT_PROJECT.id}/experiments/exp_23a/finding`}
+              style={{
+                backgroundColor: 'var(--violet)',
+                color: '#fff',
+                textDecoration: 'none',
+                padding: '10px 18px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '13px',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>OPEN EXPERIMENT WORKSPACE</span>
+              <ChevronRight size={16} />
+            </Link>
+
+            <Link
+              to="/screen/demo_token_123"
+              style={{
+                backgroundColor: 'var(--surface-3)',
+                color: 'var(--text)',
+                textDecoration: 'none',
+                padding: '10px 18px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '13px',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                border: '1px solid var(--border)'
+              }}
+            >
+              <Play size={16} color="var(--lime)" />
+              <span>TEST AUDIENCE SCREENING PLAYER</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+};

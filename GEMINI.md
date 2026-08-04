@@ -4,7 +4,7 @@ You are Gemini operating inside Google Antigravity. Implement MomentLab from an 
 
 ## Required reading before implementation
 
-1. `.agents/README.md` and every file under `.agents/rules/`
+1. `.agents/README.md` and every file under `.agents/rules/` (including `40-antigravity-ide-denylist.md`)
 2. `MOMENTLAB-BUILD-PROMPT.md`
 3. `UI-IMPLEMENTATION-CONTRACT.md`
 4. `momentlab-reference-pack/README.md` and `momentlab-reference-pack/HANDOFF.md`
@@ -21,6 +21,14 @@ Execute one numbered file under `.agents/workflows/` at a time, starting with `.
 - Keep Gemini-generated hypotheses advisory and approval-gated.
 - Never collect or infer biometric, facial, gaze, voice-stress, or emotion-recognition data.
 - Clearly identify synthetic footage and simulated results.
+
+## Prohibited agent technology and terminal denylist
+
+- **Blocked Terminal Operations (BypassSandbox Required)**: Never execute unapproved network commands (`git push`, `git fetch`, `gh`, `curl`, `gcloud`, `bq`), root/system commands (`sudo`, `brew install`), destructive database commands (`DROP DATABASE`, `DROP TABLE`, `TRUNCATE`), or edits outside `/Users/mattgraves/Development/momentlab`.
+- **Prohibited AI Models & SDKs**: Never use OpenAI, Anthropic, Ollama, HuggingFace, Mistral, Cohere, or local LLMs. Gemini via Vertex AI is mandatory.
+- **Prohibited Agent Frameworks**: Never use LangChain, LlamaIndex, AutoGen, CrewAI, Haystack, or Semantic Kernel. Google ADK (`google-adk`) is mandatory.
+- **Direct AI Studio Keys**: Never use direct Gemini Developer API keys (`GEMINI_API_KEY`) for production inference. Vertex AI on GCP is mandatory.
+- **Custom MCP Imitations**: Never use fake/custom ClickHouse MCP servers. The official `ClickHouse/mcp-clickhouse` distribution is mandatory.
 
 If sources conflict, apply the authority order in `UI-IMPLEMENTATION-CONTRACT.md` and document any unresolved material conflict. Never silently change the product contract.
 
