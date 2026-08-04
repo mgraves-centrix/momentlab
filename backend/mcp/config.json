@@ -1,0 +1,12 @@
+{
+  "server_package": "ClickHouse/mcp-clickhouse",
+  "version": "official-release",
+  "read_only_user": "momentlab_mcp_reader",
+  "allowed_tools": [
+    "clickhouse_query",
+    "clickhouse_describe_table",
+    "clickhouse_show_tables"
+  ],
+  "row_limit": 5000,
+  "timeout_seconds": 10
+}

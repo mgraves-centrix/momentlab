@@ -1,0 +1,55 @@
+import React, { useState } from 'react';
+import { AppShell } from '../components/AppShell';
+import { StatePanel, StateType } from '../components/StatePanel';
+
+export const AdminDemoPage: React.FC = () => {
+  const [activeState, setActiveState] = useState<StateType>('insufficient_sample');
+
+  const states: { type: StateType; label: string }[] = [
+    { type: 'loading', label: '1. Loading Skeleton' },
+    { type: 'insufficient_sample', label: '2. Insufficient Sample (<100)' },
+    { type: 'mcp_connecting', label: '3. MCP Connecting' },
+    { type: 'mcp_error', label: '4. MCP Disconnected / Error' },
+    { type: 'permission_denied', label: '5. Permission Denied' },
+    { type: 'offline_stale', label: '6. Offline / Stale Cache' }
+  ];
+
+  return (
+    <AppShell>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 24px' }}>
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text)' }}>
+            State Reference Board & Health Controls
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '4px' }}>
+            Interactive verification of screen 13 edge state behavior and recovery contracts
+          </p>
+        </div>
+
+        {/* State Switcher Buttons */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+          {states.map((s) => (
+            <button
+              key={s.type}
+              onClick={() => setActiveState(s.type)}
+              style={{
+                backgroundColor: activeState === s.type ? 'var(--violet)' : 'var(--surface-1)',
+                color: activeState === s.type ? '#fff' : 'var(--muted)',
+                border: '1px solid var(--border)',
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '12px',
+                fontWeight: 600
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Active State Preview Panel */}
+        <StatePanel type={activeState} onRetry={() => alert('Retry triggered for state: ' + activeState)} />
+      </div>
+    </AppShell>
+  );
+};
