@@ -1,17 +1,18 @@
 # Antigravity handoff
 
-Before writing product code, open `README.md`, inspect all 14 assets in the LAN gallery, and create a route-by-route implementation checklist. Treat `system/12-design-system-board.png` and `system/13-state-reference-board.png` as release specifications, not inspiration.
+Before writing product code, read `../UI-IMPLEMENTATION-CONTRACT.md`, inspect all 14 assets in the local gallery, and create a route-by-route implementation checklist. Treat `system/12-design-system-board.png` and `system/13-state-reference-board.png` as release specifications, not inspiration.
 
 ## Execution order
 
-1. Establish shared design tokens and primitives from screen 12.
-2. Create deterministic Northlight fixtures using the canonical facts in `README.md`.
-3. Build routes 04–08 as accessible desktop components and wire real route state.
-4. Build routes 09–11 from their dedicated references. Do not make up a generic collapsed desktop view.
-5. Implement screens 01–03 for the end-to-end demo entry path.
-6. Implement every state from screen 13 with an explicit recovery or next-safe action.
-7. Connect Gemini on Vertex AI through Google ADK and expose ClickHouse MCP evidence behind typed Cloud Run APIs.
-8. Add Playwright visual tests and compare each route with its corresponding reference.
+1. Run `../.agents/workflows/00-audit-and-plan.md` and complete the source/reference audit.
+2. Run `../.agents/workflows/01-ui-foundation.md`: establish shared design tokens and primitives from screen 12.
+3. Create deterministic Northlight fixtures using the canonical facts in `README.md`.
+4. Build routes 04–08 as accessible desktop components and wire real route state.
+5. Build routes 09–11 from their dedicated references with the canonical four-item bottom navigation. Do not make up a generic collapsed desktop view.
+6. Implement screens 01–03 for the end-to-end demo entry path.
+7. Implement every state from screen 13 with an explicit recovery or next-safe action.
+8. Add Playwright visual tests and iterate to the scored acceptance gate before backend breadth.
+9. Continue the remaining `.agents/workflows/` to connect Gemini on Vertex AI, Google ADK, ClickHouse MCP, GCP, and submission proof.
 
 ## Non-negotiables
 
