@@ -1,12 +1,42 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Lock, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Lock, AlertCircle, CheckCircle, Flame, HelpCircle, Frown } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
 import { MediaPlayer } from '../components/MediaPlayer';
 
 export const ScreeningConsentPage: React.FC = () => {
   const [hasConsented, setHasConsented] = useState(false);
+  const [currentTimeMs, setCurrentTimeMs] = useState(37000);
+  const [lastReaction, setLastReaction] = useState<{ type: string; timestamp: string } | null>(null);
+  const [reactionCounts, setReactionCounts] = useState({ CONFUSED: 0, ENGAGING: 0, BORED: 0 });
   const navigate = useNavigate();
+
+  const handleSendReaction = async (reactionType: 'CONFUSED' | 'ENGAGING' | 'BORED') => {
+    const seconds = Math.floor(currentTimeMs / 1000);
+    const timecode = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    
+    setLastReaction({ type: reactionType, timestamp: timecode });
+    setReactionCounts((prev) => ({ ...prev, [reactionType]: prev[reactionType] + 1 }));
+
+    try {
+      await fetch('/api/v1/events/playback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: 'sess_screener_demo_01',
+          project_id: 'proj_northlight_01',
+          experiment_id: 'exp_23a',
+          scene_id: 'sc_12',
+          media_time_ms: currentTimeMs,
+          retention_score: reactionType === 'ENGAGING' ? 0.95 : reactionType === 'CONFUSED' ? 0.45 : 0.50,
+          playback_state: 'PLAYING',
+          idempotency_key: `idemp_${Date.now()}`
+        })
+      });
+    } catch (err) {
+      console.warn('Playback event dispatch offline, reaction recorded locally:', err);
+    }
+  };
 
   return (
     <AppShell>
@@ -51,7 +81,9 @@ export const ScreeningConsentPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  cursor: 'pointer',
+                  border: 'none'
                 }}
               >
                 <Lock size={16} />
@@ -64,7 +96,9 @@ export const ScreeningConsentPage: React.FC = () => {
                   backgroundColor: 'transparent',
                   color: 'var(--muted)',
                   padding: '10px',
-                  fontSize: '13px'
+                  fontSize: '13px',
+                  border: 'none',
+                  cursor: 'pointer'
                 }}
               >
                 Decline & Return to Dashboard
@@ -74,15 +108,91 @@ export const ScreeningConsentPage: React.FC = () => {
         ) : (
           /* Post-Consent Audience Player Screen */
           <div>
-            <MediaPlayer sceneTitle="Northlight · Scene 12 Cut A" />
+            <MediaPlayer
+              sceneTitle="Northlight · Scene 12 Cut A"
+              onTimeUpdate={(timeMs) => setCurrentTimeMs(timeMs)}
+            />
 
-            {/* Explicit Reaction Buttons */}
+            {/* Reaction Feedback Banner */}
+            {lastReaction && (
+              <div style={{
+                marginTop: '16px',
+                backgroundColor: 'var(--surface-2)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                color: 'var(--lime)'
+              }}>
+                <CheckCircle size={16} />
+                <span>Reaction Recorded: <strong>{lastReaction.type}</strong> at timecode <strong>{lastReaction.timestamp}</strong></span>
+              </div>
+            )}
+
+            {/* Live Interactive Reaction Buttons */}
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '20px' }}>
-              <button style={{ backgroundColor: 'rgba(255, 102, 82, 0.2)', border: '1px solid var(--coral)', color: 'var(--coral)', padding: '10px 20px', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>
-                😖 Confusing Moment
+              <button
+                onClick={() => handleSendReaction('CONFUSED')}
+                style={{
+                  backgroundColor: 'rgba(255, 102, 82, 0.15)',
+                  border: '1px solid var(--coral)',
+                  color: 'var(--coral)',
+                  padding: '12px 24px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <HelpCircle size={18} />
+                <span>CONFUSING MOMENT ({reactionCounts.CONFUSED})</span>
               </button>
-              <button style={{ backgroundColor: 'rgba(183, 227, 61, 0.2)', border: '1px solid var(--lime)', color: 'var(--lime)', padding: '10px 20px', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>
-                ⚡ Engaging Moment
+
+              <button
+                onClick={() => handleSendReaction('ENGAGING')}
+                style={{
+                  backgroundColor: 'rgba(183, 227, 61, 0.15)',
+                  border: '1px solid var(--lime)',
+                  color: 'var(--lime)',
+                  padding: '12px 24px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Flame size={18} />
+                <span>ENGAGING MOMENT ({reactionCounts.ENGAGING})</span>
+              </button>
+
+              <button
+                onClick={() => handleSendReaction('BORED')}
+                style={{
+                  backgroundColor: 'rgba(148, 163, 184, 0.15)',
+                  border: '1px solid var(--muted)',
+                  color: 'var(--text)',
+                  padding: '12px 24px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Frown size={18} />
+                <span>BORED MOMENT ({reactionCounts.BORED})</span>
               </button>
             </div>
           </div>
