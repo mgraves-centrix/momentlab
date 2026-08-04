@@ -22,8 +22,8 @@ This pack is the visual contract for rebuilding MomentLab as a live, responsive 
 | ID | Asset | Intended route/state | Build purpose |
 |---|---|---|---|
 | 01 | `desktop/01-project-dashboard.png` | `/projects` | Project and screening overview |
-| 02 | `desktop/02-screening-consent.png` | `/screenings/new` | Consent and privacy entry |
-| 03 | `desktop/03-audience-player.png` | Audience response client | Playback and response capture |
+| 02 | `desktop/02-screening-consent.png` | `/screen/:screeningToken` before consent | Consent and privacy state |
+| 03 | `desktop/03-audience-player.png` | `/screen/:screeningToken` after consent | Playback and response capture state |
 | 04 | `desktop/04-response-timeline.png` | `/projects/:projectId/experiments/:experimentId/finding` | Primary desktop workspace |
 | 05 | `desktop/05-moment-evidence.png` | `.../evidence` | Evidence, uncertainty, and MCP trace |
 | 06 | `desktop/06-edit-hypothesis.png` | `.../hypothesis` | Agent proposal and human decision |
@@ -44,6 +44,8 @@ This pack is the visual contract for rebuilding MomentLab as a live, responsive 
 4. Adapt for accessibility and real data without inventing a different mobile experience.
 5. Keep all demo values in deterministic fixtures, not scattered component constants.
 
+The mobile references establish a four-item bottom navigation labeled exactly `Finding`, `Evidence`, `Test`, and `More`. The first three map to their dedicated routes. `More` is a compact navigation route for Results, Project, Help, and authorized demo controls; it must use existing system primitives and must not displace or redesign the primary workflow. The mobile Finding reference is authoritative and does not add the desktop four-metric row.
+
 ## Visual acceptance
 
 - Build with semantic React components, real routing, live chart data, keyboard support, and 44 × 44 px minimum touch targets.
@@ -53,4 +55,4 @@ This pack is the visual contract for rebuilding MomentLab as a live, responsive 
 - Clearly label generated forecasts and results as simulated; never imply causation.
 - Use aggregated, consented responses only. Do not collect or infer biometric or emotion data.
 
-See `HANDOFF.md` for the recommended Antigravity execution sequence and `GENERATION-PROMPTS.md` for asset provenance.
+See `../UI-IMPLEMENTATION-CONTRACT.md` for the canonical route/component/state contract, `HANDOFF.md` for the Antigravity execution sequence, and `GENERATION-PROMPTS.md` for asset provenance.

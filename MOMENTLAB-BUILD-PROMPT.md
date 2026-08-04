@@ -1,8 +1,10 @@
-# Gemini master build prompt — MomentLab
+# Gemini master build specification — MomentLab
 
-You are Gemini operating as a principal product engineer, staff UX designer, data architect, agent engineer, SRE, security engineer, QA lead, and hackathon submission strategist. Build a functional first cut of **MomentLab** for the **Agentic Cinema: The Blockbuster Hackathon — ClickHouse track**, then prepare it for deployment on Google Cloud Platform.
+You are Gemini operating in Google Antigravity as a principal product engineer, staff UX designer, data architect, agent engineer, SRE, security engineer, QA lead, and hackathon submission strategist. Build a functional first cut of **MomentLab** for the **Agentic Cinema: The Blockbuster Hackathon — ClickHouse track**, then prepare it for deployment on Google Cloud Platform.
 
 Do not merely describe the product or generate disconnected snippets. Create and maintain a runnable monorepo, implement the vertical slice, test it, document it, and leave explicit deployment commands. Work autonomously in small verified increments. When a decision is reversible, choose the simplest production-credible option and proceed. Ask only when a missing credential, billing decision, or irreversible action blocks you. Never invent a successful command, test, deployment, integration, metric, or API response.
+
+This file is the governing product specification, not a request to attempt the entire build in one unverified pass. Apply every file under `.agents/rules/` continuously and execute the bounded files under `.agents/workflows/` in numeric order. Read `UI-IMPLEMENTATION-CONTRACT.md` before product code. At the start of each workflow, state its inputs and exit gate; at the end, provide reproducible artifacts and results before continuing.
 
 ## 1. Mission and winning thesis
 
@@ -133,7 +135,7 @@ Product boundaries:
 
 Prioritize one polished vertical slice over broad unfinished functionality. Implement these routes:
 
-### `/`
+### `/projects`
 
 Project list with `Northlight` seeded as the demo project. Show cut status, session count, latest finding, and experiment state.
 
@@ -148,7 +150,7 @@ Consent-first screening player for Cut A or Cut B. Include:
 - Post-scene survey.
 - Event batching, retry with idempotency keys, and visible completion state.
 
-### `/projects/:projectId/experiments/:experimentId`
+### `/projects/:projectId/experiments/:experimentId/finding`
 
 Reproduce the premium editorial-workstation character of the MomentLab concept image:
 
@@ -164,7 +166,7 @@ Reproduce the premium editorial-workstation character of the MomentLab concept i
 
 #### UI/UX reference is a build specification
 
-Treat the published MomentLab Idea Lab page and mockup as the authoritative visual/product target:
+Treat the local MomentLab visual pack as the authoritative visual/product target, using the conflict order in `UI-IMPLEMENTATION-CONTRACT.md`:
 
 - Local product blueprint: `idea-lab/index.html`
 - Full-resolution interface reference: `design/reference-originals/momentlab-desktop.png`
@@ -172,6 +174,7 @@ Treat the published MomentLab Idea Lab page and mockup as the authoritative visu
 - Canonical mobile reference asset: `design/reference-originals/momentlab-mobile.png`
 - Complete screen-level implementation pack: `momentlab-reference-pack/README.md`
 - Antigravity execution sequence: `momentlab-reference-pack/HANDOFF.md`
+- Route, component, state, and acceptance authority: `UI-IMPLEMENTATION-CONTRACT.md`
 
 At project initialization, open `momentlab-reference-pack/README.md`, inspect all 14 assets in place, and create a route-to-reference checklist before implementing the shell. Record the reviewed assets and review date in `design/reference-review.md`. **Do not design or implement a mobile view until `momentlab-reference-pack/mobile/09-mobile-finding.png`, `momentlab-reference-pack/mobile/10-mobile-evidence.png`, and `momentlab-reference-pack/mobile/11-mobile-test.png` have been successfully opened and inspected. If an asset is unavailable, stop and report the missing file; do not infer, improvise, or generate a replacement mobile design.** Treat `momentlab-reference-pack/system/12-design-system-board.png` and `momentlab-reference-pack/system/13-state-reference-board.png` as release specifications. Do not ship any reference image as the app UI or a background image. Reconstruct every route with accessible components and live data.
 
@@ -217,29 +220,29 @@ Responsive behavior:
 
 - `>= 1280 px`: reference-faithful three-column workspace.
 - `900–1279 px`: two-column player/analysis layout; the hypothesis/approval rail becomes an accessible side panel.
-- `< 900 px`: implement the three-screen mobile workflow specified below and shown in `design/reference/momentlab-mobile.png`. Do not invent a generic one-column collapse of the desktop dashboard.
+- `< 900 px`: implement the three primary mobile workflow screens and four-item navigation shown in the dedicated files under `momentlab-reference-pack/mobile/`. Do not invent a generic one-column collapse of the desktop dashboard.
 
 #### Mobile UI/UX reference is equally authoritative
 
-The mobile reference shows three linked application states inside a real phone viewport. Build those states as responsive routes or URL-addressable tabs within the same application and shared data model:
+The mobile references show three primary application states inside a real phone viewport. Build them as responsive routes within the same application and shared data model:
 
 ```text
 /projects/:projectId/experiments/:experimentId/finding
 /projects/:projectId/experiments/:experimentId/evidence
 /projects/:projectId/experiments/:experimentId/test
+/projects/:projectId/experiments/:experimentId/more
 ```
 
-At mobile widths, provide a persistent three-item bottom navigation labeled exactly `Finding`, `Evidence`, and `Test`. It must preserve the user’s selected cohort, chart window, current `media_time_ms`, experiment ID, and agent-run state when navigating between tabs. Use real routing/history so Android back, iOS back gestures, deep links, refresh, and browser back work correctly. Do not implement the reference as three disconnected mock screens.
+At mobile widths, provide the persistent four-item bottom navigation shown in the dedicated references, labeled exactly `Finding`, `Evidence`, `Test`, and `More`. `More` exposes Results, Project, Help, and authorized demo controls without inventing a new primary workflow. Preserve the selected cohort, chart window, current `media_time_ms`, experiment ID, and agent-run state when navigating. Use real routing/history so Android back, iOS back gestures, deep links, refresh, and browser back work correctly. Do not implement the reference as disconnected mock screens.
 
 **Mobile screen 1 — Finding**
 
 - Compact `MOMENTLAB` header, `PROJECT NORTHLIGHT` selector, and notification control.
 - Scene header followed by the original-cut 16:9 player, transport controls, and `00:37 / 02:18` timecode.
-- A single four-column metric row in this order: `COMPLETION 68%`, `REWATCH 24%`, `CONFUSED 12%`, `ENGAGED 72%`. At very narrow widths preserve legibility using equal compact cells; do not turn these into oversized stacked cards.
 - Touch-friendly `ALL`, `18–24`, and `25–34` segment chips.
 - The response chart remains the dominant mobile element, with the violet cohort series, coral `00:37` marker, and an anchored `RESPONSE CLIFF` callout showing `−28%` and `00:33–00:41`.
 - The chart must support touch scrubbing, keyboard focus, accessible values, and synchronization with the video timecode.
-- Bottom navigation has `Finding` active in violet.
+- Bottom navigation has `Finding` active in violet and retains the other three canonical items.
 
 **Mobile screen 2 — Evidence**
 
@@ -248,7 +251,7 @@ At mobile widths, provide a persistent three-item bottom navigation labeled exac
 - `COHORT COMPARISON` card with the three violet series and the exact cliff summary `−28% / 00:33–00:41`.
 - `EDIT HYPOTHESIS` card with prominent `MOVE REVEAL 6S EARLIER`, supporting explanation, `CONFIDENCE 91%`, rationale bullets, evidence ID, and sample size.
 - Live `CLICKHOUSE MCP` card marked `CONNECTED` only when the authenticated SSE tool stream is healthy. Show recent query purposes and durations using sanitized telemetry—not decorative hard-coded rows.
-- Bottom navigation has `Evidence` active in violet.
+- Bottom navigation has `Evidence` active in violet and retains the other three canonical items.
 
 **Mobile screen 3 — Test**
 
@@ -259,7 +262,7 @@ At mobile widths, provide a persistent three-item bottom navigation labeled exac
 - `HUMAN APPROVAL` card showing the current reviewer and an explicit `I approve this test` control.
 - Full-width acid-lime `APPROVE & LAUNCH` action and secondary `SAVE DRAFT`. The launch action is disabled until server-confirmed authorization and approval; visual state alone is never sufficient.
 - Privacy footer: `All insights use aggregated consented responses. No biometrics.`
-- Bottom navigation has `Test` active in violet.
+- Bottom navigation has `Test` active in violet and retains the other three canonical items.
 
 Mobile implementation invariants:
 
@@ -273,8 +276,8 @@ Visual acceptance is release-blocking:
 
 1. Add a Storybook or equivalent route with deterministic states for default, loading, empty, insufficient sample, MCP failure, awaiting approval, test running, supported, rejected, and inconclusive.
 2. Add Playwright screenshot tests at 1568 × 1000, 1280 × 800, and 1024 × 768 for desktop/tablet. Add separate 390 × 844 screenshots for the `Finding`, `Evidence`, and `Test` routes, plus 430 × 932 coverage for large phones.
-3. Compare the desktop screenshot side by side with `design/reference/momentlab-concept.png`. Separately compare all three 390 × 844 mobile route screenshots with their corresponding phone screen in `design/reference/momentlab-mobile.png`. Create `docs/visual-qa.md` with distinct `Desktop` and `Mobile` sections listing discrepancies in layout, hierarchy, typography, spacing, color, content density, navigation, interaction state, and reference fidelity.
-4. Iterate until there are no high-severity discrepancies, no overlap/clipping, no missing reference region, and no accessibility violation. A raw pixel threshold is not sufficient; use semantic visual review because live charts and fonts vary.
+3. Compare each desktop route with its corresponding file in `momentlab-reference-pack/desktop/` and each mobile route with `momentlab-reference-pack/mobile/09-mobile-finding.png`, `momentlab-reference-pack/mobile/10-mobile-evidence.png`, or `momentlab-reference-pack/mobile/11-mobile-test.png`. Create `docs/visual-qa.md` using the scored matrix in `UI-IMPLEMENTATION-CONTRACT.md`.
+4. Iterate until the score is at least 99/100 overall, no category is below 98%, and every hard gate in the UI contract passes. A raw pixel threshold is not sufficient; use semantic visual review because live charts and fonts vary.
 5. Save the final verified desktop screenshot to `docs/images/momentlab-built.png` and the verified mobile screenshots to `docs/images/momentlab-mobile-finding.png`, `docs/images/momentlab-mobile-evidence.png`, and `docs/images/momentlab-mobile-test.png` for the README and submission evidence.
 
 ### `/admin/demo`
@@ -421,6 +424,8 @@ Implement and report:
 - time from detected anomaly to approved experiment draft
 - Variant B change in completion and engagement, with confidence interval and guardrails
 - rate of `INCONCLUSIVE` decisions on deliberately underpowered tests
+- agent task-completion rate, tool-selection correctness, boundedness, grounding, and trajectory quality
+- visual QA score by route/category plus accessibility and responsive hard-gate results
 
 Targets are goals, never fabricated results:
 
@@ -479,7 +484,11 @@ Document environment-specific security headers and test them. Production default
 
 ## 11. Delivery plan
 
-Work in four vertical milestones and keep the app runnable after each:
+Work in five vertical milestones and keep the app runnable after each. Execute the matching `.agents/workflows/` file rather than treating this list as a single generation request:
+
+### Milestone 0 — UI contract and executable product shell
+
+Audit every reference, establish tokens and shared components, implement canonical routing and deterministic Northlight fixtures, then build and visually verify all desktop/mobile routes. Do not defer the approved UI until the final polish milestone. Prove the UI reaches the scored release gate in `UI-IMPLEMENTATION-CONTRACT.md` before backend breadth changes its structure.
 
 ### Milestone 1 — Film and events
 
@@ -493,7 +502,7 @@ Implement aggregates, deploy/run official `mcp-clickhouse`, connect the ADK tool
 
 Implement deterministic detection, Gemini explanation, typed hypothesis, evidence citations, server-enforced approval, and experiment draft. Prove no approval can be bypassed.
 
-### Milestone 4 — Evaluation, polish, and GCP
+### Milestone 4 — Evaluation, release QA, and GCP
 
 Implement Cut B evaluation, failure states, accessibility, security tests, observability, Terraform/Cloud Build, hosted deployment, public-repo documentation, and the submission video script.
 
@@ -539,6 +548,7 @@ Create:
   - 2:15–2:40 — Variant B evaluation and uncertainty
   - 2:40–3:00 — architecture, measured evaluation, partner indispensability, and impact
 - `docs/judge-proof.md` mapping each equal-weight judging criterion—technological implementation, design, potential impact, and quality of idea—to concrete evidence in the product and video
+- Antigravity artifacts showing the plan, workflow checkpoints, verified commands, final walkthrough, and route-specific screenshot evidence
 - one-command local demo and one-command deterministic reset
 
 The required commands are repository scripts, not prose placeholders:
@@ -546,7 +556,9 @@ The required commands are repository scripts, not prose placeholders:
 ```text
 make demo        # validates prerequisites, starts local dependencies, applies DDL, seeds data, runs smoke tests, prints URLs
 make reset-demo  # confirms the target is the named local/demo database, then safely reseeds the fixed dataset
+make ui-verify   # builds canonical states, runs accessibility/e2e checks, captures viewports, and scores visual QA
 make verify      # format/lint/type/unit/integration/evaluation/e2e checks
+make submission-audit # verifies rules, source paths, licenses, provenance, secrets, artifacts, and judge-proof mappings
 make deploy      # explicit confirmation, then tested GCP deployment using configured project and region
 make smoke       # tests the deployed URL and required ClickHouse MCP path
 ```
@@ -567,7 +579,9 @@ Do not call the first cut complete until all of these are true:
 - Cut B results can be evaluated as supported, rejected, or inconclusive.
 - Loading, empty, insufficient-sample, failure, and retry states work.
 - Cross-project access, prompt injection, duplicate events, and approval bypass tests fail safely.
-- The interface is responsive, keyboard usable, and visually close to the supplied MomentLab product direction.
+- Every canonical route uses the approved information architecture and shared component contracts.
+- The visual QA score is at least 99/100 overall, no category is below 98%, and all accessibility/responsive hard gates pass.
+- Desktop and mobile screenshots have been compared against their dedicated reference files and saved as reproducible artifacts.
 - The repository can be installed from its documented instructions and has an OSI-approved license.
 - The deployed GCP app passes smoke tests from a clean session.
 - The compliance matrix points to real runtime evidence, not claims.
@@ -576,11 +590,11 @@ Do not call the first cut complete until all of these are true:
 
 Start now.
 
-1. Inspect the current workspace and preserve any existing compatible work.
+1. Read `GEMINI.md`, apply `.agents/rules/`, inspect the current workspace, and preserve any existing compatible work.
 2. Read and verify against these primary sources before choosing versions or architecture: the current hackathon rules at `https://agentic-cinema.devpost.com/rules`; Vertex AI Agent Builder overview at `https://cloud.google.com/vertex-ai/generative-ai/docs/agent-builder/overview`; Vertex AI Agent Engine documentation at `https://cloud.google.com/vertex-ai/generative-ai/docs/reasoning-engine/overview`; Google ADK documentation at `https://google.github.io/adk-docs/`; and the official ClickHouse MCP repository at `https://github.com/ClickHouse/mcp-clickhouse`. Put links, access dates, applicable requirements, and any changed assumptions in `docs/sources.md`.
-3. Produce a concise implementation plan and architecture decision record. Do not stop for approval unless a material irreversible choice or credential is required.
-4. Scaffold the repository and implement Milestone 1 as a working vertical slice.
-5. Continue milestone by milestone, running tests after each material change.
+3. Execute `.agents/workflows/00-audit-and-plan.md`; produce its required plan, source audit, reference audit, and architecture decisions. Do not stop for approval unless a material irreversible choice or credential is required.
+4. Execute `.agents/workflows/01-ui-foundation.md` and implement Milestone 0 as the first working vertical slice.
+5. Continue through the remaining workflows and milestones in order, running relevant tests after each material change and satisfying each exit gate before proceeding.
 6. Prefer real integrations. If a credential is unavailable, implement a contract-faithful adapter and local integration test, clearly label the blocked live step, and provide the exact command the owner must run. Never disguise a mock as production.
 7. Keep a visible checklist with `DONE`, `IN PROGRESS`, `BLOCKED`, and `NOT STARTED`.
 8. When reporting completion, include only verifiable outcomes, commands to reproduce them, known limitations, remaining credential-dependent steps, and the next highest-leverage action.

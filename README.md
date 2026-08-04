@@ -6,17 +6,25 @@ This initial commit is the complete product/design handoff. It intentionally doe
 
 ## Start here
 
-1. Read [`MOMENTLAB-BUILD-PROMPT.md`](MOMENTLAB-BUILD-PROMPT.md).
-2. Read [`momentlab-reference-pack/HANDOFF.md`](momentlab-reference-pack/HANDOFF.md).
-3. Review the screen map in [`momentlab-reference-pack/README.md`](momentlab-reference-pack/README.md).
-4. Open all desktop, mobile, and system references before implementing the app shell.
-5. Build the product as live, accessible components—never as screenshot backgrounds.
+1. Open [`GEMINI.md`](GEMINI.md) in Google Antigravity.
+2. Read [`.agents/README.md`](.agents/README.md) and apply its numbered workflows.
+3. Read [`MOMENTLAB-BUILD-PROMPT.md`](MOMENTLAB-BUILD-PROMPT.md) and [`UI-IMPLEMENTATION-CONTRACT.md`](UI-IMPLEMENTATION-CONTRACT.md).
+4. Review [`HANDOFF-READINESS.md`](HANDOFF-READINESS.md) for the scored handoff audit.
+5. Review [`momentlab-reference-pack/HANDOFF.md`](momentlab-reference-pack/HANDOFF.md) and the complete screen map.
+6. Open all desktop, mobile, and system references before implementing the app shell.
+7. Build the product as live, accessible components—never as screenshot backgrounds.
 
 ## Repository contents
 
 ```text
 MOMENTLAB-BUILD-PROMPT.md        Locked implementation and hackathon specification
 GEMINI.md                        Antigravity/Gemini repository instructions
+UI-IMPLEMENTATION-CONTRACT.md    Canonical routes, components, states, and 99/100 visual gate
+HANDOFF-READINESS.md             9.9+ scored quality audit and remaining execution proof
+.agents/
+  rules/                         Persistent product, Google, UI, and truthfulness constraints
+  workflows/                     Bounded Antigravity implementation and verification phases
+  skills/                        Repeatable route-fidelity review procedure
 idea-lab/                        Self-contained product blueprint; no hosted dependency
 momentlab-reference-pack/
   index.html                     Searchable local review gallery
