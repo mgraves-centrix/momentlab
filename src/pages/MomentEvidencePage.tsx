@@ -1,17 +1,31 @@
 import React from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { EvidenceRecordCard } from '../components/EvidenceRecord';
 import { McpActivityPanel } from '../components/McpActivityPanel';
-import { NORTHLIGHT_EVIDENCE, NORTHLIGHT_MCP_ACTIVITIES } from '../fixtures/northlight';
 import { Database, ShieldCheck, Cpu } from 'lucide-react';
+import { NORTHLIGHT_MCP_ACTIVITIES } from '../fixtures/northlight';
 import { useMobile } from '../hooks/useMobile';
+import { generateHypothesis } from '../api/client';
 
 export const MomentEvidencePage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const highlightedEvId = searchParams.get('highlight');
+  const { projectId, experimentId } = useParams();
   const navigate = useNavigate();
+  const [hypothesisData, setHypothesisData] = React.useState<any>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   
+  React.useEffect(() => {
+    if (projectId && experimentId) {
+      generateHypothesis(projectId, experimentId).then(data => {
+        setHypothesisData(data.hypothesis);
+        setIsLoading(false);
+      }).catch(err => {
+        console.error(err);
+        setIsLoading(false);
+      });
+    }
+  }, [projectId, experimentId]);
+
   const isMobile = useMobile();
 
   return (
@@ -189,8 +203,8 @@ export const MomentEvidencePage: React.FC = () => {
                     </div>
                     <div>
                       <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>HYPOTHESIS PREVIEW</div>
-                      <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f3f2', letterSpacing: '0.02em', marginBottom: '4px' }}>MOVE REVEAL 6S EARLIER</div>
-                      <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>Moving the reveal earlier maintains momentum and should increase engagement across all cohorts.</div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f3f2', letterSpacing: '0.02em', marginBottom: '4px' }}>{hypothesisData?.title || 'MOVE REVEAL 6S EARLIER'}</div>
+                      <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>{hypothesisData?.description || 'Moving the reveal earlier maintains momentum and should increase engagement across all cohorts.'}</div>
                     </div>
                   </div>
                 </div>
@@ -268,20 +282,32 @@ export const MomentEvidencePage: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#0d1318', border: '1px solid #1e2830', padding: '12px 16px', borderRadius: '8px' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em' }}>
-                    PROVENANCE RECORDS ({NORTHLIGHT_EVIDENCE.length})
+                    PROVENANCE RECORDS ({hypothesisData?.evidence?.length || 0})
                   </span>
                   <span style={{ fontSize: '11px', color: '#8d979f' }}>ClickHouse Query Run Logs</span>
                 </div>
 
-                {NORTHLIGHT_EVIDENCE.map((rec) => (
+                {isLoading ? (
+                  <div style={{ color: '#8d979f', padding: '16px' }}>Generating hypothesis via MCP...</div>
+                ) : hypothesisData?.evidence?.map((ev: any, idx: number) => (
                   <div
-                    key={rec.id}
+                    key={idx}
                     style={{
                       borderRadius: '10px',
-                      outline: highlightedEvId === rec.id ? '2px solid #8b5cf6' : 'none'
+                      outline: 'none'
                     }}
                   >
-                    <EvidenceRecordCard record={rec} />
+                    <EvidenceRecordCard record={{
+                      id: `ev_${idx}`,
+                      queryRunId: `qr_${idx}`,
+                      timestamp: new Date().toISOString(),
+                      sampleSize: 4700,
+                      observedEffect: ev.metric || "Anomaly",
+                      uncertainty: "Low",
+                      timeRange: ev.timestamp || "00:00",
+                      sqlQuery: ev.query || "SELECT *",
+                      description: ev.metric || ""
+                    }} />
                   </div>
                 ))}
               </div>

@@ -137,3 +137,11 @@ export async function approveHypothesis(hypothesisId: string): Promise<Hypothesi
   if (!res.ok) throw new Error('Failed to approve hypothesis');
   return await res.json();
 }
+
+export async function generateHypothesis(projectId: string, experimentId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/generate-hypothesis`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error('Failed to generate hypothesis');
+  return await res.json();
+}
