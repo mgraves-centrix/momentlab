@@ -11,7 +11,9 @@ interface NewProjectModalProps {
 export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClose, onProjectCreated }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   if (!isOpen) return null;
 
@@ -20,11 +22,12 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
     if (!name.trim()) return;
 
     setIsSubmitting(true);
+    setUploadProgress(10);
     try {
       const res = await fetch('/api/v1/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description })
+        body: JSON.stringify({ title: name, description, owner_id: "admin" })
       });
       
       let newProj: Project;
@@ -41,9 +44,35 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
           lastActivity: new Date().toISOString()
         };
       }
+
+      setUploadProgress(40);
+
+      // Upload video if selected
+      if (file && res.ok) {
+        const urlRes = await fetch(`/api/v1/projects/${newProj.id}/media?filename=${encodeURIComponent(file.name)}&content_type=${encodeURIComponent(file.type)}`, {
+          method: 'POST'
+        });
+        
+        if (urlRes.ok) {
+          const { url } = await urlRes.json();
+          setUploadProgress(60);
+          
+          await fetch(url, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type
+            },
+            body: file
+          });
+        }
+      }
+
+      setUploadProgress(100);
       onProjectCreated(newProj);
       setName('');
       setDescription('');
+      setFile(null);
+      setUploadProgress(0);
       onClose();
     } catch (err) {
       console.warn('API error creating project, utilizing local state:', err);
@@ -59,6 +88,8 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
       onProjectCreated(newProj);
       setName('');
       setDescription('');
+      setFile(null);
+      setUploadProgress(0);
       onClose();
     } finally {
       setIsSubmitting(false);
@@ -145,6 +176,22 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             />
           </div>
 
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
+              VIDEO FILE
+            </label>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              style={{
+                width: '100%',
+                color: 'var(--text)',
+                fontSize: '14px',
+              }}
+            />
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button
               type="button"
@@ -176,7 +223,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
                 opacity: !name.trim() ? 0.6 : 1
               }}
             >
-              {isSubmitting ? 'CREATING...' : 'CREATE PROJECT'}
+              {isSubmitting ? (uploadProgress > 0 ? `UPLOADING ${uploadProgress}%` : 'CREATING...') : 'CREATE PROJECT'}
             </button>
           </div>
         </form>
