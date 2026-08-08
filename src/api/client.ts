@@ -73,9 +73,24 @@ export async function fetchProjects(): Promise<Project[]> {
 
 export async function fetchExperimentTimeline(projectId: string, experimentId: string): Promise<TimelineDataPoint[]> {
   try {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/timeline`);
+    const res = await fetch(`${API_BASE}/telemetry/timeline?project_id=${projectId}&experiment_id=${experimentId}`);
     if (!res.ok) throw new Error('Failed to fetch experiment timeline');
-    return await res.json();
+    const data = await res.json();
+    if (data.length > 0) {
+      return data.map((d: any) => ({
+        timecode: `00:${String(Math.floor(d.media_time_ms / 1000)).padStart(2, '0')}`,
+        timeMs: d.media_time_ms,
+        allCohort: Math.floor(d.avg_value * 100) || 50,
+        cohort18_24: Math.floor(d.avg_value * 100) || 50,
+        cohort25_34: Math.floor(d.avg_value * 100) || 50,
+        uncertaintyUpper: Math.floor(d.avg_value * 100) + 5 || 55,
+        uncertaintyLower: Math.floor(d.avg_value * 100) - 5 || 45,
+        sampleSize: d.total_events || 0,
+        isAnomaly: d.avg_value < 0.6 // Arbitrary anomaly logic
+      }));
+    } else {
+      throw new Error('No live data available');
+    }
   } catch (err) {
     console.warn('Backend API offline, utilizing fallback timeline series:', err);
     return [

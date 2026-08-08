@@ -8,7 +8,7 @@ export const ScreeningConsentPage: React.FC = () => {
   const [hasConsented, setHasConsented] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(37000);
   const [lastReaction, setLastReaction] = useState<{ type: string; timestamp: string } | null>(null);
-  const [reactionCounts, setReactionCounts] = useState({ CONFUSED: 0, ENGAGING: 0, BORED: 0 });
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({ CONFUSED: 0, ENGAGING: 0, BORED: 0, ENGAGED: 0, FUNNY: 0, 'TOO SLOW': 0 });
   const [noteText, setNoteText] = useState('');
   
   // Desktop consent state
@@ -18,7 +18,7 @@ export const ScreeningConsentPage: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useMobile();
 
-  const handleSendReaction = async (reactionType: 'CONFUSED' | 'ENGAGING' | 'BORED') => {
+  const handleSendReaction = async (reactionType: 'CONFUSED' | 'ENGAGING' | 'ENGAGED' | 'BORED' | 'FUNNY' | 'TOO SLOW') => {
     const seconds = Math.floor(currentTimeMs / 1000);
     const timecode = `00:${String(seconds).padStart(2, '0')}`;
     
@@ -26,22 +26,20 @@ export const ScreeningConsentPage: React.FC = () => {
     setReactionCounts((prev) => ({ ...prev, [reactionType]: prev[reactionType] + 1 }));
 
     try {
-      await fetch('/api/v1/events/playback', {
+      await fetch('/api/v1/telemetry/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify([{
           session_id: 'sess_screener_demo_01',
           project_id: 'proj_northlight_01',
           experiment_id: 'exp_23a',
-          scene_id: 'sc_12',
           media_time_ms: currentTimeMs,
-          retention_score: reactionType === 'ENGAGING' ? 0.95 : reactionType === 'CONFUSED' ? 0.45 : 0.50,
-          playback_state: 'PLAYING',
-          idempotency_key: `idemp_${Date.now()}`
-        })
+          event_type: reactionType,
+          value: reactionType === 'ENGAGING' ? 0.95 : reactionType === 'CONFUSED' ? 0.45 : 0.50
+        }])
       });
     } catch (err) {
-      console.warn('Playback event dispatch offline, reaction recorded locally:', err);
+      console.warn('Telemetry event dispatch offline, reaction recorded locally:', err);
     }
   };
 
@@ -400,19 +398,19 @@ export const ScreeningConsentPage: React.FC = () => {
                   <div>
                     <div style={{ fontSize: '11px', color: '#8d979f', textAlign: 'center', marginBottom: '16px', letterSpacing: '0.04em' }}>Tap only when the feeling changes.</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-                      <button onClick={() => setLastReaction({ type: 'ENGAGED', timestamp: new Date().toISOString() })} style={{ backgroundColor: '#121a21', border: lastReaction?.type === 'ENGAGED' ? '1px solid #8b5cf6' : '1px solid #202b35', color: lastReaction?.type === 'ENGAGED' ? '#8b5cf6' : '#f1f3f2', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <button onClick={() => handleSendReaction('ENGAGED')} style={{ backgroundColor: '#121a21', border: lastReaction?.type === 'ENGAGED' ? '1px solid #8b5cf6' : '1px solid #202b35', color: lastReaction?.type === 'ENGAGED' ? '#8b5cf6' : '#f1f3f2', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <Smile size={32} />
                         <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em' }}>ENGAGED</span>
                       </button>
-                      <button onClick={() => setLastReaction({ type: 'CONFUSED', timestamp: new Date().toISOString() })} style={{ backgroundColor: '#121a21', border: lastReaction?.type === 'CONFUSED' ? '1px solid #8b5cf6' : '1px solid #202b35', color: lastReaction?.type === 'CONFUSED' ? '#8b5cf6' : '#f1f3f2', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <button onClick={() => handleSendReaction('CONFUSED')} style={{ backgroundColor: '#121a21', border: lastReaction?.type === 'CONFUSED' ? '1px solid #8b5cf6' : '1px solid #202b35', color: lastReaction?.type === 'CONFUSED' ? '#8b5cf6' : '#f1f3f2', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <HelpCircle size={32} />
                         <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em' }}>CONFUSED</span>
                       </button>
-                      <button onClick={() => setLastReaction({ type: 'FUNNY', timestamp: new Date().toISOString() })} style={{ backgroundColor: '#121a21', border: lastReaction?.type === 'FUNNY' ? '1px solid #58c94b' : '1px solid #202b35', color: lastReaction?.type === 'FUNNY' ? '#58c94b' : '#f1f3f2', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <button onClick={() => handleSendReaction('FUNNY')} style={{ backgroundColor: '#121a21', border: lastReaction?.type === 'FUNNY' ? '1px solid #58c94b' : '1px solid #202b35', color: lastReaction?.type === 'FUNNY' ? '#58c94b' : '#f1f3f2', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <Smile size={32} />
                         <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em' }}>FUNNY</span>
                       </button>
-                      <button onClick={() => setLastReaction({ type: 'TOO SLOW', timestamp: new Date().toISOString() })} style={{ backgroundColor: '#121a21', border: lastReaction?.type === 'TOO SLOW' ? '1px solid #f97316' : '1px solid #202b35', color: lastReaction?.type === 'TOO SLOW' ? '#f97316' : '#f1f3f2', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <button onClick={() => handleSendReaction('TOO SLOW')} style={{ backgroundColor: '#121a21', border: lastReaction?.type === 'TOO SLOW' ? '1px solid #f97316' : '1px solid #202b35', color: lastReaction?.type === 'TOO SLOW' ? '#f97316' : '#f1f3f2', padding: '24px', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <Activity size={32} />
                         <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em' }}>TOO SLOW</span>
                       </button>
