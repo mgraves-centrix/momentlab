@@ -1,102 +1,120 @@
 import os
 import uuid
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
+from google.cloud import storage
+from backend.services.db import get_db
+from backend.schemas.models import Project
 
-router = APIRouter(prefix="/api/v1/projects", tags=["Projects & Scenes"])
-
-class SceneMetadata(BaseModel):
-    id: str
-    name: str
-    timecode_start: str = "00:00"
-    timecode_end: str = "01:30"
-    video_url: str
-    poster_url: Optional[str] = None
-    created_at: str = "2026-08-04T01:30:00Z"
-
-class ProjectRecord(BaseModel):
-    id: str
-    name: str
-    description: str
-    sceneCount: int = 1
-    totalRespondents: int = 4732
-    status: str = "ACTIVE"
-    lastActivity: str = "2026-08-04T01:30:00Z"
-    scenes: List[SceneMetadata] = []
+router = APIRouter(prefix="/api/v1/projects", tags=["Projects"])
 
 class CreateProjectRequest(BaseModel):
-    name: str
-    description: str
+    title: str
+    description: Optional[str] = None
+    owner_id: str
 
-class CreateSceneRequest(BaseModel):
-    name: str
-    video_url: str = "/scene12.mp4"
-    poster_url: Optional[str] = "/scene12.png"
+class SignedUrlResponse(BaseModel):
+    url: str
+    method: str
+    expires_at: datetime
 
-# In-memory store initialized with Northlight default project
-PROJECTS_DB: Dict[str, ProjectRecord] = {
-    "proj_northlight_01": ProjectRecord(
-        id="proj_northlight_01",
-        name="Northlight",
-        description="Feature psychological thriller — Scene 12 edit optimization",
-        sceneCount=4,
-        totalRespondents=4732,
-        status="ACTIVE",
-        lastActivity="2026-08-04T01:30:00Z",
-        scenes=[
-            SceneMetadata(
-                id="sc_12",
-                name="Scene 12 INT. APARTMENT - NIGHT",
-                timecode_start="00:00",
-                timecode_end="01:00",
-                video_url="/scene12.mp4",
-                poster_url="/scene12.png"
-            )
-        ]
-    )
-}
-
-@router.get("", response_model=List[ProjectRecord])
+@router.get("", response_model=List[Project])
 def list_projects():
-    """Lists all active film workspace projects."""
-    return list(PROJECTS_DB.values())
+    """Lists all active projects."""
+    db = get_db()
+    projects_ref = db.collection('projects')
+    docs = projects_ref.stream()
+    
+    projects = []
+    for doc in docs:
+        data = doc.to_dict()
+        projects.append(Project(**data))
+        
+    return projects
 
-@router.post("", response_model=ProjectRecord, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
 def create_project(req: CreateProjectRequest):
     """Creates a new workspace project."""
+    db = get_db()
     project_id = f"proj_{uuid.uuid4().hex[:8]}"
-    project = ProjectRecord(
-        id=project_id,
-        name=req.name,
+    
+    project = Project(
+        project_id=project_id,
+        title=req.title,
         description=req.description,
-        sceneCount=0,
-        totalRespondents=0,
-        status="ACTIVE"
+        owner_id=req.owner_id
     )
-    PROJECTS_DB[project_id] = project
+    
+    db.collection('projects').document(project_id).set(project.model_dump(mode='json'))
     return project
 
-@router.get("/{project_id}", response_model=ProjectRecord)
+@router.get("/{project_id}", response_model=Project)
 def get_project(project_id: str):
     """Retrieves project details by ID."""
-    if project_id not in PROJECTS_DB:
-        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
-    return PROJECTS_DB[project_id]
-
-@router.post("/{project_id}/scenes", response_model=SceneMetadata, status_code=status.HTTP_201_CREATED)
-def add_scene_to_project(project_id: str, req: CreateSceneRequest):
-    """Adds a scene cut to an existing project."""
-    if project_id not in PROJECTS_DB:
-        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
+    db = get_db()
+    doc_ref = db.collection('projects').document(project_id)
+    doc = doc_ref.get()
     
-    scene_id = f"sc_{uuid.uuid4().hex[:6]}"
-    scene = SceneMetadata(
-        id=scene_id,
-        name=req.name,
-        video_url=req.video_url,
-        poster_url=req.poster_url
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
+        
+    return Project(**doc.to_dict())
+
+def _get_storage_client():
+    return storage.Client()
+
+def _get_media_bucket_name():
+    return os.getenv("MEDIA_BUCKET_NAME", "momentlab-media-demo")
+
+@router.post("/{project_id}/media", response_model=SignedUrlResponse)
+def generate_upload_url(project_id: str, filename: str, content_type: str):
+    """Generates a V4 signed URL for uploading video media to GCS."""
+    db = get_db()
+    if not db.collection('projects').document(project_id).get().exists:
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
+
+    client = _get_storage_client()
+    bucket_name = _get_media_bucket_name()
+    bucket = client.bucket(bucket_name)
+    
+    # Store media under project_id prefix
+    blob_name = f"projects/{project_id}/media/{uuid.uuid4().hex[:8]}_{filename}"
+    blob = bucket.blob(blob_name)
+    
+    url = blob.generate_signed_url(
+        version="v4",
+        expiration=timedelta(minutes=15),
+        method="PUT",
+        content_type=content_type,
     )
-    PROJECTS_DB[project_id].scenes.append(scene)
-    PROJECTS_DB[project_id].sceneCount += 1
-    return scene
+    
+    return SignedUrlResponse(
+        url=url,
+        method="PUT",
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
+    )
+
+@router.get("/{project_id}/media", response_model=SignedUrlResponse)
+def generate_download_url(project_id: str, blob_name: str):
+    """Generates a short-lived V4 signed URL for playing media from GCS."""
+    db = get_db()
+    if not db.collection('projects').document(project_id).get().exists:
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
+        
+    client = _get_storage_client()
+    bucket = client.bucket(_get_media_bucket_name())
+    blob = bucket.blob(blob_name)
+    
+    url = blob.generate_signed_url(
+        version="v4",
+        expiration=timedelta(hours=2),
+        method="GET"
+    )
+    
+    return SignedUrlResponse(
+        url=url,
+        method="GET",
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=2)
+    )
