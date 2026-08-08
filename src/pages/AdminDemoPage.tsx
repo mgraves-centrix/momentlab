@@ -7,16 +7,24 @@ export const AdminDemoPage: React.FC = () => {
 
   const states: { type: StateType; label: string }[] = [
     { type: 'loading', label: '1. Loading Skeleton' },
-    { type: 'insufficient_sample', label: '2. Insufficient Sample (<100)' },
-    { type: 'mcp_connecting', label: '3. MCP Connecting' },
-    { type: 'mcp_error', label: '4. MCP Disconnected / Error' },
-    { type: 'permission_denied', label: '5. Permission Denied' },
-    { type: 'offline_stale', label: '6. Offline / Stale Cache' }
+    { type: 'no_projects', label: '2. No Projects' },
+    { type: 'insufficient_sample', label: '3. Insufficient Sample (<100)' },
+    { type: 'mcp_connecting', label: '4. MCP Connecting' },
+    { type: 'mcp_error', label: '5. MCP Disconnected / Error' },
+    { type: 'investigating', label: '6. Agent Investigating' },
+    { type: 'hypothesis_ready', label: '7. Hypothesis Ready' },
+    { type: 'awaiting_approval', label: '8. Awaiting Approval' },
+    { type: 'test_running', label: '9. Test Running' },
+    { type: 'outcome_supported', label: '10. Outcome Supported' },
+    { type: 'outcome_rejected', label: '11. Outcome Rejected' },
+    { type: 'outcome_inconclusive', label: '12. Outcome Inconclusive' },
+    { type: 'permission_denied', label: '13. Permission Denied' },
+    { type: 'offline_stale', label: '14. Offline / Stale Cache' }
   ];
 
   return (
     <AppShell>
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ marginBottom: '24px' }}>
           <h1 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text)' }}>
             State Reference Board & Health Controls
@@ -36,10 +44,11 @@ export const AdminDemoPage: React.FC = () => {
                 backgroundColor: activeState === s.type ? 'var(--violet)' : 'var(--surface-1)',
                 color: activeState === s.type ? '#fff' : 'var(--muted)',
                 border: '1px solid var(--border)',
-                padding: '8px 14px',
+                padding: '8px 12px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '12px',
-                fontWeight: 600
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer'
               }}
             >
               {s.label}

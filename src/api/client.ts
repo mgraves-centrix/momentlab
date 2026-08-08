@@ -71,10 +71,10 @@ export async function fetchProjects(): Promise<Project[]> {
   }
 }
 
-export async function fetchSceneTimeline(sceneId: string = 'sc_12'): Promise<TimelineDataPoint[]> {
+export async function fetchExperimentTimeline(projectId: string, experimentId: string): Promise<TimelineDataPoint[]> {
   try {
-    const res = await fetch(`${API_BASE}/scenes/${sceneId}/timeline`);
-    if (!res.ok) throw new Error('Failed to fetch scene timeline');
+    const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/timeline`);
+    if (!res.ok) throw new Error('Failed to fetch experiment timeline');
     return await res.json();
   } catch (err) {
     console.warn('Backend API offline, utilizing fallback timeline series:', err);
@@ -89,6 +89,29 @@ export async function fetchSceneTimeline(sceneId: string = 'sc_12'): Promise<Tim
       { timecode: "00:50", timeMs: 50000, allCohort: 62, cohort18_24: 60, cohort25_34: 64, uncertaintyUpper: 66, uncertaintyLower: 58, sampleSize: 4620 },
       { timecode: "01:00", timeMs: 60000, allCohort: 70, cohort18_24: 68, cohort25_34: 72, uncertaintyUpper: 74, uncertaintyLower: 66, sampleSize: 4600 }
     ];
+  }
+}
+
+export async function fetchExperimentHypothesis(projectId: string, experimentId: string): Promise<Hypothesis> {
+  try {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/hypothesis`);
+    if (!res.ok) throw new Error('Failed to fetch hypothesis');
+    return await res.json();
+  } catch (err) {
+    console.warn('Backend API offline, utilizing fallback hypothesis:', err);
+    return {
+      id: "hyp_091",
+      experimentId: experimentId,
+      proposedChange: "Move killer reveal up by 6 seconds (to 00:31)",
+      rationale: "The current cut drops reveal hints precisely as pacing drags. Exposing the antagonist 6 seconds earlier (Cut B) recaptures audience focus right before the major drop-off, bypassing the \"dead air\" entirely.",
+      confidenceScore: 84,
+      forecastEngagement: "+12%",
+      forecastCompletion: "+8%",
+      forecastConfusion: "-15%",
+      evidenceIds: ["ev_193", "ev_194"],
+      status: 'PROPOSED',
+      isSimulated: false
+    };
   }
 }
 
