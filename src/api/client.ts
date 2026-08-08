@@ -1,12 +1,16 @@
 export interface Project {
-  id: string;
-  name: string;
-  description: string;
-  sceneCount: number;
-  totalRespondents: number;
-  status: 'ACTIVE' | 'ARCHIVED';
-  lastActivity: string;
-  scenes?: SceneMetadata[];
+  project_id: string;
+  title: string;
+  description?: string;
+  owner_id: string;
+  created_at: string;
+  video_url?: string;
+  thumbnail_url?: string;
+  
+  // Computed/Legacy properties used by UI
+  sceneCount?: number;
+  totalRespondents?: number;
+  status?: string;
 }
 
 export interface SceneMetadata {
@@ -54,13 +58,15 @@ export async function fetchProjects(): Promise<Project[]> {
   } catch (err) {
     console.warn('Backend API offline, utilizing fallback project data:', err);
     return [{
-      id: "proj_northlight_01",
-      name: "Northlight",
+      project_id: "proj_northlight_01",
+      title: "Northlight",
       description: "Feature psychological thriller — Scene 12 edit optimization",
+      owner_id: "admin",
+      created_at: "2026-08-04T01:30:00Z",
+      thumbnail_url: "/northlight_thumb.png",
       sceneCount: 4,
       totalRespondents: 4732,
-      status: "ACTIVE",
-      lastActivity: "2026-08-04T01:30:00Z"
+      status: "ACTIVE"
     }];
   }
 }

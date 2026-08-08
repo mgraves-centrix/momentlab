@@ -35,13 +35,14 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
         newProj = await res.json();
       } else {
         newProj = {
-          id: `proj_${Date.now()}`,
-          name,
+          project_id: `proj_${Date.now()}`,
+          title: name,
+          owner_id: "admin",
           description: description || 'New audience screening evaluation project',
           sceneCount: 1,
           totalRespondents: 0,
           status: 'ACTIVE',
-          lastActivity: new Date().toISOString()
+          created_at: new Date().toISOString()
         };
       }
 
@@ -49,7 +50,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
 
       // Upload video if selected
       if (file && res.ok) {
-        const urlRes = await fetch(`/api/v1/projects/${newProj.id}/media?filename=${encodeURIComponent(file.name)}&content_type=${encodeURIComponent(file.type)}`, {
+        const urlRes = await fetch(`/api/v1/projects/${newProj.project_id}/media?filename=${encodeURIComponent(file.name)}&content_type=${encodeURIComponent(file.type)}`, {
           method: 'POST'
         });
         
@@ -77,13 +78,14 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
     } catch (err) {
       console.warn('API error creating project, utilizing local state:', err);
       const newProj: Project = {
-        id: `proj_${Date.now()}`,
-        name,
+        project_id: `proj_${Date.now()}`,
+        title: name,
+        owner_id: "admin",
         description: description || 'New audience screening evaluation project',
         sceneCount: 1,
         totalRespondents: 0,
         status: 'ACTIVE',
-        lastActivity: new Date().toISOString()
+        created_at: new Date().toISOString()
       };
       onProjectCreated(newProj);
       setName('');
