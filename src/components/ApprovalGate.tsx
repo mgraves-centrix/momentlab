@@ -64,7 +64,7 @@ export const ApprovalGate: React.FC<ApprovalGateProps> = ({
               id="consent-check"
               checked={hasConsentChecked}
               onChange={(e) => setHasConsentChecked(e.target.checked)}
-              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              style={{ cursor: 'pointer', accentColor: 'var(--violet)' }}
             />
             <label htmlFor="consent-check" style={{ fontSize: '12px', color: 'var(--text)', cursor: 'pointer' }}>
               I confirm authorization to initiate A/B experiment with Variant Cut B.
@@ -76,8 +76,8 @@ export const ApprovalGate: React.FC<ApprovalGateProps> = ({
             disabled={!hasConsentChecked || !reviewerId}
             style={{
               width: '100%',
-              backgroundColor: hasConsentChecked && reviewerId ? 'var(--violet)' : 'var(--surface-3)',
-              color: hasConsentChecked && reviewerId ? '#fff' : 'var(--muted)',
+              backgroundColor: hasConsentChecked && reviewerId ? 'var(--lime)' : 'var(--surface-3)',
+              color: hasConsentChecked && reviewerId ? '#000' : 'var(--muted)',
               padding: '12px',
               borderRadius: 'var(--radius-sm)',
               fontWeight: 700,

@@ -81,23 +81,41 @@ export const HypothesisCard: React.FC<HypothesisCardProps> = ({
         </div>
 
         {onApproveClick && (
-          <button
-            onClick={onApproveClick}
-            style={{
-              backgroundColor: 'var(--violet)',
-              color: '#fff',
-              padding: '10px 20px',
-              borderRadius: 'var(--radius-sm)',
-              fontWeight: 600,
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <span>PROPOSE A/B TEST</span>
-            <ArrowRight size={16} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              style={{
+                backgroundColor: 'transparent',
+                color: 'var(--muted)',
+                padding: '10px 16px',
+                borderRadius: 'var(--radius-sm)',
+                fontWeight: 600,
+                fontSize: '13px',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              NOT NOW
+            </button>
+            <button
+              onClick={onApproveClick}
+              style={{
+                backgroundColor: 'var(--lime)',
+                color: '#000',
+                padding: '10px 20px',
+                borderRadius: 'var(--radius-sm)',
+                fontWeight: 600,
+                fontSize: '13px',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              <span>PROPOSE A/B TEST</span>
+              <ArrowRight size={16} />
+            </button>
+          </div>
         )}
       </div>
     </div>

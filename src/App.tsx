@@ -9,11 +9,13 @@ import { CreateAbTestPage } from './pages/CreateAbTestPage';
 import { ExperimentResultsPage } from './pages/ExperimentResultsPage';
 import { MobileMorePage } from './pages/MobileMorePage';
 import { AdminDemoPage } from './pages/AdminDemoPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <Routes>
+      <ErrorBoundary>
+        <Routes>
         {/* Project & Screening Routes */}
         <Route path="/projects" element={<ProjectsDashboard />} />
         <Route path="/screen/:screeningToken" element={<ScreeningConsentPage />} />
@@ -55,7 +57,8 @@ export const App: React.FC = () => {
 
         {/* Root Redirect to /projects */}
         <Route path="*" element={<Navigate to="/projects" replace />} />
-      </Routes>
+        </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 };

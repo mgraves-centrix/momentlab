@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { TrendingDown, Database, SlidersHorizontal, MoreHorizontal } from 'lucide-react';
+import { Search, Database, FlaskConical, MoreHorizontal } from 'lucide-react';
 
 interface MobileBottomNavProps {
   projectId?: string;
@@ -14,10 +14,10 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavProps> = ({
   const basePath = `/projects/${projectId}/experiments/${experimentId}`;
 
   const navItems = [
-    { label: 'Finding', path: `${basePath}/finding`, icon: TrendingDown },
-    { label: 'Evidence', path: `${basePath}/evidence`, icon: Database },
-    { label: 'Test', path: `${basePath}/test`, icon: SlidersHorizontal },
-    { label: 'More', path: `${basePath}/more`, icon: MoreHorizontal }
+    { label: 'FINDING', path: `${basePath}/finding`, icon: Search, activeColor: '#8b5cf6' },
+    { label: 'EVIDENCE', path: `${basePath}/evidence`, icon: Database, activeColor: '#8b5cf6' },
+    { label: 'TEST', path: `${basePath}/test`, icon: FlaskConical, activeColor: '#b7e33d' },
+    { label: 'MORE', path: `${basePath}/more`, icon: MoreHorizontal, activeColor: '#8b5cf6' }
   ];
 
   return (
@@ -28,9 +28,9 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavProps> = ({
         bottom: 0,
         left: 0,
         right: 0,
-        height: 'var(--nav-mobile-height)',
-        backgroundColor: 'var(--surface-1)',
-        borderTop: '1px solid var(--border)',
+        height: '64px',
+        backgroundColor: '#091218',
+        borderTop: '1px solid #16232c',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
@@ -48,18 +48,19 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavProps> = ({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              justify: 'center',
+              justifyContent: 'center',
               gap: '4px',
               textDecoration: 'none',
-              color: isActive ? 'var(--violet)' : 'var(--muted)',
-              fontSize: '11px',
-              fontWeight: isActive ? 600 : 400,
+              color: isActive ? item.activeColor : '#9aa8b2',
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
               minWidth: '64px',
               minHeight: '44px',
               padding: '6px'
             })}
           >
-            <Icon size={20} />
+            <Icon size={20} strokeWidth={2} />
             <span>{item.label}</span>
           </NavLink>
         );
