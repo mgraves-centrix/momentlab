@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from typing import List, Dict, Any
 from backend.schemas.events import ConsentRecord, PlaybackEvent, ReactionEvent, IngestionResponse
 from backend.ingestion.batch_writer import ClickHouseBatchWriter
-from backend.routers import projects, analytics, hypotheses, export, telemetry
+from backend.routers import projects, analytics, export, telemetry
 from backend.services.clickhouse import init_db
 
 app = FastAPI(
@@ -26,7 +26,7 @@ app.add_middleware(
 
 app.include_router(projects.router)
 app.include_router(analytics.router)
-app.include_router(hypotheses.router)
+
 
 @app.on_event("startup")
 def on_startup():
@@ -36,6 +36,8 @@ def on_startup():
         print("ClickHouse init skipped or failed:", e)
 app.include_router(export.router)
 app.include_router(telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"])
+from backend.routers import hypotheses
+app.include_router(hypotheses.router, prefix="/api/v1", tags=["hypotheses"])
 
 writer = ClickHouseBatchWriter()
 
