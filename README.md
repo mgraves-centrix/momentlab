@@ -3,6 +3,8 @@
 > **Turn consented, second-by-second audience behavior into the next controlled edit experiment.**
 > Built for the **Agentic Cinema: The Blockbuster Hackathon (ClickHouse Track)**.
 
+![Desktop Built](docs/images/momentlab-built.png)
+
 ---
 
 ## 🎬 Master Loop
@@ -33,47 +35,53 @@ detect → investigate with ClickHouse MCP → explain → propose → approve �
 
 ---
 
-## 🚀 Quickstart & Verification
+## 🚀 Hackathon Commands (Makefile)
 
-### 1. Web Frontend
+We have provided a comprehensive `Makefile` to quickly exercise all paths:
+
 ```bash
-# Install frontend dependencies
-npm install
+# Start local demo environment (frontend + backend)
+make demo
 
-# Run local development server
-npm run dev
+# Build, Lint, AI-Compliance Check
+make submission-audit
 
-# Compile TypeScript and build production bundle
-npm run build
+# Build UI and Verify
+make ui-verify
+
+# Run System Verification Tests
+make verify
+
+# Reset Database State
+make reset-demo
+
+# Deploy to Cloud Run
+make deploy
+
+# Smoke test deployment and seed data
+make smoke
 ```
 
-### 2. Python Backend & Integration Tests
-```bash
-# Set up virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
+---
 
-# Run backend integration tests (events, ClickHouse MCP, ADK agent)
-PYTHONPATH=. .venv/bin/pytest backend/tests/
-```
+## 📱 Mobile Experience
 
-### 3. End-to-End Playwright Tests
-```bash
-# Run Playwright E2E suite
-npx playwright test
-```
+MomentLab includes a fully responsive mobile workflow for reviewing findings and approving tests on the go.
+
+<div style="display: flex; gap: 10px;">
+  <img src="docs/images/momentlab-mobile-finding.png" width="30%" alt="Mobile Finding">
+  <img src="docs/images/momentlab-mobile-evidence.png" width="30%" alt="Mobile Evidence">
+  <img src="docs/images/momentlab-mobile-test.png" width="30%" alt="Mobile Test">
+</div>
 
 ---
 
 ## 📄 Key Documentation
 
-- [UI Implementation Contract](UI-IMPLEMENTATION-CONTRACT.md)
+- [Hackathon Submission & Features](docs/submission.md)
+- [Judging Criteria Proof](docs/judge-proof.md)
+- [3-Minute Video Script](docs/demo-script.md)
+- [Visual QA Scorecard (99/100)](docs/visual-qa.md)
 - [Hackathon Compliance Matrix](docs/compliance-matrix.md)
 - [Technology Compliance & Denylist Lock](docs/technology-compliance.md)
 - [Architecture Decision Records (ADR-001)](docs/decisions.md)
-- [Visual QA Scorecard (100/100)](docs/visual-qa.md)
-- [WCAG 2.2 AA Accessibility Audit](docs/accessibility.md)
-- [Ground Truth Evaluation Report](docs/evaluation-report.md)
-- [GCP Deployment Proof](docs/deploy-verification.md)
-- [3-Minute Video Script](docs/submission-script.md)

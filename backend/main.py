@@ -36,8 +36,9 @@ def on_startup():
         print("ClickHouse init skipped or failed:", e)
 app.include_router(export.router)
 app.include_router(telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"])
-from backend.routers import hypotheses
+from backend.routers import hypotheses, experiments
 app.include_router(hypotheses.router, prefix="/api/v1", tags=["hypotheses"])
+app.include_router(experiments.router, prefix="/api/v1", tags=["experiments"])
 
 writer = ClickHouseBatchWriter()
 
