@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { ApprovalGate } from '../components/ApprovalGate';
 import { CutComparison } from '../components/CutComparison';
-import { fetchExperimentHypothesis, Hypothesis } from '../api/client';
+import { fetchExperimentHypothesis, Hypothesis, approveExperiment } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 
 export const CreateAbTestPage: React.FC = () => {
@@ -19,11 +19,25 @@ export const CreateAbTestPage: React.FC = () => {
     }
   }, [projectId, experimentId]);
 
-  const handleApprove = (_reviewerId: string) => {
-    setStatus('APPROVED');
-    setTimeout(() => {
-      navigate('/projects/proj_northlight_01/experiments/exp_23a/results');
-    }, 1200);
+  const [isApproving, setIsApproving] = useState(false);
+
+  const handleApprove = async (_reviewerId: string) => {
+    if (!projectId || !experimentId) return;
+    setIsApproving(true);
+    try {
+      // Mocking a JWT token for MVP Phase 5
+      const mockToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
+      await approveExperiment(projectId, experimentId, mockToken);
+      setStatus('APPROVED');
+      setTimeout(() => {
+        navigate('/projects/proj_northlight_01/experiments/exp_23a/results');
+      }, 1200);
+    } catch (e) {
+      console.error(e);
+      setStatus('DENIED');
+    } finally {
+      setIsApproving(false);
+    }
   };
 
   const isMobile = useMobile();
@@ -138,11 +152,11 @@ export const CreateAbTestPage: React.FC = () => {
               
               <button
                 onClick={() => handleApprove('mobile-reviewer-id')}
-                disabled={status !== 'PENDING'}
+                disabled={status !== 'PENDING' || isApproving}
                 style={{
                   width: '100%',
-                  backgroundColor: status === 'PENDING' ? '#b7e33d' : '#1c2630',
-                  color: status === 'PENDING' ? '#050a0e' : '#5b6670',
+                  backgroundColor: status === 'PENDING' && !isApproving ? '#b7e33d' : '#1c2630',
+                  color: status === 'PENDING' && !isApproving ? '#050a0e' : '#5b6670',
                   border: 'none',
                   padding: '16px',
                   borderRadius: '8px',
@@ -157,10 +171,12 @@ export const CreateAbTestPage: React.FC = () => {
                 }}
               >
                 {status === 'PENDING' ? (
-                  <>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                    APPROVE & LAUNCH A/B TEST
-                  </>
+                  isApproving ? 'APPROVING...' : (
+                    <>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                      APPROVE & LAUNCH A/B TEST
+                    </>
+                  )
                 ) : status === 'APPROVED' ? (
                   <>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#58c94b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
@@ -199,6 +215,7 @@ export const CreateAbTestPage: React.FC = () => {
               proposedChange={`${hypothesis?.proposedChange || 'Edit Proposal'} (Selected Target: Cut ${selectedVariant})`}
               onApproveAndLaunch={handleApprove}
               status={status}
+              isApproving={isApproving}
             />
           </>
         )}

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from agents.mcp_client import generate_hypothesis
+# pyrefly: ignore [missing-import]
+from backend.agents.mcp_client import generate_hypothesis
 
 router = APIRouter()
 

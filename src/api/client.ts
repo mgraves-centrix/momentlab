@@ -145,3 +145,14 @@ export async function generateHypothesis(projectId: string, experimentId: string
   if (!res.ok) throw new Error('Failed to generate hypothesis');
   return await res.json();
 }
+
+export async function approveExperiment(projectId: string, experimentId: string, token: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}:approve`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  if (!res.ok) throw new Error('Failed to approve experiment');
+  return await res.json();
+}

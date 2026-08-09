@@ -1,6 +1,8 @@
 import os
 import json
+# pyrefly: ignore [missing-import]
 from google.antigravity import Agent, LocalAgentConfig, types
+# pyrefly: ignore [missing-import]
 from google.antigravity import policy
 
 async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:

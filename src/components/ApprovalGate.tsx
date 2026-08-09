@@ -5,12 +5,14 @@ interface ApprovalGateProps {
   proposedChange: string;
   onApproveAndLaunch: (reviewerId: string) => void;
   status?: 'PENDING' | 'APPROVED' | 'DENIED';
+  isApproving?: boolean;
 }
 
 export const ApprovalGate: React.FC<ApprovalGateProps> = ({
   proposedChange,
   onApproveAndLaunch,
-  status = 'PENDING'
+  status = 'PENDING',
+  isApproving = false
 }) => {
   const [reviewerId, setReviewerId] = useState('editor_lead_01');
   const [hasConsentChecked, setHasConsentChecked] = useState(false);
@@ -73,16 +75,16 @@ export const ApprovalGate: React.FC<ApprovalGateProps> = ({
 
           <button
             onClick={() => onApproveAndLaunch(reviewerId)}
-            disabled={!hasConsentChecked || !reviewerId}
+            disabled={!hasConsentChecked || !reviewerId || isApproving}
             style={{
               width: '100%',
-              backgroundColor: hasConsentChecked && reviewerId ? 'var(--lime)' : 'var(--surface-3)',
-              color: hasConsentChecked && reviewerId ? '#000' : 'var(--muted)',
+              backgroundColor: hasConsentChecked && reviewerId && !isApproving ? 'var(--lime)' : 'var(--surface-3)',
+              color: hasConsentChecked && reviewerId && !isApproving ? '#000' : 'var(--muted)',
               padding: '12px',
               borderRadius: 'var(--radius-sm)',
               fontWeight: 700,
               fontSize: '14px',
-              cursor: hasConsentChecked && reviewerId ? 'pointer' : 'not-allowed',
+              cursor: hasConsentChecked && reviewerId && !isApproving ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -90,7 +92,7 @@ export const ApprovalGate: React.FC<ApprovalGateProps> = ({
             }}
           >
             <Lock size={16} />
-            <span>APPROVE & LAUNCH A/B TEST</span>
+            <span>{isApproving ? 'APPROVING...' : 'APPROVE & LAUNCH A/B TEST'}</span>
           </button>
         </div>
       ) : (

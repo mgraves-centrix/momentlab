@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from pydantic import BaseModel
 from datetime import datetime
-from services.clickhouse import insert_events
+from backend.services.clickhouse import insert_events
 
 router = APIRouter()
 
@@ -38,7 +38,7 @@ async def record_events(events: List[TelemetryEvent]):
 @router.get("/timeline")
 async def get_timeline(project_id: str, experiment_id: str):
     try:
-        from services.clickhouse import get_client
+        from backend.services.clickhouse import get_client
         client = get_client()
         query = f"""
             SELECT 
