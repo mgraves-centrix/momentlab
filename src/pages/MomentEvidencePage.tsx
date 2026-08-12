@@ -1,23 +1,33 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
-import { EvidenceRecordCard } from '../components/EvidenceRecord';
 import { McpActivityPanel } from '../components/McpActivityPanel';
 import { Database, ShieldCheck, Cpu } from 'lucide-react';
-import { NORTHLIGHT_MCP_ACTIVITIES } from '../fixtures/northlight';
 import { useMobile } from '../hooks/useMobile';
-import { generateHypothesis } from '../api/client';
+import { fetchExperimentHypothesis, fetchRecentQueries, Hypothesis } from '../api/client';
 
 export const MomentEvidencePage: React.FC = () => {
   const { projectId, experimentId } = useParams();
   const navigate = useNavigate();
-  const [hypothesisData, setHypothesisData] = React.useState<any>(null);
+  const location = useLocation();
+  const [hypothesisData, setHypothesisData] = React.useState<Hypothesis | null>(null);
+  const [queries, setQueries] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   
   React.useEffect(() => {
     if (projectId && experimentId) {
-      generateHypothesis(projectId, experimentId).then(data => {
-        setHypothesisData(data.hypothesis);
+      Promise.all([
+        fetchExperimentHypothesis(projectId, experimentId),
+        fetchRecentQueries()
+      ]).then(([hypData, queryData]) => {
+        setHypothesisData(hypData);
+        setQueries(queryData.map((q: any, i: number) => ({
+          id: `q_${i}`,
+          toolName: 'ClickHouse Query',
+          durationMs: q.duration_ms,
+          rowCount: q.rows,
+          queryPurpose: q.query
+        })));
         setIsLoading(false);
       }).catch(err => {
         console.error(err);
@@ -167,31 +177,7 @@ export const MomentEvidencePage: React.FC = () => {
             </div>
 
             {/* ClickHouse MCP */}
-            <div style={{ backgroundColor: '#0d1318', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <h3 style={{ fontSize: '12px', fontWeight: 700, color: '#b7e33d', letterSpacing: '0.04em' }}>CLICKHOUSE MCP</h3>
-                <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', border: '1px solid rgba(88, 201, 75, 0.3)' }}>CONNECTED</span>
-              </div>
-              <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>RECENT QUERY ACTIVITY</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '10px', fontFamily: 'monospace', color: '#8d979f' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}><span style={{ color: '#b7e33d' }}>●</span><span>10:42:11</span><span>SELECT engagement_over_time ...</span></div>
-                  <span>4.2s</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}><span style={{ color: '#b7e33d' }}>●</span><span>10:42:08</span><span>SELECT cohort_breakdown ...</span></div>
-                  <span>3.1s</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}><span style={{ color: '#b7e33d' }}>●</span><span>10:42:03</span><span>SELECT scene_metrics ...</span></div>
-                  <span>2.7s</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}><span style={{ color: '#b7e33d' }}>●</span><span>10:41:58</span><span>SELECT experiment_history</span></div>
-                  <span>1.9s</span>
-                </div>
-              </div>
-            </div>
+            <McpActivityPanel activities={queries} status="CONNECTED" />
 
             {/* Hypothesis Preview */}
             <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
@@ -203,8 +189,8 @@ export const MomentEvidencePage: React.FC = () => {
                     </div>
                     <div>
                       <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>HYPOTHESIS PREVIEW</div>
-                      <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f3f2', letterSpacing: '0.02em', marginBottom: '4px' }}>{hypothesisData?.title || 'MOVE REVEAL 6S EARLIER'}</div>
-                      <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>{hypothesisData?.description || 'Moving the reveal earlier maintains momentum and should increase engagement across all cohorts.'}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f3f2', letterSpacing: '0.02em', marginBottom: '4px' }}>{hypothesisData?.proposedChange || 'MOVE REVEAL 6S EARLIER'}</div>
+                      <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>{hypothesisData?.rationale || 'Moving the reveal earlier maintains momentum and should increase engagement across all cohorts.'}</div>
                     </div>
                   </div>
                 </div>
@@ -227,7 +213,7 @@ export const MomentEvidencePage: React.FC = () => {
 
             {/* Primary Action Button */}
             <button
-              onClick={() => navigate('/projects/proj_northlight_01/experiments/exp_23a/test')}
+              onClick={() => navigate(`/projects/${projectId}/experiments/${experimentId}/test${location.search}`)}
               style={{
                 backgroundColor: '#b7e33d',
                 color: '#050a0e',
@@ -278,38 +264,148 @@ export const MomentEvidencePage: React.FC = () => {
             {/* 2-Column Workspace (~55% / ~45%) */}
             <div style={{ display: 'grid', gridTemplateColumns: '55% 43%', gap: '24px', alignItems: 'start' }}>
               
-              {/* Left Column: Query Provenance Records */}
+              {/* Left Column: Query Provenance Records & Charts */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                {/* Video Filmstrip */}
+                <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>SCENE CONTEXT (00:30–00:45)</div>
+                    <div style={{ fontSize: '10px', color: '#ff654a', fontWeight: 600 }}>AFFECTED RANGE: 00:33–00:41</div>
+                  </div>
+                  <div style={{ position: 'relative', height: '60px', backgroundColor: '#16232c', borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} style={{ flex: 1, borderRight: i < 6 ? '1px solid #091218' : 'none', backgroundColor: '#1e2830' }} />
+                    ))}
+                    {/* Affected Range Band */}
+                    <div style={{ position: 'absolute', left: '20%', width: '53.3%', height: '100%', backgroundColor: 'rgba(255, 101, 74, 0.15)', borderLeft: '2px dashed rgba(255, 101, 74, 0.5)', borderRight: '2px dashed rgba(255, 101, 74, 0.5)' }} />
+                    {/* 00:37 Marker */}
+                    <div style={{ position: 'absolute', left: '46.6%', width: '2px', height: '100%', backgroundColor: '#b7e33d' }}>
+                      <div style={{ position: 'absolute', top: '-18px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#b7e33d', color: '#050a0e', fontSize: '9px', fontWeight: 700, padding: '2px 4px', borderRadius: '2px' }}>00:37</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cohort Comparison */}
+                <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>COHORT COMPARISON</div>
+                    <div style={{ display: 'flex', gap: '12px', fontSize: '9px', color: '#9aa8b2', fontWeight: 600 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '8px', height: '4px', backgroundColor: '#8b5cf6', borderRadius: '2px' }}/> RESPONSE CLIFF</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '8px', height: '4px', backgroundColor: '#b7e33d', borderRadius: '2px' }}/> CONFIDENCE</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', backgroundColor: '#16232c', border: '1px solid #16232c', borderRadius: '8px', overflow: 'hidden' }}>
+                    <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '10px', color: '#f1f3f2', marginBottom: '8px' }}>ALL</div>
+                      <svg width="100%" height="20" viewBox="0 0 50 20" style={{ marginBottom: '8px' }}>
+                        <path d="M 0 5 Q 10 5, 20 10 T 50 18" fill="none" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="2 2" />
+                      </svg>
+                      <div style={{ fontSize: '20px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '2px' }}>−28%</div>
+                      <div style={{ fontSize: '8px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
+                    </div>
+
+                    <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '10px', color: '#f1f3f2', marginBottom: '8px' }}>18–24</div>
+                      <svg width="100%" height="20" viewBox="0 0 50 20" style={{ marginBottom: '8px' }}>
+                        <path d="M 0 6 Q 10 6, 20 12 T 50 16" fill="none" stroke="#6b46c1" strokeWidth="1" />
+                      </svg>
+                      <div style={{ fontSize: '20px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '2px' }}>−14%</div>
+                      <div style={{ fontSize: '8px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:35 – 00:39</div>
+                    </div>
+
+                    <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '10px', color: '#f1f3f2', marginBottom: '8px' }}>25–34</div>
+                      <svg width="100%" height="20" viewBox="0 0 50 20" style={{ marginBottom: '8px' }}>
+                        <path d="M 0 4 Q 10 4, 20 10 T 50 20" fill="none" stroke="#c4a7ff" strokeWidth="1.5" />
+                      </svg>
+                      <div style={{ fontSize: '20px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '2px' }}>−41%</div>
+                      <div style={{ fontSize: '8px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
+                    </div>
+
+                    <div style={{ backgroundColor: '#0d1318', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '9px', color: '#8d979f' }}>CONFIDENCE</span>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#b7e33d' }}>94%</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '9px', color: '#8d979f' }}>CONF. INTERVAL</span>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#f1f3f2' }}>[24%, 32%]</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '9px', color: '#8d979f' }}>MIN EFFECT</span>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#f1f3f2' }}>3.5%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Evidence Summary Blocks */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', alignItems: 'start', backgroundColor: '#091218', padding: '16px', borderRadius: '12px', border: '1px solid #16232c' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>OBSERVATION</span>
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>Engagement drops significantly starting at 00:37 and continues through 00:41.</div>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>INFERENCE</span>
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>The camera reveal at 00:37 is likely causing viewers to lose momentum.</div>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>UNCERTAINTY</span>
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>Moderate uncertainty due to cohort variance and limited sample in 18–24 group.</div>
+                  </div>
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#0d1318', border: '1px solid #1e2830', padding: '12px 16px', borderRadius: '8px' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em' }}>
-                    PROVENANCE RECORDS ({hypothesisData?.evidence?.length || 0})
+                    PROVENANCE RECORDS ({hypothesisData?.evidenceRecords?.length || 0})
                   </span>
                   <span style={{ fontSize: '11px', color: '#8d979f' }}>ClickHouse Query Run Logs</span>
                 </div>
 
                 {isLoading ? (
                   <div style={{ color: '#8d979f', padding: '16px' }}>Generating hypothesis via MCP...</div>
-                ) : hypothesisData?.evidence?.map((ev: any, idx: number) => (
-                  <div
-                    key={idx}
-                    style={{
-                      borderRadius: '10px',
-                      outline: 'none'
-                    }}
-                  >
-                    <EvidenceRecordCard record={{
-                      id: `ev_${idx}`,
-                      queryRunId: `qr_${idx}`,
-                      timestamp: new Date().toISOString(),
-                      sampleSize: 4700,
-                      observedEffect: ev.metric || "Anomaly",
-                      uncertainty: "Low",
-                      timeRange: ev.timestamp || "00:00",
-                      sqlQuery: ev.query || "SELECT *",
-                      description: ev.metric || ""
-                    }} />
+                ) : (
+                  <div style={{ overflowX: 'auto', backgroundColor: 'var(--surface-1)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left', color: 'var(--muted)' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-2)' }}>
+                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>ID</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>TIMESTAMP</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>METRIC</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>SEGMENT</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>WINDOW</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>EFFECT SIZE</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>SIGNIFICANCE</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>SOURCE QUERY ID</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {hypothesisData?.evidenceRecords?.map((ev: any, idx: number) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '8px 12px', color: 'var(--violet)' }}>{ev.id}</td>
+                            <td style={{ padding: '8px 12px' }}>{ev.timestamp}</td>
+                            <td style={{ padding: '8px 12px', color: 'var(--text)' }}>{ev.metric}</td>
+                            <td style={{ padding: '8px 12px' }}>{ev.segment}</td>
+                            <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>{ev.window}</td>
+                            <td style={{ padding: '8px 12px', color: 'var(--error)' }}>{ev.effectSize}</td>
+                            <td style={{ padding: '8px 12px' }}>{ev.significance}</td>
+                            <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: 'var(--success)' }}>{ev.sourceQueryRunId}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
+                )}
               </div>
 
               {/* Right Column: ClickHouse MCP Stream Telemetry */}
@@ -326,7 +422,7 @@ export const MomentEvidencePage: React.FC = () => {
                   </span>
                 </div>
 
-                <McpActivityPanel activities={NORTHLIGHT_MCP_ACTIVITIES} status="CONNECTED" />
+                <McpActivityPanel activities={queries} status="CONNECTED" />
               </div>
 
             </div>

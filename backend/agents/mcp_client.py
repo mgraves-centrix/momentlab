@@ -1,65 +1,156 @@
 import os
 import json
-# pyrefly: ignore [missing-import]
-from google.antigravity import Agent, LocalAgentConfig, types
-# pyrefly: ignore [missing-import]
-from google.antigravity import policy
+import logging
+from dotenv import load_dotenv
+from google.adk import Agent, Runner
+from google.adk.sessions import InMemorySessionService
+from google.adk.tools.mcp_tool import McpToolset
+from mcp.client.stdio import StdioServerParameters
+from google.genai.types import Content, Part
+
+logger = logging.getLogger(__name__)
+load_dotenv()
+
+# Ensure Vertex AI environment variables are set for google-genai
+if not os.environ.get("GOOGLE_CLOUD_PROJECT"):
+    os.environ["GOOGLE_CLOUD_PROJECT"] = os.environ.get("GCP_PROJECT_ID", "")
+if not os.environ.get("GOOGLE_CLOUD_LOCATION"):
+    os.environ["GOOGLE_CLOUD_LOCATION"] = os.environ.get("GCP_LOCATION", "us-central1")
 
 async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
     """Uses Google ADK and ClickHouse MCP to analyze data and generate a hypothesis."""
     
-    # We will use uv to run the mcp-clickhouse server because the npm package doesn't exist
-    # and uv was successfully installed in the previous step.
-    mcp_servers = [
-        types.McpStdioServer(
-            command="/Users/mattgraves/.local/bin/uvx",
+    clickhouse_mcp = McpToolset(
+        tool_name_prefix="clickhouse",
+        connection_params=StdioServerParameters(
+            command="uvx",
             args=["mcp-clickhouse"],
             env={
-                "CLICKHOUSE_HOST": "localhost",
-                "CLICKHOUSE_PORT": "8123",
-                "CLICKHOUSE_USER": "default",
-                "CLICKHOUSE_PASSWORD": "",
+                "CLICKHOUSE_HOST": os.environ.get("CLICKHOUSE_HOST", "localhost"),
+                "CLICKHOUSE_PORT": os.environ.get("CLICKHOUSE_PORT", "8123"),
+                "CLICKHOUSE_USER": os.environ.get("CLICKHOUSE_MCP_USER", "momentlab_mcp_reader"),
+                "CLICKHOUSE_PASSWORD": os.environ.get("CLICKHOUSE_MCP_PASSWORD", "mcp_password"),
+                "CLICKHOUSE_SECURE": os.environ.get("CLICKHOUSE_SECURE", "false"),
                 "PATH": os.environ.get("PATH", "")
             }
         )
-    ]
-    
-    config = LocalAgentConfig(
-        mcp_servers=mcp_servers,
-        model="gemini-1.5-pro",
     )
     
-    prompt = f"""
+    puppeteer_mcp = McpToolset(
+        tool_name_prefix="puppeteer",
+        connection_params=StdioServerParameters(
+            command="npx",
+            args=["-y", "@modelcontextprotocol/server-puppeteer"],
+            env={
+                "PATH": os.environ.get("PATH", "")
+            }
+        )
+    )
+    
+    instruction = """
 You are an expert film editor and data analyst.
-Please query the ClickHouse database using your MCP tools to analyze the telemetry_events table for project_id='{project_id}' and experiment_id='{experiment_id}'.
-Look for media_time_ms ranges where there are significant drops in the average value or spikes in negative event types (e.g., 'CONFUSED', 'TOO SLOW', 'FUNNY' out of context).
-
+You must use your MCP tools to query the ClickHouse database and analyze the audience_events and reaction_events tables.
+Look for media_time_ms ranges where there are significant drops in the average retention_score or spikes in negative event types (e.g., 'CONFUSED', 'BORED') for specific cohorts.
 Based on your analysis of the actual data, propose an editorial cut or modification.
 
 Respond strictly in JSON format with the following keys:
-- title: A short title for the hypothesis.
-- description: A detailed description of the proposed edit and the reasoning based on the data.
-- proposed_action: A concise action statement (e.g., "Cut the scene between 33s and 41s").
-- evidence: A list of evidence items, each containing:
+- id: A unique string identifier.
+- proposedChange: A concise action statement (e.g., "Cut the scene between 33s and 41s").
+- rationale: A detailed description of the proposed edit and the reasoning based on the data.
+- confidenceScore: An integer between 0 and 100 representing confidence.
+- forecastEngagement: A string estimating engagement lift (e.g., "+18%").
+- forecastCompletion: A string estimating completion lift (e.g., "+9%").
+- forecastConfusion: A string estimating confusion reduction (e.g., "-4%").
+- evidenceIds: A list of strings representing evidence (e.g., ["query_1", "query_2"]).
+- evidenceRecords: A list of evidence objects, each containing:
+  - id: (e.g., "EV-1234")
   - timestamp: The video timecode where the anomaly occurred (e.g., "00:33").
   - metric: A description of the metric (e.g., "Confusion spike").
-  - query: The exact SQL query you executed to find this evidence.
+  - segment: (e.g., "ALL")
+  - window: (e.g., "00:33-00:41")
+  - effectSize: (e.g., "-28%")
+  - significance: (e.g., "p < 0.01")
+  - sourceQueryRunId: A unique string representing the query run.
+- trace: An object containing:
+  - runId: A unique string representing this agent run.
+  - totalDurationMs: An integer representing total execution time.
+  - steps: A list of objects containing name (e.g., "Deterministic Detector", "ClickHouse MCP Cohort Query", "Scene Context Retrieval", "Hypothesis Validation"), status (e.g., "success"), and durationMs.
+- status: Must be "PROPOSED".
+- isSimulated: Must be false.
 """
     
-    async with Agent(config) as agent:
-        response = await agent.chat(prompt)
-        try:
-            text = (await response.text()).strip()
-            if text.startswith("```json"):
-                text = text[7:-3]
-            elif text.startswith("```"):
-                text = text[3:-3]
+    # Initialize agent
+    agent = Agent(
+        name="momentlab_agent",
+        model="gemini-2.5-pro",
+        tools=[clickhouse_mcp, puppeteer_mcp],
+        instruction=instruction
+    )
+    
+    session_service = InMemorySessionService()
+    await session_service.create_session(user_id="default", session_id="hypothesis_gen", app_name="momentlab")
+    runner = Runner(agent=agent, session_service=session_service, app_name="momentlab")
+    
+    prompt = f"Please query the database for project_id='{project_id}' and experiment_id='{experiment_id}' and provide your hypothesis."
+    content = Content(parts=[Part.from_text(text=prompt)])
+    
+    res = ""
+    
+    try:
+        async for event in runner.run_async(user_id="default", session_id="hypothesis_gen", new_message=content):
+            logger.info(f"EVENT RECEIVED: type={type(event)} dict={event.__dict__ if hasattr(event, '__dict__') else 'N/A'}")
+            if hasattr(event, "content") and event.content and hasattr(event.content, "parts"):
+                for part in event.content.parts:
+                    if hasattr(part, "text") and part.text:
+                        res += part.text
+            elif hasattr(event, "output") and event.output:
+                res = getattr(event.output, "text", res)
+    except Exception as e:
+        logger.error(f"Error during agent execution: {e}")
+        return {
+            "id": "error_1",
+            "proposedChange": "Review backend logs.",
+            "rationale": f"Failed to generate hypothesis. Error: {str(e)}",
+            "confidenceScore": 0,
+            "forecastEngagement": "+0%",
+            "forecastCompletion": "+0%",
+            "forecastConfusion": "+0%",
+            "evidenceIds": [],
+            "evidenceRecords": [],
+            "trace": {
+                "runId": "error_1_run",
+                "totalDurationMs": 0,
+                "steps": []
+            },
+            "status": "PROPOSED",
+            "isSimulated": False
+        }
             
-            return json.loads(text.strip())
-        except Exception as e:
-            return {
-                "title": "Agent Analysis Failed",
-                "description": f"Agent responded with invalid JSON or encountered an error. Raw response: {await response.text()}",
-                "proposed_action": "Review logs manually.",
-                "evidence": []
-            }
+    try:
+        text = res.strip()
+        if text.startswith("```json"):
+            text = text[7:-3]
+        elif text.startswith("```"):
+            text = text[3:-3]
+        
+        return json.loads(text.strip())
+    except Exception as e:
+        logger.error(f"Failed to parse agent JSON output: {e}\nRaw output: {res}")
+        return {
+            "id": "error_2",
+            "proposedChange": "Review logs manually.",
+            "rationale": f"Agent responded with invalid JSON. Raw response: {res}",
+            "confidenceScore": 0,
+            "forecastEngagement": "+0%",
+            "forecastCompletion": "+0%",
+            "forecastConfusion": "+0%",
+            "evidenceIds": [],
+            "evidenceRecords": [],
+            "trace": {
+                "runId": "error_2_run",
+                "totalDurationMs": 0,
+                "steps": []
+            },
+            "status": "PROPOSED",
+            "isSimulated": False
+        }

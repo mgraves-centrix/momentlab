@@ -27,18 +27,7 @@ class AnomalyRecord(BaseModel):
     description: str
     affectedCohorts: List[str]
 
-# Fallback timeline data matching ClickHouse aggregations for Scene 12
-DEFAULT_SCENE12_TIMELINE: List[TimelinePoint] = [
-    TimelinePoint(timecode="00:00", timeMs=0, allCohort=85.0, cohort18_24=88.0, cohort25_34=82.0, uncertaintyUpper=88.0, uncertaintyLower=82.0, sampleSize=4732),
-    TimelinePoint(timecode="00:10", timeMs=10000, allCohort=84.0, cohort18_24=86.0, cohort25_34=82.0, uncertaintyUpper=87.0, uncertaintyLower=81.0, sampleSize=4730),
-    TimelinePoint(timecode="00:20", timeMs=20000, allCohort=81.0, cohort18_24=85.0, cohort25_34=77.0, uncertaintyUpper=84.0, uncertaintyLower=78.0, sampleSize=4725),
-    TimelinePoint(timecode="00:30", timeMs=30000, allCohort=78.0, cohort18_24=82.0, cohort25_34=74.0, uncertaintyUpper=81.0, uncertaintyLower=75.0, sampleSize=4710),
-    TimelinePoint(timecode="00:33", timeMs=33000, allCohort=75.0, cohort18_24=80.0, cohort25_34=70.0, uncertaintyUpper=78.0, uncertaintyLower=72.0, sampleSize=4700, isAnomaly=True),
-    TimelinePoint(timecode="00:37", timeMs=37000, allCohort=50.0, cohort18_24=48.0, cohort25_34=52.0, uncertaintyUpper=54.0, uncertaintyLower=46.0, sampleSize=4680, isAnomaly=True),
-    TimelinePoint(timecode="00:41", timeMs=41000, allCohort=53.0, cohort18_24=50.0, cohort25_34=56.0, uncertaintyUpper=57.0, uncertaintyLower=49.0, sampleSize=4650, isAnomaly=True),
-    TimelinePoint(timecode="00:50", timeMs=50000, allCohort=62.0, cohort18_24=60.0, cohort25_34=64.0, uncertaintyUpper=66.0, uncertaintyLower=58.0, sampleSize=4620),
-    TimelinePoint(timecode="01:00", timeMs=60000, allCohort=70.0, cohort18_24=68.0, cohort25_34=72.0, uncertaintyUpper=74.0, uncertaintyLower=66.0, sampleSize=4600)
-]
+
 
 @router.get("/{scene_id}/timeline", response_model=List[TimelinePoint])
 def get_scene_timeline(
@@ -83,9 +72,9 @@ def get_scene_timeline(
             if points:
                 return points
         except Exception as err:
-            logger.warning("ClickHouse query error, utilizing active fallback curve: %s", err)
+            logger.warning("ClickHouse query error: %s", err)
     
-    return DEFAULT_SCENE12_TIMELINE
+    return []
 
 @router.get("/{scene_id}/anomalies", response_model=List[AnomalyRecord])
 def get_scene_anomalies(scene_id: str):

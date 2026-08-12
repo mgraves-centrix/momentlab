@@ -9,3 +9,6 @@ google-cloud-aiplatform
 firebase-admin>=6.5.0
 google-cloud-storage>=2.16.0
 google-adk>=0.1.0
+google-adk==2.6.3
+mcp==1.29.0
+fastmcp==3.4.6

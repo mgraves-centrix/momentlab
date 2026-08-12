@@ -3,50 +3,110 @@ import uuid
 import time
 import requests
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import os
 
-# Assuming ClickHouse HTTP interface at localhost:8123
-CLICKHOUSE_URL = "http://localhost:8123/"
+CLICKHOUSE_URL = f"http://localhost:{os.environ.get('CLICKHOUSE_PORT', '8123')}/"
 RNG_SEED = 42
+PROJECT_ID = "proj_northlight_01"
+EXPERIMENT_ID = "exp_23a"
+SCENE_ID = "scene12"
 
 def setup_clickhouse():
-    # Verify DB is up
     try:
         requests.get(CLICKHOUSE_URL)
     except Exception:
-        print("ClickHouse not available at localhost:8123")
+        print(f"ClickHouse not available at {CLICKHOUSE_URL}")
         return False
     return True
 
-def generate_session(user_id, cohort):
-    # Generates a series of events for a user
-    events = []
-    # simulate a 60 second video
+def generate_session(session_id, cohort, base_time):
+    # session
+    session = {
+        'session_id': session_id,
+        'screening_token': f"token_{session_id[:8]}",
+        'project_id': PROJECT_ID,
+        'experiment_id': EXPERIMENT_ID,
+        'scene_id': SCENE_ID,
+        'respondent_cohort': cohort,
+        'consent_given': 1,
+        'consent_timestamp': (base_time - timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S.000'),
+        'created_at': base_time.strftime('%Y-%m-%d %H:%M:%S.000')
+    }
+
+    audience = []
+    reactions = []
+    
+    # simulate a 60 second video (60000 ms)
+    # The mockup shows a drop off specifically around 00:31 - 00:41 for ALL, mostly driven by 18-24 and 25-34
     for second in range(0, 60):
-        # Base engagement is high initially
-        is_engaged = True
-        sentiment = 'ENGAGING'
-
-        # Introduce the cliff at 00:33 - 00:41
-        if 33 <= second <= 41:
+        media_time_ms = second * 1000
+        event_time = base_time + timedelta(seconds=second)
+        event_time_str = event_time.strftime('%Y-%m-%d %H:%M:%S.000')
+        
+        # retention score starts at 1.0, degrades slightly, but sharp drop in 31-41
+        retention = 1.0 - (second * 0.002)
+        if 31 <= second <= 41:
             if cohort == '18-24':
-                # Higher drop-off for this cohort
-                if random.random() < 0.6: 
-                    sentiment = 'CONFUSING'
+                retention -= 0.35 # Sharp drop
+            elif cohort == '25-34':
+                retention -= 0.20
             else:
-                if random.random() < 0.4:
-                    sentiment = 'BORED'
-
-        events.append({
+                retention -= 0.05
+        
+        # Add noise
+        retention += random.uniform(-0.05, 0.05)
+        retention = max(0.0, min(1.0, retention))
+        
+        audience.append({
             'event_id': str(uuid.uuid4()),
-            'session_id': user_id,
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'event_type': 'reaction',
-            'video_time': second,
-            'sentiment': sentiment,
-            'cohort': cohort
+            'session_id': session_id,
+            'project_id': PROJECT_ID,
+            'experiment_id': EXPERIMENT_ID,
+            'scene_id': SCENE_ID,
+            'media_time_ms': media_time_ms,
+            'retention_score': round(retention, 4),
+            'playback_state': 'PLAYING',
+            'idempotency_key': str(uuid.uuid4()),
+            'event_timestamp': event_time_str
         })
-    return events
+        
+        # Generate reactions
+        reaction_type = None
+        if 31 <= second <= 41:
+            if cohort == '18-24' and random.random() < 0.4:
+                reaction_type = 'CONFUSED'
+            elif cohort == '25-34' and random.random() < 0.2:
+                reaction_type = 'BORED'
+        elif random.random() < 0.05:
+            reaction_type = 'ENGAGING'
+            
+        if reaction_type:
+            reactions.append({
+                'reaction_id': str(uuid.uuid4()),
+                'session_id': session_id,
+                'project_id': PROJECT_ID,
+                'experiment_id': EXPERIMENT_ID,
+                'scene_id': SCENE_ID,
+                'media_time_ms': media_time_ms,
+                'reaction_type': reaction_type,
+                'idempotency_key': str(uuid.uuid4()),
+                'created_at': event_time_str
+            })
+            
+    return session, audience, reactions
+
+def insert_batch(table, data):
+    if not data: return
+    ndjson = "\n".join([json.dumps(row) for row in data])
+    resp = requests.post(
+        CLICKHOUSE_URL,
+        auth=("momentlab_writer", "momentlab_writer_secret_change_me"),
+        params={"query": f"INSERT INTO momentlab.{table} FORMAT JSONEachRow"},
+        data=ndjson
+    )
+    if resp.status_code != 200:
+        print(f"Failed to insert into {table}: {resp.text}")
 
 def run_simulation(num_sessions=1000):
     random.seed(RNG_SEED)
@@ -54,44 +114,35 @@ def run_simulation(num_sessions=1000):
         return
         
     print(f"Generating {num_sessions} screening sessions...")
-    all_events = []
     cohorts = ['18-24', '25-34', '35-44', '45+']
+    base_time = datetime.now(timezone.utc) - timedelta(days=2)
     
-    for _ in range(num_sessions):
+    sessions_data = []
+    audience_data = []
+    reactions_data = []
+    
+    for i in range(num_sessions):
         user_id = str(uuid.uuid4())
         cohort = random.choices(cohorts, weights=[40, 30, 20, 10])[0]
-        events = generate_session(user_id, cohort)
-        all_events.extend(events)
+        s, a, r = generate_session(user_id, cohort, base_time + timedelta(minutes=i))
+        sessions_data.append(s)
+        audience_data.extend(a)
+        reactions_data.extend(r)
         
-    # We would normally write to clickhouse here via HTTP batch
-    # For now we'll write a subset just to simulate the write
-    batch = all_events[:5000]
-    
-    # In a real implementation this would map exactly to the CH schema
-    # e.g. INSERT INTO momentlab.playback_events FORMAT JSONEachRow
-    
-    # Since clickhouse is already setup with schema from Phase 2, we just hit the endpoint
-    try:
-        # Simplistic insert format for demonstration
-        data = "\n".join([json.dumps({
-            "session_id": e["session_id"],
-            "video_time": e["video_time"],
-            "event_type": e["event_type"],
-            "metadata": e["sentiment"],
-            "timestamp": e["timestamp"]
-        }) for e in batch])
-        
-        resp = requests.post(
-            CLICKHOUSE_URL, 
-            params={"query": "INSERT INTO default.playback_events FORMAT JSONEachRow"},
-            data=data
-        )
-        if resp.status_code == 200:
-            print("Successfully seeded ClickHouse.")
-        else:
-            print(f"Failed to seed ClickHouse: {resp.text}")
-    except Exception as e:
-        print(f"Error seeding ClickHouse: {e}")
+        # Batch insert
+        if len(sessions_data) >= 500:
+            insert_batch('screening_sessions', sessions_data)
+            insert_batch('audience_events', audience_data)
+            insert_batch('reaction_events', reactions_data)
+            sessions_data, audience_data, reactions_data = [], [], []
+            print(f"Inserted up to session {i+1}")
+            
+    if sessions_data:
+        insert_batch('screening_sessions', sessions_data)
+        insert_batch('audience_events', audience_data)
+        insert_batch('reaction_events', reactions_data)
+
+    print("Successfully seeded ClickHouse.")
 
 if __name__ == "__main__":
     run_simulation()

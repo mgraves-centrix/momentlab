@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Search, Database, FlaskConical, MoreHorizontal } from 'lucide-react';
 
 interface MobileBottomNavProps {
@@ -11,6 +11,7 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavProps> = ({
   projectId = 'proj_northlight_01',
   experimentId = 'exp_23a'
 }) => {
+  const location = useLocation();
   const basePath = `/projects/${projectId}/experiments/${experimentId}`;
 
   const navItems = [
@@ -43,7 +44,7 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavProps> = ({
         return (
           <NavLink
             key={item.label}
-            to={item.path}
+            to={`${item.path}${location.search}`}
             style={({ isActive }) => ({
               display: 'flex',
               flexDirection: 'column',
