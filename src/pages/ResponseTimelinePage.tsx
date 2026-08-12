@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { ResponseTimeline } from '../components/ResponseTimeline';
 import { MediaPlayer } from '../components/MediaPlayer';
@@ -11,14 +11,14 @@ import { ConfidenceMeter } from '../components/ConfidenceMeter';
 import { CutComparison } from '../components/CutComparison';
 import { McpActivityPanel } from '../components/McpActivityPanel';
 import { ApprovalGate } from '../components/ApprovalGate';
-import { NORTHLIGHT_MCP_ACTIVITIES } from '../fixtures/northlight';
-import { fetchExperimentTimeline, fetchExperimentHypothesis, TimelineDataPoint, Hypothesis } from '../api/client';
+import { fetchExperimentTimeline, fetchExperimentHypothesis, TimelineDataPoint, Hypothesis, generateHypothesis } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 
 export const ResponseTimelinePage: React.FC = () => {
   const { projectId, experimentId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const selectedCohort = (searchParams.get('cohort') as 'all' | '18_24' | '25_34') || 'all';
   const selectedWindow = (searchParams.get('window') as TimeWindow) || '30s';
@@ -41,8 +41,32 @@ export const ResponseTimelinePage: React.FC = () => {
     if (updates.media_time_ms !== undefined) newParams.set('media_time_ms', updates.media_time_ms.toString());
     setSearchParams(newParams, { replace: true });
   };
+  const [isGenerating, setIsGenerating] = React.useState(false);
+
+  const handleGenerateHypothesis = async () => {
+    if (!projectId || !experimentId) return;
+    setIsGenerating(true);
+    try {
+      await generateHypothesis(projectId, experimentId);
+      navigate(`/projects/${projectId}/experiments/${experimentId}/evidence${location.search}`);
+    } catch (e) {
+      console.error(e);
+      setIsGenerating(false);
+    }
+  };
 
   const isMobile = useMobile();
+
+  const totalRespondents = timelineData.length > 0 ? Math.max(...timelineData.map(d => d.sampleSize)) : 0;
+  const detectedMoment = timelineData.find(d => d.isAnomaly)?.timecode || "--:--";
+  
+  // Calculate retention drop from peak before anomaly to anomaly minimum
+  const anomalyPoints = timelineData.filter(d => d.isAnomaly);
+  const minAnomalyValue = anomalyPoints.length > 0 ? Math.min(...anomalyPoints.map(d => d.allCohort)) : 0;
+  const maxPreAnomalyValue = timelineData.length > 0 ? Math.max(...timelineData.map(d => d.allCohort)) : 100;
+  const retentionDrop = anomalyPoints.length > 0 ? (minAnomalyValue - maxPreAnomalyValue).toFixed(1) + '%' : '0%';
+  
+  const confidence = hypothesisData?.confidenceScore || 0;
 
   return (
     <AppShell>
@@ -120,10 +144,10 @@ export const ResponseTimelinePage: React.FC = () => {
                     </div>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#ff654a', letterSpacing: '0.04em' }}>RESPONSE CLIFF</span>
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '8px', letterSpacing: '-0.02em' }}>−28%</div>
+                  <div style={{ fontSize: '32px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '8px', letterSpacing: '-0.02em' }}>{retentionDrop}</div>
                   <div style={{ fontSize: '12px', color: '#9aa8b2', lineHeight: '1.4', marginBottom: '16px' }}>Significant drop in engagement across all cohorts.</div>
                   <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>AFFECTED RANGE</div>
-                  <div style={{ fontSize: '14px', color: '#f1f3f2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
+                  <div style={{ fontSize: '14px', color: '#f1f3f2', fontFamily: 'monospace' }}>{detectedMoment}</div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -137,17 +161,17 @@ export const ResponseTimelinePage: React.FC = () => {
                   </div>
                   <div>
                     <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>RESPONDENTS</div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f3f2', marginBottom: '12px' }}>4,732</div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f3f2', marginBottom: '12px' }}>{totalRespondents.toLocaleString()}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>CONFIDENCE</span>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8d979f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                       </div>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#b7e33d' }}>91%</span>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#b7e33d' }}>{confidence}%</span>
                     </div>
                     {/* Confidence Meter Bar */}
                     <div style={{ width: '100%', height: '6px', backgroundColor: '#1c2630', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: '91%', height: '100%', backgroundColor: '#b7e33d' }} />
+                      <div style={{ width: `${confidence}%`, height: '100%', backgroundColor: '#b7e33d' }} />
                     </div>
                   </div>
                 </div>
@@ -164,10 +188,11 @@ export const ResponseTimelinePage: React.FC = () => {
 
             {/* Primary Action Button */}
             <button
-              onClick={() => navigate('/projects/proj_northlight_01/experiments/exp_23a/evidence')}
+              onClick={handleGenerateHypothesis}
+              disabled={isGenerating}
               style={{
-                backgroundColor: '#b7e33d',
-                color: '#050a0e',
+                backgroundColor: isGenerating ? '#1c2630' : '#b7e33d',
+                color: isGenerating ? '#5b6670' : '#050a0e',
                 border: 'none',
                 padding: '16px',
                 borderRadius: '8px',
@@ -182,7 +207,7 @@ export const ResponseTimelinePage: React.FC = () => {
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V1.99"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path><path d="M5.52 16h12.96"></path></svg>
-              VIEW EVIDENCE
+              {isGenerating ? 'GENERATING HYPOTHESIS...' : 'GENERATE HYPOTHESIS'}
             </button>
 
           </div>
@@ -204,28 +229,28 @@ export const ResponseTimelinePage: React.FC = () => {
               <div>
                 <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Respondents</div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
-                  4,732
+                  {totalRespondents.toLocaleString()}
                 </div>
               </div>
 
               <div>
                 <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Detected Moment</div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--coral)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
-                  00:37
+                  {detectedMoment}
                 </div>
               </div>
 
               <div>
                 <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Retention Drop</div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--coral)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
-                  −28.4%
+                  {retentionDrop}
                 </div>
               </div>
 
               <div>
                 <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Calibrated Confidence</div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--lime)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
-                  91%
+                  {confidence}%
                 </div>
               </div>
             </div>
@@ -328,7 +353,7 @@ export const ResponseTimelinePage: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <McpActivityPanel activities={NORTHLIGHT_MCP_ACTIVITIES} />
+                <McpActivityPanel activities={[]} />
                 
                 {hypothesisData && (
                   <HypothesisCard

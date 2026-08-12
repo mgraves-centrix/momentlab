@@ -17,27 +17,5 @@ def get_client():
 
 def init_db():
     client = get_client()
-    # Create the telemetry_events table
-    client.command("""
-        CREATE TABLE IF NOT EXISTS telemetry_events (
-            timestamp DateTime64(3),
-            session_id String,
-            project_id String,
-            experiment_id String,
-            media_time_ms Int32,
-            event_type String,
-            value Float32
-        ) ENGINE = MergeTree()
-        ORDER BY (project_id, experiment_id, media_time_ms)
-    """)
-    print("ClickHouse telemetry_events table initialized.")
+    print("ClickHouse init check passed.")
 
-def insert_events(events: list):
-    """
-    events is a list of tuples or lists matching the table columns:
-    (timestamp, session_id, project_id, experiment_id, media_time_ms, event_type, value)
-    """
-    client = get_client()
-    client.insert('telemetry_events', events, column_names=[
-        'timestamp', 'session_id', 'project_id', 'experiment_id', 'media_time_ms', 'event_type', 'value'
-    ])

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { ApprovalGate } from '../components/ApprovalGate';
 import { CutComparison } from '../components/CutComparison';
-import { fetchExperimentHypothesis, Hypothesis, approveExperiment } from '../api/client';
+import { fetchExperimentHypothesis, Hypothesis, approveHypothesis } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 
 export const CreateAbTestPage: React.FC = () => {
   const [status, setStatus] = useState<'PENDING' | 'APPROVED' | 'DENIED'>('PENDING');
   const [selectedVariant, setSelectedVariant] = useState<'A' | 'B'>('B');
   const navigate = useNavigate();
+  const location = useLocation();
   const { projectId, experimentId } = useParams();
   const [hypothesis, setHypothesis] = useState<Hypothesis | null>(null);
 
@@ -25,12 +26,10 @@ export const CreateAbTestPage: React.FC = () => {
     if (!projectId || !experimentId) return;
     setIsApproving(true);
     try {
-      // Mocking a JWT token for MVP Phase 5
-      const mockToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
-      await approveExperiment(projectId, experimentId, mockToken);
+      await approveHypothesis(projectId, experimentId);
       setStatus('APPROVED');
       setTimeout(() => {
-        navigate('/projects/proj_northlight_01/experiments/exp_23a/results');
+        navigate(`/projects/${projectId}/experiments/${experimentId}/results${location.search}`);
       }, 1200);
     } catch (e) {
       console.error(e);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, Link, useParams } from 'react-router-dom';
+import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { HypothesisCard } from '../components/HypothesisCard';
 import { ConfidenceMeter } from '../components/ConfidenceMeter';
@@ -8,6 +8,7 @@ import { ExternalLink, AlertTriangle, ChevronRight } from 'lucide-react';
 
 export const EditHypothesisPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { projectId, experimentId } = useParams();
   const [hypothesis, setHypothesis] = React.useState<Hypothesis | null>(null);
 
@@ -40,7 +41,7 @@ export const EditHypothesisPage: React.FC = () => {
           </div>
 
           <button
-            onClick={() => navigate('/projects/proj_northlight_01/experiments/exp_23a/test')}
+            onClick={() => navigate(`/projects/${projectId}/experiments/${experimentId}/test${location.search}`)}
             style={{
               backgroundColor: '#b7e33d',
               color: '#080b0e',
@@ -68,7 +69,7 @@ export const EditHypothesisPage: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <HypothesisCard
               hypothesis={hypothesis}
-              onApproveClick={() => navigate(`/projects/${projectId}/experiments/${experimentId}/test`)}
+              onApproveClick={() => navigate(`/projects/${projectId}/experiments/${experimentId}/test${location.search}`)}
             />
 
             {/* Linked ClickHouse Evidence Trace */}
@@ -81,7 +82,7 @@ export const EditHypothesisPage: React.FC = () => {
               </p>
 
               <Link
-                to="/projects/proj_northlight_01/experiments/exp_23a/evidence?highlight=ev_37s"
+                to={`/projects/${projectId}/experiments/${experimentId}/evidence${location.search}`}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -105,7 +106,7 @@ export const EditHypothesisPage: React.FC = () => {
           {/* Right Column: Model Confidence & Risk Notice */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <ConfidenceMeter
-              confidencePercent={91}
+              confidencePercent={hypothesis.confidenceScore}
               sampleSize={4732}
             />
 
@@ -121,20 +122,42 @@ export const EditHypothesisPage: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
                 <div style={{ backgroundColor: '#131b22', padding: '12px 8px', borderRadius: '6px', border: '1px solid #1c2630' }}>
                   <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase' }}>ENGAGEMENT LIFT</div>
-                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">+18%</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">{hypothesis.forecastEngagement}</div>
                 </div>
 
                 <div style={{ backgroundColor: '#131b22', padding: '12px 8px', borderRadius: '6px', border: '1px solid #1c2630' }}>
                   <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase' }}>COMPLETION LIFT</div>
-                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">+9%</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">{hypothesis.forecastCompletion}</div>
                 </div>
 
                 <div style={{ backgroundColor: '#131b22', padding: '12px 8px', borderRadius: '6px', border: '1px solid #1c2630' }}>
                   <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase' }}>CONFUSION</div>
-                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#c4a7ff', marginTop: '2px' }} className="tabular-nums">−4%</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#c4a7ff', marginTop: '2px' }} className="tabular-nums">{hypothesis.forecastConfusion}</div>
                 </div>
               </div>
             </div>
+
+            {/* Agent Run Trace Panel */}
+            {hypothesis.trace && (
+              <div style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '10px', padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
+                    AGENT RUN TRACE
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#8d979f', fontFamily: 'monospace' }}>
+                    {hypothesis.trace.totalDurationMs}ms
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {hypothesis.trace.steps.map((step, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '8px', backgroundColor: '#131b22', borderRadius: '4px', border: '1px solid #1c2630' }}>
+                      <span style={{ color: '#c4a7ff', fontWeight: 600 }}>{step.name}</span>
+                      <span style={{ color: step.status === 'success' ? '#58c94b' : '#ff654a' }}>{step.durationMs}ms</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Agent Risk & Limitation Callout */}
             <div style={{ backgroundColor: 'rgba(242, 184, 75, 0.1)', border: '1px solid rgba(242, 184, 75, 0.3)', borderRadius: '10px', padding: '16px', display: 'flex', gap: '12px' }}>

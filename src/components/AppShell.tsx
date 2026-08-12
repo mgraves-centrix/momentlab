@@ -22,10 +22,8 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const mainNavItems = [
     { label: 'PROJECTS', path: '/projects' },
-    { label: 'IDEA LAB', path: '#' },
     { label: 'EXPERIMENTS', path: `/projects/${projectId}/experiments/${experimentId}/finding` },
     { label: 'AUDIENCES', path: `/screen/demo_token_123` },
-    { label: 'INSIGHTS', path: `#` },
     { label: 'ASSETS', path: `/admin/demo` }
   ];
 
