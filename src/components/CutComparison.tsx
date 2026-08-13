@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface CutComparisonProps {
   controlRevealMs?: number;
   variantRevealMs?: number;
+  hypothesis?: string;
   onSelectVariant?: (variant: 'A' | 'B') => void;
 }
 
 export const CutComparison: React.FC<CutComparisonProps> = ({
   controlRevealMs = 43000,
   variantRevealMs = 37000,
+  hypothesis,
   onSelectVariant
 }) => {
   const [selectedCut, setSelectedCut] = useState<'A' | 'B'>('B');
@@ -69,7 +71,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
           </div>
 
           <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>
-            Reveal Keyframe at <span className="tabular-nums">00:43</span>
+            Original edit sequence
           </div>
 
           {/* Timeline Bar representation */}
@@ -101,11 +103,8 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
             {selectedCut === 'B' && <Check size={16} color="var(--violet)" />}
           </div>
 
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Reveal Shifted to <strong className="tabular-nums">00:37</strong></span>
-            <span style={{ backgroundColor: 'var(--violet)', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: 'var(--radius-sm)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-              <ArrowLeft size={10} /> 6s Earlier
-            </span>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--violet)', marginBottom: '8px' }}>
+            {hypothesis || "Proposed edit sequence"}
           </div>
 
           {/* Timeline Bar representation */}
@@ -114,7 +113,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
             <div style={{ position: 'absolute', left: `${(variantRevealMs / 60000) * 100}%`, top: 0, bottom: 0, width: '4px', backgroundColor: 'var(--violet)' }} />
           </div>
           <span style={{ fontSize: '10px', color: 'var(--violet-soft)', marginTop: '6px', display: 'block' }}>
-            Targeted edit to eliminate the 00:37 retention drop cliff
+            Applied changes to sequence timeline
           </span>
         </div>
       </div>

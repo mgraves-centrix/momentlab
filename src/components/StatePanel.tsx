@@ -76,7 +76,7 @@ export const StatePanel: React.FC<StatePanelProps> = ({
       case 'investigating':
         return 'Agent Investigating ClickHouse Telemetry...';
       case 'hypothesis_ready':
-        return 'Edit Hypothesis Formulated (91% Confidence)';
+        return 'Edit Hypothesis Formulated';
       case 'awaiting_approval':
         return 'Awaiting Server-Signed Human Approval';
       case 'test_running':

@@ -8,8 +8,10 @@ from google.adk.tools.mcp_tool import McpToolset
 from mcp.client.stdio import StdioServerParameters
 from google.genai.types import Content, Part
 
-logger = logging.getLogger(__name__)
-load_dotenv()
+import time
+import uuid
+import logging
+from dotenv import load_dotenv
 
 # Ensure Vertex AI environment variables are set for google-genai
 if not os.environ.get("GOOGLE_CLOUD_PROJECT"):
@@ -95,9 +97,37 @@ Respond strictly in JSON format with the following keys:
     content = Content(parts=[Part.from_text(text=prompt)])
     
     res = ""
+    run_id = f"run_{uuid.uuid4().hex[:8]}"
+    start_time = time.time()
+    steps = []
     
     try:
+        from google.adk.events import ToolCallEvent, ToolResponseEvent, ModelCallEvent, ModelResponseEvent
+        
+        step_start_time = time.time()
+        current_step_name = "Agent Initialization"
+        
         async for event in runner.run_async(user_id="default", session_id="hypothesis_gen", new_message=content):
+            now = time.time()
+            duration_ms = int((now - step_start_time) * 1000)
+            
+            if isinstance(event, ToolCallEvent):
+                steps.append({
+                    "name": current_step_name,
+                    "status": "success",
+                    "durationMs": duration_ms
+                })
+                current_step_name = f"Tool Call: {event.tool_name}"
+                step_start_time = now
+            elif isinstance(event, ToolResponseEvent):
+                steps.append({
+                    "name": current_step_name,
+                    "status": "success",
+                    "durationMs": duration_ms
+                })
+                current_step_name = "Evaluating Results"
+                step_start_time = now
+                
             logger.info(f"EVENT RECEIVED: type={type(event)} dict={event.__dict__ if hasattr(event, '__dict__') else 'N/A'}")
             if hasattr(event, "content") and event.content and hasattr(event.content, "parts"):
                 for part in event.content.parts:
@@ -105,6 +135,13 @@ Respond strictly in JSON format with the following keys:
                         res += part.text
             elif hasattr(event, "output") and event.output:
                 res = getattr(event.output, "text", res)
+                
+        # Final step
+        steps.append({
+            "name": current_step_name,
+            "status": "success",
+            "durationMs": int((time.time() - step_start_time) * 1000)
+        })
     except Exception as e:
         logger.error(f"Error during agent execution: {e}")
         return {
@@ -133,7 +170,16 @@ Respond strictly in JSON format with the following keys:
         elif text.startswith("```"):
             text = text[3:-3]
         
-        return json.loads(text.strip())
+        parsed_res = json.loads(text.strip())
+        
+        # Override trace with real measured execution
+        parsed_res["trace"] = {
+            "runId": run_id,
+            "totalDurationMs": int((time.time() - start_time) * 1000),
+            "steps": steps
+        }
+        
+        return parsed_res
     except Exception as e:
         logger.error(f"Failed to parse agent JSON output: {e}\nRaw output: {res}")
         return {

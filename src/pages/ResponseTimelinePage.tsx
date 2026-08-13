@@ -11,7 +11,7 @@ import { ConfidenceMeter } from '../components/ConfidenceMeter';
 import { CutComparison } from '../components/CutComparison';
 import { McpActivityPanel } from '../components/McpActivityPanel';
 import { ApprovalGate } from '../components/ApprovalGate';
-import { fetchExperimentTimeline, fetchExperimentHypothesis, TimelineDataPoint, Hypothesis, generateHypothesis } from '../api/client';
+import { fetchExperimentTimeline, fetchExperimentHypothesis, fetchExperimentSummary, TimelineDataPoint, Hypothesis, ExperimentSummary, generateHypothesis } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 
 export const ResponseTimelinePage: React.FC = () => {
@@ -26,11 +26,13 @@ export const ResponseTimelinePage: React.FC = () => {
 
   const [timelineData, setTimelineData] = React.useState<TimelineDataPoint[]>([]);
   const [hypothesisData, setHypothesisData] = React.useState<Hypothesis | null>(null);
+  const [summaryData, setSummaryData] = React.useState<ExperimentSummary | null>(null);
 
   React.useEffect(() => {
     if (projectId && experimentId) {
       fetchExperimentTimeline(projectId, experimentId).then(setTimelineData);
       fetchExperimentHypothesis(projectId, experimentId).then(setHypothesisData);
+      fetchExperimentSummary(projectId, experimentId).then(setSummaryData);
     }
   }, [projectId, experimentId]);
 
@@ -57,7 +59,7 @@ export const ResponseTimelinePage: React.FC = () => {
 
   const isMobile = useMobile();
 
-  const totalRespondents = timelineData.length > 0 ? Math.max(...timelineData.map(d => d.sampleSize)) : 0;
+  const totalRespondents = summaryData?.total_respondents || 0;
   const detectedMoment = timelineData.find(d => d.isAnomaly)?.timecode || "--:--";
   
   // Calculate retention drop from peak before anomaly to anomaly minimum
@@ -320,7 +322,7 @@ export const ResponseTimelinePage: React.FC = () => {
                           border: 'none'
                         }}
                       >
-                        {c === 'all' ? 'All (4,732)' : c === '18_24' ? '18–24' : '25–34'}
+                        {c === 'all' ? `All (${totalRespondents.toLocaleString()})` : c === '18_24' ? '18–24' : '25–34'}
                       </button>
                     ))}
                   </div>
@@ -340,14 +342,18 @@ export const ResponseTimelinePage: React.FC = () => {
 
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
                   <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: '0 0 12px 0' }}>Proposed Experiment / Edit Comparison</h3>
-                  <CutComparison controlRevealMs={43000} variantRevealMs={37000} />
+                  <CutComparison 
+                    controlRevealMs={43000} 
+                    variantRevealMs={37000} 
+                    hypothesis={hypothesisData?.proposedChange}
+                  />
                 </div>
 
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
                   <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: '0 0 12px 0' }}>Expected Impact</h3>
                   <ConfidenceMeter
-                    confidencePercent={91}
-                    sampleSize={4732}
+                    confidencePercent={confidence}
+                    sampleSize={totalRespondents}
                   />
                 </div>
               </div>
