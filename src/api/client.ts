@@ -13,6 +13,10 @@ export interface Project {
   status?: string;
 }
 
+export interface ExperimentSummary {
+  total_respondents: number;
+}
+
 export interface SceneMetadata {
   id: string;
   name: string;
@@ -78,6 +82,12 @@ export async function fetchProjects(): Promise<Project[]> {
 export async function fetchRecentQueries(): Promise<any[]> {
   const res = await fetch(`${API_BASE}/telemetry/queries`);
   if (!res.ok) throw new Error('Failed to fetch queries');
+  return await res.json();
+}
+
+export async function fetchExperimentSummary(projectId: string, experimentId: string): Promise<ExperimentSummary> {
+  const res = await fetch(`${API_BASE}/telemetry/summary?project_id=${projectId}&experiment_id=${experimentId}`);
+  if (!res.ok) throw new Error('Failed to fetch summary');
   return await res.json();
 }
 

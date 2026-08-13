@@ -168,9 +168,9 @@ export const MomentEvidencePage: React.FC = () => {
                   <div style={{ position: 'relative', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 'auto' }}>
                     <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
                       <circle cx="18" cy="18" r="16" fill="none" stroke="#1c2630" strokeWidth="4" />
-                      <circle cx="18" cy="18" r="16" fill="none" stroke="#b7e33d" strokeWidth="4" strokeDasharray="100" strokeDashoffset="9" />
+                      <circle cx="18" cy="18" r="16" fill="none" stroke="#b7e33d" strokeWidth="4" strokeDasharray="100" strokeDashoffset={100 - (hypothesisData?.confidenceScore || 0)} />
                     </svg>
-                    <div style={{ position: 'absolute', fontSize: '12px', fontWeight: 700, color: '#b7e33d' }}>91%</div>
+                    <div style={{ position: 'absolute', fontSize: '12px', fontWeight: 700, color: '#b7e33d' }}>{hypothesisData?.confidenceScore || 0}%</div>
                   </div>
                 </div>
               </div>
@@ -327,7 +327,7 @@ export const MomentEvidencePage: React.FC = () => {
                     <div style={{ backgroundColor: '#0d1318', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '9px', color: '#8d979f' }}>CONFIDENCE</span>
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#b7e33d' }}>94%</span>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#b7e33d' }}>{hypothesisData?.confidenceScore || 0}%</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '9px', color: '#8d979f' }}>CONF. INTERVAL</span>

@@ -3,7 +3,7 @@ import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { HypothesisCard } from '../components/HypothesisCard';
 import { ConfidenceMeter } from '../components/ConfidenceMeter';
-import { fetchExperimentHypothesis, Hypothesis } from '../api/client';
+import { fetchExperimentHypothesis, fetchExperimentSummary, Hypothesis, ExperimentSummary } from '../api/client';
 import { ExternalLink, AlertTriangle, ChevronRight } from 'lucide-react';
 
 export const EditHypothesisPage: React.FC = () => {
@@ -11,10 +11,12 @@ export const EditHypothesisPage: React.FC = () => {
   const location = useLocation();
   const { projectId, experimentId } = useParams();
   const [hypothesis, setHypothesis] = React.useState<Hypothesis | null>(null);
+  const [summaryData, setSummaryData] = React.useState<ExperimentSummary | null>(null);
 
   React.useEffect(() => {
     if (projectId && experimentId) {
       fetchExperimentHypothesis(projectId, experimentId).then(setHypothesis);
+      fetchExperimentSummary(projectId, experimentId).then(setSummaryData);
     }
   }, [projectId, experimentId]);
 
@@ -81,25 +83,30 @@ export const EditHypothesisPage: React.FC = () => {
                 The edit hypothesis was synthesized by Google ADK agent after executing queries against second-by-second reaction timelines in ClickHouse Cloud.
               </p>
 
-              <Link
-                to={`/projects/${projectId}/experiments/${experimentId}/evidence${location.search}`}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: '#c4a7ff',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  backgroundColor: '#161e25',
-                  padding: '8px 14px',
-                  borderRadius: '6px',
-                  border: '1px solid #283540'
-                }}
-              >
-                <span>View Provenance Record ev_37s in ClickHouse MCP</span>
-                <ExternalLink size={14} />
-              </Link>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {hypothesis.evidenceRecords?.map((ev, idx) => (
+                  <Link
+                    key={idx}
+                    to={`/projects/${projectId}/experiments/${experimentId}/evidence${location.search}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      color: '#c4a7ff',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      backgroundColor: '#161e25',
+                      padding: '8px 14px',
+                      borderRadius: '6px',
+                      border: '1px solid #283540'
+                    }}
+                  >
+                    <span>View Provenance Record {ev.id} in ClickHouse MCP</span>
+                    <ExternalLink size={14} />
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -107,7 +114,7 @@ export const EditHypothesisPage: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <ConfidenceMeter
               confidencePercent={hypothesis.confidenceScore}
-              sampleSize={4732}
+              sampleSize={summaryData?.total_respondents || 0}
             />
 
             {/* Simulated Forecast Card */}

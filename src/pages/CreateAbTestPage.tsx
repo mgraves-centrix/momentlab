@@ -67,8 +67,8 @@ export const CreateAbTestPage: React.FC = () => {
                 {/* Top Badge */}
                 <div style={{ position: 'absolute', top: '12px', left: '12px', backgroundColor: 'rgba(9, 18, 24, 0.8)', border: '1px solid #1c2630', padding: '6px 10px', borderRadius: '4px', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '4px', backgroundColor: selectedVariant === 'A' ? '#c4a7ff' : '#b7e33d' }} />
-                  <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>
-                    VARIANT {selectedVariant} / {selectedVariant === 'A' ? 'CONTROL CUT' : 'MOVE REVEAL 6S EARLIER'}
+                  <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    VARIANT {selectedVariant} / {selectedVariant === 'A' ? 'CONTROL CUT' : hypothesis?.proposedChange || 'TEST CUT'}
                   </span>
                 </div>
               </div>
@@ -114,7 +114,7 @@ export const CreateAbTestPage: React.FC = () => {
                     </div>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: selectedVariant === 'B' ? '#b7e33d' : '#8d979f' }}>[B] TEST CUT</span>
                   </div>
-                  <div style={{ fontSize: '10px', color: '#5b6670', paddingLeft: '18px' }}>Earlier Reveal</div>
+                  <div style={{ fontSize: '10px', color: '#5b6670', paddingLeft: '18px' }}>Test Cut</div>
                 </button>
               </div>
             </div>
@@ -129,11 +129,11 @@ export const CreateAbTestPage: React.FC = () => {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <div style={{ flex: 1, backgroundColor: '#0d1318', border: '1px solid #1c2630', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
                     <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '4px' }}>ENGAGEMENT LIFT</div>
-                    <div style={{ fontSize: '20px', fontWeight: 700, color: '#58c94b' }}>+18%</div>
+                    <div style={{ fontSize: '20px', fontWeight: 700, color: '#58c94b' }}>{hypothesis?.forecastEngagement || "+0%"}</div>
                   </div>
                   <div style={{ flex: 1, backgroundColor: '#0d1318', border: '1px solid #1c2630', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
                     <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '4px' }}>COMPLETION LIFT</div>
-                    <div style={{ fontSize: '20px', fontWeight: 700, color: '#58c94b' }}>+9%</div>
+                    <div style={{ fontSize: '20px', fontWeight: 700, color: '#58c94b' }}>{hypothesis?.forecastCompletion || "+0%"}</div>
                   </div>
                 </div>
               </div>
@@ -205,6 +205,7 @@ export const CreateAbTestPage: React.FC = () => {
               <CutComparison
                 controlRevealMs={43000}
                 variantRevealMs={37000}
+                hypothesis={hypothesis?.proposedChange}
                 onSelectVariant={(variant) => setSelectedVariant(variant)}
               />
             </div>
