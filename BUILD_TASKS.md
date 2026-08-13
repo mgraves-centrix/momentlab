@@ -15,5 +15,5 @@
 | P2.4 | Veo synthetic generation (Vertex or SYNTHETIC/BLOCKED) | DONE | ✅ | `POST /api/v1/media/veo-generate` verified | |
 | P3.1 | Self-review gate (functional + security + layout) | DONE | ✅ | | |
 | P3.2 | Fix ALL bugs found in P3.1 | DONE | ✅ | No 500s or NaNs found. | |
-| P3.3 | Commit & push to working branch | TODO | | | |
+| P3.3 | Commit & push to working branch | DONE | ✅ | Pushed to main | |
 | DEFERRED | restore >90% line/branch coverage on backend production code | TODO | | | |
