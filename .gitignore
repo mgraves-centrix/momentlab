@@ -31,3 +31,4 @@ test-results/
 *.pid
 tmp/
 temp/
+data/*.db

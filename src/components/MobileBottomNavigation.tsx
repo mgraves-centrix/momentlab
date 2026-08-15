@@ -15,10 +15,10 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavProps> = ({
   const basePath = `/projects/${projectId}/experiments/${experimentId}`;
 
   const navItems = [
-    { label: 'FINDING', path: `${basePath}/finding`, icon: Search, activeColor: '#8b5cf6' },
-    { label: 'EVIDENCE', path: `${basePath}/evidence`, icon: Database, activeColor: '#8b5cf6' },
-    { label: 'TEST', path: `${basePath}/test`, icon: FlaskConical, activeColor: '#b7e33d' },
-    { label: 'MORE', path: `${basePath}/more`, icon: MoreHorizontal, activeColor: '#8b5cf6' }
+    { label: 'Finding', path: `${basePath}/finding`, icon: Search, activeColor: '#8b5cf6' },
+    { label: 'Evidence', path: `${basePath}/evidence`, icon: Database, activeColor: '#8b5cf6' },
+    { label: 'Test', path: `${basePath}/test`, icon: FlaskConical, activeColor: '#8b5cf6' },
+    { label: 'More', path: `${basePath}/more`, icon: MoreHorizontal, activeColor: '#8b5cf6' }
   ];
 
   return (
@@ -29,23 +29,27 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavProps> = ({
         bottom: 0,
         left: 0,
         right: 0,
-        height: '64px',
+        minHeight: '72px',
+        height: '72px',
         backgroundColor: '#091218',
         borderTop: '1px solid #16232c',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
         zIndex: 1000,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
+        boxSizing: 'border-box'
       }}
     >
       {navItems.map((item) => {
         const Icon = item.icon;
+        const isActive = location.pathname.includes(item.path);
         return (
           <NavLink
             key={item.label}
             to={`${item.path}${location.search}`}
-            style={({ isActive }) => ({
+            aria-current={isActive ? 'page' : undefined}
+            style={() => ({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -53,15 +57,15 @@ export const MobileBottomNavigation: React.FC<MobileBottomNavProps> = ({
               gap: '4px',
               textDecoration: 'none',
               color: isActive ? item.activeColor : '#9aa8b2',
-              fontSize: '10px',
+              fontSize: '11px',
               fontWeight: 700,
-              letterSpacing: '0.04em',
+              letterSpacing: '0.02em',
               minWidth: '64px',
-              minHeight: '44px',
+              minHeight: '48px',
               padding: '6px'
             })}
           >
-            <Icon size={20} strokeWidth={2} />
+            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} color={isActive ? item.activeColor : '#9aa8b2'} />
             <span>{item.label}</span>
           </NavLink>
         );

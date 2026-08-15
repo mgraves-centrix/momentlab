@@ -2,14 +2,14 @@ import os
 import logging
 from typing import List, Dict, Any
 from datetime import datetime, timezone
+from backend.services.clickhouse import get_client
 
 logger = logging.getLogger("momentlab.ingestion")
 
 class ClickHouseBatchWriter:
     """
     High-throughput batch writer for audience events.
-    Uses clickhouse-connect with write-limited role (momentlab_writer).
-    Provides contract-faithful fallback when live ClickHouse is unavailable.
+    Uses clickhouse-connect or the local ClickHouse adapter.
     """
     def __init__(self):
         self.host = os.getenv("CLICKHOUSE_HOST", "localhost")
@@ -26,18 +26,10 @@ class ClickHouseBatchWriter:
 
     def _connect(self):
         try:
-            import clickhouse_connect
-            self.client = clickhouse_connect.get_client(
-                host=self.host,
-                port=self.port,
-                username=self.user,
-                password=self.password,
-                database=self.database,
-                connect_timeout=2
-            )
-            logger.info("Connected to live ClickHouse database %s@%s", self.database, self.host)
+            self.client = get_client()
+            logger.info("Batch writer connected with client %s", type(self.client).__name__)
         except Exception as e:
-            logger.warning("ClickHouse live connection unavailable (%s). Activating in-memory fallback buffer.", str(e))
+            logger.warning("ClickHouse connection error (%s). Activating memory buffer.", str(e))
             self.client = None
 
     def insert_playback_events(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:

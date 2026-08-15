@@ -1,10 +1,13 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-# pyrefly: ignore [missing-import]
+from typing import Optional
 from backend.agents.mcp_client import generate_hypothesis
 from backend.services.db import get_db
 
 router = APIRouter()
+
+class RevisionRequest(BaseModel):
+    notes: Optional[str] = "Review confounders and tighten cut window"
 
 @router.get("/projects/{project_id}/experiments/{experiment_id}/hypothesis")
 async def get_hypothesis(project_id: str, experiment_id: str):
@@ -37,6 +40,43 @@ async def create_hypothesis(project_id: str, experiment_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/projects/{project_id}/experiments/{experiment_id}/hypothesis/request-revision")
+async def request_hypothesis_revision(project_id: str, experiment_id: str, req: Optional[RevisionRequest] = None):
+    db = get_db()
+    doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+    doc = doc_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Hypothesis not found")
+    
+    data = doc.to_dict()
+    data['status'] = 'REVISION_REQUESTED'
+    data['revision_notes'] = req.notes if req else "Tighten cut window"
+    doc_ref.set(data)
+    
+    return {
+        "status": "success",
+        "message": "Revision requested",
+        "hypothesis": data
+    }
+
+@router.post("/projects/{project_id}/experiments/{experiment_id}/hypothesis/discard")
+async def discard_hypothesis(project_id: str, experiment_id: str):
+    db = get_db()
+    doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+    doc = doc_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Hypothesis not found")
+    
+    data = doc.to_dict()
+    data['status'] = 'DISCARDED'
+    doc_ref.set(data)
+    
+    return {
+        "status": "success",
+        "message": "Hypothesis discarded",
+        "hypothesis": data
+    }
+
 @router.post("/projects/{project_id}/experiments/{experiment_id}/test/approve")
 async def approve_test(project_id: str, experiment_id: str):
     db = get_db()
@@ -47,8 +87,8 @@ async def approve_test(project_id: str, experiment_id: str):
         raise HTTPException(status_code=404, detail="Hypothesis not found")
         
     data = doc.to_dict()
-    if data.get('status') not in ['PROPOSED', 'APPROVED']:
-        raise HTTPException(status_code=400, detail="Hypothesis is not in a proposed state")
+    if data.get('status') not in ['PROPOSED', 'APPROVED', 'REVISION_REQUESTED']:
+        raise HTTPException(status_code=400, detail="Hypothesis is not in an actionable state")
         
     data['status'] = 'APPROVED'
     doc_ref.set(data)
