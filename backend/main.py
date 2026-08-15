@@ -100,18 +100,8 @@ def ingest_playback_event(event: PlaybackEvent):
         idempotency_key=event.idempotency_key
     )
 
-@app.post("/api/v1/media/veo-generate")
-def generate_veo_scene_media(prompt: str = "Scene 12 INT. APARTMENT - NIGHT"):
-    """
-    Triggers Google Veo generative video model on Vertex AI to produce a new synthetic film scene.
-    """
-    return {
-        "status": "COMPLETED",
-        "model": "veo-2.0-generate-001",
-        "prompt": prompt,
-        "video_url": "/scene12.mp4",
-        "poster_url": "/scene12.png"
-    }
+from backend.routers import media
+app.include_router(media.router)
 
 # SPA Catch-all Fallback Route for React Router
 @app.get("/{full_path:path}")
@@ -119,7 +109,7 @@ def serve_spa(full_path: str):
     if full_path.startswith("api/") or full_path == "health":
         raise HTTPException(status_code=404, detail="Not Found")
     
-    # Direct static file check (e.g. scene12.mp4, scene12.png)
+    # Direct static file check (e.g. media files, images)
     if full_path:
         file_path = os.path.join(static_dir, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):

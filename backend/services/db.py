@@ -1,22 +1,19 @@
 import os
-import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import firestore
+from dotenv import load_dotenv
+from google.cloud import firestore
 
-def init_firebase():
-    """Initializes the Firebase Admin SDK. Returns the Firestore client."""
-    if not firebase_admin._apps:
-        # Use Application Default Credentials
-        # If running locally without GOOGLE_APPLICATION_CREDENTIALS, it will try to find it.
-        # For a seamless demo, we should ensure the user has run `gcloud auth application-default login`
-        cred = credentials.ApplicationDefault()
-        
-        project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "momentlab-demo")
-        firebase_admin.initialize_app(cred, {
-            'projectId': project_id,
-        })
-    return firestore.client()
+load_dotenv()
+if "FIRESTORE_EMULATOR_HOST" not in os.environ:
+    os.environ["FIRESTORE_EMULATOR_HOST"] = "localhost:8080"
 
-# A module-level db client can be obtained by calling get_db()
+_firestore_client = None
+
 def get_db():
-    return init_firebase()
+    """Initializes and returns the Firestore client supporting local emulator and cloud."""
+    global _firestore_client
+    if _firestore_client is None:
+        project_id = os.getenv("GCP_PROJECT_ID", os.getenv("GOOGLE_CLOUD_PROJECT", "guarded-ops"))
+        _firestore_client = firestore.Client(project=project_id)
+    return _firestore_client
+
+

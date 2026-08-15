@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Film } from 'lucide-react';
+import { X, Film, Youtube, Upload } from 'lucide-react';
 import { Project } from '../api/client';
 
 interface NewProjectModalProps {
@@ -11,6 +11,8 @@ interface NewProjectModalProps {
 export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClose, onProjectCreated }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [sourceType, setSourceType] = useState<'upload' | 'youtube'>('upload');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -24,6 +26,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
     setIsSubmitting(true);
     setUploadProgress(10);
     try {
+      // 1. Create project
       const res = await fetch('/api/v1/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,8 +51,21 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
 
       setUploadProgress(40);
 
-      // Upload video if selected
-      if (file && res.ok) {
+      // 2. Handle YouTube Ingest
+      if (sourceType === 'youtube' && youtubeUrl.trim()) {
+        await fetch('/api/v1/media/youtube-ingest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            youtube_url: youtubeUrl.trim(),
+            project_id: newProj.project_id,
+            scene_name: `${name} Scene 1`
+          })
+        });
+      }
+
+      // 3. Handle Direct File Upload
+      if (sourceType === 'upload' && file && res.ok) {
         const urlRes = await fetch(`/api/v1/projects/${newProj.project_id}/media?filename=${encodeURIComponent(file.name)}&content_type=${encodeURIComponent(file.type)}`, {
           method: 'POST'
         });
@@ -72,6 +88,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
       onProjectCreated(newProj);
       setName('');
       setDescription('');
+      setYoutubeUrl('');
       setFile(null);
       setUploadProgress(0);
       onClose();
@@ -115,7 +132,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         width: '100%',
-        maxWidth: '500px',
+        maxWidth: '520px',
         padding: '24px',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
       }}>
@@ -129,6 +146,53 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>
             <X size={20} />
+          </button>
+        </div>
+
+        {/* Source Switcher */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+          <button
+            type="button"
+            onClick={() => setSourceType('upload')}
+            style={{
+              padding: '10px',
+              borderRadius: '6px',
+              border: sourceType === 'upload' ? '1px solid var(--lime)' : '1px solid var(--border)',
+              backgroundColor: sourceType === 'upload' ? 'rgba(183, 227, 61, 0.1)' : 'var(--surface-2)',
+              color: sourceType === 'upload' ? 'var(--lime)' : 'var(--muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <Upload size={14} />
+            <span>File Upload (GCS)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSourceType('youtube')}
+            style={{
+              padding: '10px',
+              borderRadius: '6px',
+              border: sourceType === 'youtube' ? '1px solid #ff4444' : '1px solid var(--border)',
+              backgroundColor: sourceType === 'youtube' ? 'rgba(255, 68, 68, 0.1)' : 'var(--surface-2)',
+              color: sourceType === 'youtube' ? '#ff6666' : 'var(--muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <Youtube size={14} />
+            <span>YouTube IFrame Ingest</span>
           </button>
         </div>
 
@@ -156,12 +220,12 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             />
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
               DESCRIPTION / OBJECTIVE
             </label>
             <textarea
-              rows={3}
+              rows={2}
               placeholder="e.g. Scene pacing optimization and audience retention evaluation..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -178,21 +242,48 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             />
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
-              VIDEO FILE
-            </label>
-            <input
-              type="file"
-              accept="video/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              style={{
-                width: '100%',
-                color: 'var(--text)',
-                fontSize: '14px',
-              }}
-            />
-          </div>
+          {sourceType === 'youtube' ? (
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
+                YOUTUBE VIDEO URL *
+              </label>
+              <input
+                type="url"
+                required
+                placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: 'var(--surface-2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 12px',
+                  color: 'var(--text)',
+                  fontSize: '14px'
+                }}
+              />
+              <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
+                Instruments playback reactions via private YouTube IFrame Player API.
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
+                LOCAL VIDEO FILE (GCS Signed Upload)
+              </label>
+              <input
+                type="file"
+                accept="video/*"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                style={{
+                  width: '100%',
+                  color: 'var(--text)',
+                  fontSize: '14px',
+                }}
+              />
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button
@@ -205,27 +296,28 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
                 padding: '10px 16px',
                 borderRadius: 'var(--radius-sm)',
                 fontSize: '13px',
-                fontWeight: 600
+                fontWeight: 600,
+                cursor: 'pointer'
               }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !name.trim()}
+              disabled={isSubmitting || !name.trim() || (sourceType === 'youtube' && !youtubeUrl.trim())}
               style={{
-                backgroundColor: 'var(--violet)',
-                color: '#fff',
+                backgroundColor: 'var(--lime)',
+                color: '#080b0e',
                 border: 'none',
                 padding: '10px 20px',
                 borderRadius: 'var(--radius-sm)',
                 fontSize: '13px',
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: 'pointer',
                 opacity: !name.trim() ? 0.6 : 1
               }}
             >
-              {isSubmitting ? (uploadProgress > 0 ? `UPLOADING ${uploadProgress}%` : 'CREATING...') : 'CREATE PROJECT'}
+              {isSubmitting ? (uploadProgress > 0 ? `INITIALIZING ${uploadProgress}%` : 'CREATING...') : 'CREATE PROJECT'}
             </button>
           </div>
         </form>

@@ -371,7 +371,7 @@ export const ExperimentResultsPage: React.FC = () => {
 
                 <div style={{ padding: '16px' }}>
                   <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px', textTransform: 'uppercase' }}>CUT B (VARIANT)</div>
-                  <div style={{ fontSize: '12px', color: '#b7e33d', marginBottom: '12px' }}>Move reveal 6s earlier — Reveal at 00:37</div>
+                  <div style={{ fontSize: '12px', color: '#b7e33d', marginBottom: '12px' }}>{hypothesis || "Variant"} — Reveal at 00:37</div>
                   
                   <VideoPlayerWithTimeline 
                     src={sampleVideoUrl}
