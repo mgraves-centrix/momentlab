@@ -57,42 +57,89 @@ def discover_available_veo_models(project_id: Optional[str] = None) -> List[Dict
             
     return matrix
 
-def stitch_video_clips(clip_paths: List[str], output_path: str) -> bool:
+def get_media_duration(file_path: str, ffprobe_bin: str = "ffprobe") -> Optional[float]:
+    """
+    Probes media duration in seconds using ffprobe.
+    """
+    if not file_path or not os.path.exists(file_path):
+        return None
+    try:
+        res = subprocess.run(
+            [ffprobe_bin, "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return float(res.stdout.strip())
+    except Exception as e:
+        logger.warning("ffprobe duration probe failed for %s: %s", file_path, e)
+        return None
+
+def stitch_video_clips(clip_paths: List[str], output_path: str, ffmpeg_bin: str = "ffmpeg", ffprobe_bin: str = "ffprobe") -> bool:
     """
     Stitches multiple video clip files into one continuous sequence asset.
-    Uses ffmpeg concat filter when available, or binary sequence concatenation fallback.
+    Normalizes clips to a common resolution (1280x720) and frame rate (30fps) using ffmpeg filter_complex.
+    Verifies that the probed output duration matches the expected sum of input durations (within +-1.0s tolerance).
+    Returns False if ffmpeg is unavailable, processing fails, or duration check fails.
     """
-    if not clip_paths:
+    if not clip_paths or not all(os.path.exists(p) for p in clip_paths):
+        logger.error("stitch_video_clips: clip_paths empty or input files do not exist.")
         return False
+
+    res_ff = subprocess.run(["which", ffmpeg_bin], capture_output=True, text=True)
+    res_pr = subprocess.run(["which", ffprobe_bin], capture_output=True, text=True)
+    if res_ff.returncode != 0 or res_pr.returncode != 0:
+        logger.error("ffmpeg or ffprobe binary not available on system.")
+        return False
+
+    durations = [get_media_duration(p, ffprobe_bin) for p in clip_paths]
+    if any(d is None for d in durations):
+        logger.error("Failed to probe duration for one or more input clips.")
+        return False
+    expected_duration = sum(durations)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    # Check if ffmpeg is available
-    res = subprocess.run(["which", "ffmpeg"], capture_output=True, text=True)
-    if res.returncode == 0:
-        concat_list_file = output_path + ".txt"
-        with open(concat_list_file, "w") as f:
-            for p in clip_paths:
-                f.write(f"file '{os.path.abspath(p)}'\n")
-        try:
-            subprocess.run([
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                "-i", concat_list_file, "-c", "copy", output_path
-            ], check=True, capture_output=True)
-            if os.path.exists(concat_list_file):
-                os.remove(concat_list_file)
-            return os.path.exists(output_path) and os.path.getsize(output_path) > 0
-        except Exception as e:
-            logger.error("ffmpeg concat error: %s. Falling back to stream stitch.", e)
-            
-    # Binary stream stitch fallback
-    with open(output_path, "wb") as outfile:
-        for p in clip_paths:
-            if os.path.exists(p):
-                with open(p, "rb") as infile:
-                    outfile.write(infile.read())
-                    
-    return os.path.exists(output_path) and os.path.getsize(output_path) > 0
+    n = len(clip_paths)
+    inputs = []
+    filter_parts = []
+    concat_inputs = []
+    for i, p in enumerate(clip_paths):
+        inputs.extend(["-i", os.path.abspath(p)])
+        filter_parts.append(f"[{i}:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v{i}]")
+        concat_inputs.append(f"[v{i}]")
+
+    filter_complex = ";".join(filter_parts) + ";" + "".join(concat_inputs) + f"concat=n={n}:v=1:a=0[v]"
+
+    cmd = [
+        ffmpeg_bin, "-y"
+    ] + inputs + [
+        "-filter_complex", filter_complex,
+        "-map", "[v]",
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        output_path
+    ]
+
+    try:
+        run_res = subprocess.run(cmd, capture_output=True, text=True)
+        if run_res.returncode != 0:
+            logger.error("ffmpeg concat execution failed: %s", run_res.stderr)
+            return False
+    except Exception as e:
+        logger.error("ffmpeg execution exception: %s", e)
+        return False
+
+    if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+        logger.error("Stitched output file missing or zero bytes.")
+        return False
+
+    out_dur = get_media_duration(output_path, ffprobe_bin)
+    if out_dur is None or abs(out_dur - expected_duration) > 1.0:
+        logger.error("Output duration (%s) does not match expected sum (%s +- 1.0s)", out_dur, expected_duration)
+        return False
+
+    return True
 
 def generate_multi_clip_veo_sequence(
     prompt: str,
