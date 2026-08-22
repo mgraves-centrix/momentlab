@@ -1,6 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX, Upload, Film, Sparkles, Youtube } from 'lucide-react';
 import { useMobile } from '../hooks/useMobile';
+
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
 
 interface MediaPlayerProps {
   initialVideoUrl?: string;
@@ -29,11 +36,131 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   const [veoStatusMessage, setVeoStatusMessage] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const ytPlayerRef = useRef<any>(null);
+  const ytContainerRef = useRef<HTMLDivElement>(null);
+  const pollIntervalRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Extract 11-char YouTube ID
+  const extractVideoId = useCallback((url: string) => {
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    return match ? match[1] : null;
+  }, []);
+
+  // Post real playback telemetry to ClickHouse
+  const recordPlaybackEvent = useCallback(async (timeSec: number, state: 'PLAYING' | 'PAUSED' | 'SEEKING') => {
+    try {
+      await fetch('/api/v1/events/playback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: 'sess_screener_demo_01',
+          project_id: 'proj_northlight_01',
+          experiment_id: 'exp_23a',
+          scene_id: 'sc_12',
+          media_time_ms: Math.floor(timeSec * 1000),
+          retention_score: 85.0,
+          playback_state: state,
+          idempotency_key: `evt_${Date.now()}_${Math.floor(timeSec * 1000)}`
+        })
+      });
+    } catch (err) {
+      console.warn('Playback telemetry dispatch:', err);
+    }
+  }, []);
+
+  // Initialize YouTube IFrame Player API
+  useEffect(() => {
+    if (!isYouTube) {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+      return;
+    }
+
+    const videoId = extractVideoId(videoSrc) || 'aqz-KE-bpKQ';
+
+    const initPlayer = () => {
+      if (!window.YT || !window.YT.Player || !ytContainerRef.current) return;
+      
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.destroy === 'function') {
+        ytPlayerRef.current.destroy();
+      }
+
+      ytPlayerRef.current = new window.YT.Player(ytContainerRef.current, {
+        videoId: videoId,
+        playerVars: {
+          enablejsapi: 1,
+          origin: window.location.origin,
+          autoplay: 0,
+          controls: 0,
+          rel: 0
+        },
+        events: {
+          onReady: (event: any) => {
+            const dur = event.target.getDuration();
+            if (dur && !isNaN(dur)) {
+              setDurationSec(dur);
+            }
+          },
+          onStateChange: (event: any) => {
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              setIsPlaying(true);
+              recordPlaybackEvent(event.target.getCurrentTime(), 'PLAY');
+              
+              if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = setInterval(() => {
+                if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
+                  const t = ytPlayerRef.current.getCurrentTime();
+                  setCurrentTimeSec(t);
+                  if (onTimeUpdate) {
+                    onTimeUpdate(Math.floor(t * 1000));
+                  }
+                  recordPlaybackEvent(t, 'PLAY');
+                }
+              }, 500);
+            } else {
+              setIsPlaying(false);
+              if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+              }
+              if (event.data === window.YT.PlayerState.PAUSED) {
+                recordPlaybackEvent(event.target.getCurrentTime(), 'PAUSE');
+              }
+            }
+          }
+        }
+      });
+    };
+
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+      window.onYouTubeIframeAPIReady = initPlayer;
+    } else {
+      initPlayer();
+    }
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.destroy === 'function') {
+        ytPlayerRef.current.destroy();
+      }
+    };
+  }, [isYouTube, videoSrc, extractVideoId, recordPlaybackEvent, onTimeUpdate]);
+
   const handlePlayPause = () => {
-    if (isYouTube) {
-      setIsPlaying(!isPlaying);
+    if (isYouTube && ytPlayerRef.current) {
+      if (isPlaying) {
+        ytPlayerRef.current.pauseVideo();
+      } else {
+        ytPlayerRef.current.playVideo();
+      }
       return;
     }
     if (videoRef.current) {
@@ -77,11 +204,9 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   const handleYouTubeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!youtubeUrlInput.trim()) return;
-    const match = youtubeUrlInput.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-    const videoId = match ? match[1] : youtubeUrlInput.trim();
-    setVideoSrc(`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1`);
+    const videoId = extractVideoId(youtubeUrlInput) || youtubeUrlInput.trim();
+    setVideoSrc(`https://www.youtube.com/watch?v=${videoId}`);
     setShowYoutubeInput(false);
-    setIsPlaying(true);
   };
 
   const handleGenerateVeo = async () => {
@@ -257,13 +382,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
         }}
       >
         {isYouTube ? (
-          <iframe
-            src={videoSrc}
-            title={sceneTitle}
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+          <div ref={ytContainerRef} style={{ width: '100%', height: '100%' }} />
         ) : (
           <>
             <video
@@ -318,7 +437,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
           }}
           className="tabular-nums"
         >
-          {formatTimecode(Math.min(currentTimeSec, durationSec))} / {formatTimecode(durationSec)}
+          {formatTimecode(durationSec > 0 ? Math.min(currentTimeSec, durationSec) : currentTimeSec)} / {formatTimecode(durationSec)}
         </div>
       </div>
 
@@ -346,12 +465,14 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
         <input
           type="range"
           min={0}
-          max={durationSec}
+          max={durationSec || 100}
           value={currentTimeSec}
           onChange={(e) => {
             const sec = parseFloat(e.target.value);
             setCurrentTimeSec(sec);
-            if (videoRef.current) {
+            if (isYouTube && ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
+              ytPlayerRef.current.seekTo(sec, true);
+            } else if (videoRef.current) {
               videoRef.current.currentTime = sec;
             }
             if (onTimeUpdate) {
@@ -362,7 +483,13 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
         />
 
         <button
-          onClick={() => setIsMuted(!isMuted)}
+          onClick={() => {
+            setIsMuted(!isMuted);
+            if (isYouTube && ytPlayerRef.current) {
+              if (isMuted) ytPlayerRef.current.unMute();
+              else ytPlayerRef.current.mute();
+            }
+          }}
           style={{
             width: '36px',
             height: '36px',
