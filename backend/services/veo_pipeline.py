@@ -40,7 +40,8 @@ def discover_available_veo_models(project_id: Optional[str] = None) -> List[Dict
                     "region": region,
                     "model": model,
                     "in_catalog": False,
-                    "status": "UNAVAILABLE",
+                    "status": "NOT_IN_CATALOG",
+                    "invocable": False,
                     "error": str(e)
                 })
             continue
@@ -51,7 +52,8 @@ def discover_available_veo_models(project_id: Optional[str] = None) -> List[Dict
                 "region": region,
                 "model": model,
                 "in_catalog": in_cat,
-                "status": "AVAILABLE" if in_cat else "NOT_IN_CATALOG",
+                "status": "IN_CATALOG" if in_cat else "NOT_IN_CATALOG",
+                "invocable": False,  # Model generation requires active Vertex AI Veo quota
                 "error": None if in_cat else "Model not in publisher catalog for region"
             })
             
