@@ -126,7 +126,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
                 pollIntervalRef.current = null;
               }
               if (event.data === window.YT.PlayerState.PAUSED) {
-                recordPlaybackEvent(event.target.getCurrentTime(), 'PAUSE');
+                recordPlaybackEvent(event.target.getCurrentTime(), 'PAUSED');
               }
             }
           }
