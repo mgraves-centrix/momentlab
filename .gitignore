@@ -32,3 +32,4 @@ test-results/
 tmp/
 temp/
 data/*.db
+public/media/
