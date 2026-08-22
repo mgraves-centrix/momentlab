@@ -106,7 +106,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
           onStateChange: (event: any) => {
             if (event.data === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
-              recordPlaybackEvent(event.target.getCurrentTime(), 'PLAY');
+              recordPlaybackEvent(event.target.getCurrentTime(), 'PLAYING');
               
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = setInterval(() => {
@@ -116,7 +116,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
                   if (onTimeUpdate) {
                     onTimeUpdate(Math.floor(t * 1000));
                   }
-                  recordPlaybackEvent(t, 'PLAY');
+                  recordPlaybackEvent(t, 'PLAYING');
                 }
               }, 500);
             } else {
