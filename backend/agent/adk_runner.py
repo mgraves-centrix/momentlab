@@ -2,6 +2,8 @@ import os
 import logging
 from typing import Dict, Any, List
 from datetime import datetime, timezone
+# Framework: google.antigravity (Google Agent Development Kit / google-adk)
+# MCP Provider: ClickHouse/mcp-clickhouse
 from backend.mcp.clickhouse_mcp_client import ClickHouseMcpClient
 from backend.schemas.events import ConsentRecord
 
@@ -9,14 +11,14 @@ logger = logging.getLogger("momentlab.agent")
 
 class GoogleAdkAgentRunner:
     """
-    Google Agent Development Kit (google-adk) Runner for MomentLab.
+    Google Agent Development Kit (google-adk / google.antigravity) Runner for MomentLab.
     Leverages Gemini on Vertex AI to investigate ClickHouse audience evidence,
     detect response cliffs, and generate falsifiable edit proposals.
     """
     def __init__(self, project_id: str = "momentlab-504305", location: str = "us-central1"):
         self.project_id = os.getenv("GCP_PROJECT_ID", project_id)
         self.location = os.getenv("GCP_LOCATION", location)
-        self.model_name = "gemini-1.5-pro"
+        self.model_name = "gemini-2.5-pro"
         self.mcp_client = ClickHouseMcpClient()
 
     def run_investigation(self, project_id: str, scene_id: str) -> Dict[str, Any]:

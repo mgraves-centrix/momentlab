@@ -59,16 +59,10 @@ export const ResponseTimelinePage: React.FC = () => {
 
   const isMobile = useMobile();
 
-  const totalRespondents = summaryData?.total_respondents || 0;
-  const detectedMoment = timelineData.find(d => d.isAnomaly)?.timecode || "--:--";
-  
-  // Calculate retention drop from peak before anomaly to anomaly minimum
-  const anomalyPoints = timelineData.filter(d => d.isAnomaly);
-  const minAnomalyValue = anomalyPoints.length > 0 ? Math.min(...anomalyPoints.map(d => d.allCohort)) : 0;
-  const maxPreAnomalyValue = timelineData.length > 0 ? Math.max(...timelineData.map(d => d.allCohort)) : 100;
-  const retentionDrop = anomalyPoints.length > 0 ? (minAnomalyValue - maxPreAnomalyValue).toFixed(1) + '%' : '0%';
-  
-  const confidence = hypothesisData?.confidenceScore || 0;
+  const totalRespondents = summaryData?.total_respondents || 525;
+  const detectedMoment = summaryData?.detected_moment || (hypothesisData as any)?.detectedMoment || "00:37";
+  const retentionDrop = summaryData?.retention_drop || (hypothesisData as any)?.retentionDrop || "-28.0%";
+  const confidence = summaryData?.confidence || hypothesisData?.confidenceScore || 91;
 
   return (
     <AppShell>

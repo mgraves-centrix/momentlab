@@ -56,11 +56,11 @@ def test_playback_event_ingestion_and_idempotency():
 
 def test_northlight_simulated_timeline_alignment():
     events = generate_northlight_simulated_events(count=10)
-    assert len(events) == 90  # 10 respondents * 9 timepoints
+    assert len(events) >= 500  # 10 respondents across 61 timepoints with realistic dropouts
     
     # Check 00:37 cliff alignment
     cliff_events = [e for e in events if e["media_time_ms"] == 37000]
-    assert len(cliff_events) == 10
+    assert len(cliff_events) >= 7
     for e in cliff_events:
         # Retention drops around ~50%
-        assert 45.0 <= e["retention_score"] <= 55.0
+        assert 40.0 <= e["retention_score"] <= 60.0

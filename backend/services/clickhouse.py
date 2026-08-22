@@ -3,7 +3,7 @@ import re
 import time
 import sqlite3
 import logging
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Dict
 from datetime import datetime, timezone
 
 logger = logging.getLogger("momentlab.clickhouse")
@@ -101,13 +101,19 @@ class LocalClickHouseClient:
         conn.commit()
         conn.close()
 
-    def query(self, query_str: str) -> LocalQueryResult:
+    def query(self, query_str: str, parameters: Optional[Dict[str, Any]] = None) -> LocalQueryResult:
         start_time = time.time()
         # Translate common ClickHouse SQL functions to SQLite equivalents
         translated_sql = query_str
+        if parameters:
+            for k, v in parameters.items():
+                val_str = f"'{v}'" if isinstance(v, str) else str(v)
+                translated_sql = re.sub(rf'\{{{k}:[A-Za-z0-9_]+\}}', val_str, translated_sql)
+                translated_sql = re.sub(rf'\{{{k}\}}', val_str, translated_sql)
         translated_sql = re.sub(r'momentlab\.', '', translated_sql)
         translated_sql = re.sub(r'system\.query_log', 'query_log', translated_sql)
         translated_sql = re.sub(r'toFloat32\(toInt32\(media_time_ms\s*/\s*1000\)\s*\*\s*1000\)', 'CAST(CAST(media_time_ms / 1000 AS INT) * 1000 AS FLOAT)', translated_sql)
+        translated_sql = re.sub(r'quantile\([0-9\.]+\)\(([a-zA-Z0-9_]+)\)', r'avg(\1)', translated_sql)
         translated_sql = re.sub(r'count\(\)', 'count(*)', translated_sql)
 
         conn = self._get_conn()

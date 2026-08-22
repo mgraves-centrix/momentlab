@@ -1,5 +1,7 @@
 import os
 import json
+import time
+import uuid
 import logging
 from dotenv import load_dotenv
 from google.adk import Agent, Runner
@@ -8,10 +10,7 @@ from google.adk.tools.mcp_tool import McpToolset
 from mcp.client.stdio import StdioServerParameters
 from google.genai.types import Content, Part
 
-import time
-import uuid
-import logging
-from dotenv import load_dotenv
+logger = logging.getLogger("momentlab.agent.adk")
 
 # Ensure Vertex AI environment variables are set for google-genai
 if not os.environ.get("GOOGLE_CLOUD_PROJECT"):

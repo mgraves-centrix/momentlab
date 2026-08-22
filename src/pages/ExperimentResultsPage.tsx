@@ -13,10 +13,11 @@ interface HoverInfo {
 
 const VideoPlayerWithTimeline: React.FC<{ 
   src: string; 
+  poster?: string;
   revealTime: number; 
   simulatedDuration: number;
   highlightColor?: string; 
-}> = ({ src, revealTime, simulatedDuration, highlightColor }) => {
+}> = ({ src, poster = "/northlight_thumb.png", revealTime, simulatedDuration, highlightColor }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
@@ -63,6 +64,7 @@ const VideoPlayerWithTimeline: React.FC<{
         <video 
           ref={videoRef} 
           src={src} 
+          poster={poster}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
           playsInline 
           loop
@@ -116,13 +118,38 @@ const VideoPlayerWithTimeline: React.FC<{
   );
 };
 
+const CustomLineTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ backgroundColor: '#1c2630', padding: '8px', border: '1px solid #283540', borderRadius: '4px', fontSize: '11px', color: '#fff' }}>
+        <div style={{ marginBottom: '4px', color: '#8d979f' }}>{label}</div>
+        <div style={{ color: '#9f7aea' }}>Cut A (Control): {payload[0].value}%</div>
+        <div style={{ color: '#6b46c1' }}>Cut B (Variant): {payload[1].value}%</div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomBarTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ backgroundColor: '#1c2630', padding: '8px', border: '1px solid #283540', borderRadius: '4px', fontSize: '11px', color: '#fff' }}>
+        <div style={{ marginBottom: '4px', color: '#8d979f' }}>Lift Bucket: {label}</div>
+        <div style={{ color: '#b7e33d' }}>Distribution: {payload[0].value}</div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export const ExperimentResultsPage: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
   const [activeTab, setActiveTab] = useState<'SUPPORTED' | 'REJECTED' | 'INCONCLUSIVE'>('SUPPORTED');
 
-  const sampleVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+  const sampleVideoUrl = "/scene12.mp4";
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -181,31 +208,6 @@ export const ExperimentResultsPage: React.FC = () => {
     sample_size_control, sample_size_variant, cohort_breakdown, engagement_over_time, engagement_lift_distribution,
     key_results, metadata
   } = data;
-
-  const CustomLineTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{ backgroundColor: '#1c2630', padding: '8px', border: '1px solid #283540', borderRadius: '4px', fontSize: '11px', color: '#fff' }}>
-          <div style={{ marginBottom: '4px', color: '#8d979f' }}>{label}</div>
-          <div style={{ color: '#9f7aea' }}>Cut A (Control): {payload[0].value}%</div>
-          <div style={{ color: '#6b46c1' }}>Cut B (Variant): {payload[1].value}%</div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const CustomBarTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{ backgroundColor: '#1c2630', padding: '8px', border: '1px solid #283540', borderRadius: '4px', fontSize: '11px', color: '#fff' }}>
-          <div style={{ marginBottom: '4px', color: '#8d979f' }}>Lift Bucket: {label}</div>
-          <div style={{ color: '#b7e33d' }}>Distribution: {payload[0].value}</div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <AppShell>
@@ -364,6 +366,7 @@ export const ExperimentResultsPage: React.FC = () => {
                   
                   <VideoPlayerWithTimeline 
                     src={sampleVideoUrl}
+                    poster="/northlight_thumb.png"
                     revealTime={43}
                     simulatedDuration={138}
                   />
@@ -371,10 +374,11 @@ export const ExperimentResultsPage: React.FC = () => {
 
                 <div style={{ padding: '16px' }}>
                   <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px', textTransform: 'uppercase' }}>CUT B (VARIANT)</div>
-                  <div style={{ fontSize: '12px', color: '#b7e33d', marginBottom: '12px' }}>{hypothesis || "Variant"} — Reveal at 00:37</div>
+                  <div style={{ fontSize: '12px', color: '#b7e33d', marginBottom: '12px' }}>{hypothesis || "Move reveal 6s earlier"} — Reveal at 00:37</div>
                   
                   <VideoPlayerWithTimeline 
                     src={sampleVideoUrl}
+                    poster="/scene12.png"
                     revealTime={37}
                     simulatedDuration={138}
                     highlightColor="#b7e33d"

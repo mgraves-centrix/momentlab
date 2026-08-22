@@ -9,15 +9,15 @@ def test_list_projects_endpoint():
     data = response.json()
     assert isinstance(data, list)
     assert len(data) >= 1
-    assert data[0]["id"] == "proj_northlight_01"
+    assert any(p.get("project_id") == "proj_northlight_01" for p in data)
 
 def test_create_project_endpoint():
-    payload = {"name": "Test Project", "description": "Unit test project"}
+    payload = {"title": "Test Project", "description": "Unit test project", "owner_id": "user_dev_01"}
     response = client.post("/api/v1/projects", json=payload)
     assert response.status_code == 201
     data = response.json()
-    assert data["name"] == "Test Project"
-    assert "id" in data
+    assert data["title"] == "Test Project"
+    assert "project_id" in data
 
 def test_get_scene_timeline_endpoint():
     response = client.get("/api/v1/scenes/sc_12/timeline")
@@ -28,7 +28,11 @@ def test_get_scene_timeline_endpoint():
     assert "allCohort" in data[0]
 
 def test_approve_hypothesis_endpoint():
-    response = client.post("/api/v1/hypotheses/hyp_23a/approve")
+    response = client.post(
+        "/api/v1/projects/proj_northlight_01/experiments/exp_23a:approve",
+        headers={"Authorization": "Bearer admin_token_demo"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "APPROVED"
+    assert "audit_id" in data
