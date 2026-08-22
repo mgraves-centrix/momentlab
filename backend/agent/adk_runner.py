@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Dict, Any, List
 from datetime import datetime, timezone
-# Framework: google.antigravity (Google Agent Development Kit / google-adk)
+# Framework: google.adk (Google Agent Development Kit / google-adk)
 # MCP Provider: ClickHouse/mcp-clickhouse
 from backend.mcp.clickhouse_mcp_client import ClickHouseMcpClient
 from backend.schemas.events import ConsentRecord
@@ -11,7 +11,7 @@ logger = logging.getLogger("momentlab.agent")
 
 class GoogleAdkAgentRunner:
     """
-    Google Agent Development Kit (google-adk / google.antigravity) Runner for MomentLab.
+    Google Agent Development Kit (google.adk / google-adk) Runner for MomentLab.
     Leverages Gemini on Vertex AI to investigate ClickHouse audience evidence,
     detect response cliffs, and generate falsifiable edit proposals.
     """

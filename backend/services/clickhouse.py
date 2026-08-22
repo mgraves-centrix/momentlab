@@ -120,7 +120,9 @@ class LocalClickHouseClient:
         cur = conn.cursor()
         try:
             cur.execute(translated_sql)
-            rows = cur.fetchall()
+            if translated_sql.strip().upper().startswith(("INSERT", "DELETE", "UPDATE", "DROP")):
+                conn.commit()
+            rows = cur.fetchall() if cur.description else []
         except Exception as e:
             logger.error("Local SQL execution error on '%s': %s", translated_sql, e)
             rows = []

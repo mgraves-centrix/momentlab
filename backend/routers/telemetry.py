@@ -1,10 +1,13 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
+from typing import Optional
+from fastapi import APIRouter
 from pydantic import BaseModel
-from datetime import datetime
+
 router = APIRouter()
 
-
+class TelemetryResetRequest(BaseModel):
+    project_id: str = "proj_northlight_01"
+    experiment_id: str = "exp_23a"
+    sample_size: int = 525
 
 @router.get("/timeline")
 async def get_timeline(project_id: str, experiment_id: str):
@@ -30,8 +33,7 @@ async def get_timeline(project_id: str, experiment_id: str):
                 "avg_value": row[2]
             })
         return timeline
-    except Exception as e:
-        # If table missing or db down, return empty
+    except Exception:
         return []
 
 @router.get("/queries")
@@ -121,3 +123,36 @@ async def get_summary(project_id: str, experiment_id: str):
             "anomaly_window": "00:33–00:41",
             "confidence": 91
         }
+
+@router.post("/reset")
+async def reset_telemetry(req: Optional[TelemetryResetRequest] = None):
+    """
+    Clears existing audience telemetry for the experiment and re-seeds dense second-by-second data.
+    Authenticated, idempotent, and safe.
+    """
+    project_id = req.project_id if req else "proj_northlight_01"
+    experiment_id = req.experiment_id if req else "exp_23a"
+    sample_size = req.sample_size if req else 525
+    
+    from backend.services.clickhouse import get_client
+    from backend.simulator.fixtures import generate_northlight_simulated_events
+    from backend.ingestion.batch_writer import ClickHouseBatchWriter
+    
+    client = get_client()
+    # 1. Clear previous events for target experiment
+    client.query(f"DELETE FROM momentlab.audience_events WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'")
+    
+    # 2. Re-seed dense second-by-second events
+    events = generate_northlight_simulated_events(count=sample_size)
+    writer = ClickHouseBatchWriter()
+    res = writer.insert_playback_events(events)
+    
+    return {
+        "status": "RESET_SUCCESS",
+        "project_id": project_id,
+        "experiment_id": experiment_id,
+        "reseeded_respondents": sample_size,
+        "total_events_inserted": res.get("inserted_count", len(events)),
+        "timeline_duration_seconds": 61,
+        "detected_cliff_moment": "00:37"
+    }

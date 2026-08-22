@@ -1,9 +1,9 @@
 import os
 import uuid
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from google.cloud import storage
 from backend.services.db import get_db
 from backend.schemas.models import Project
@@ -22,7 +22,7 @@ class SignedUrlResponse(BaseModel):
 
 @router.get("", response_model=List[Project])
 def list_projects():
-    """Lists all active projects."""
+    """Lists all active projects with canonical demo projects ordered first."""
     db = get_db()
     projects_ref = db.collection('projects')
     docs = projects_ref.stream()
@@ -32,6 +32,9 @@ def list_projects():
         data = doc.to_dict()
         projects.append(Project(**data))
         
+    # Canonical demo priority ordering: Northlight (1), Echoes (2), Below (3)
+    priority = {"proj_northlight_01": 0, "proj_echoes_02": 1, "proj_below_03": 2}
+    projects.sort(key=lambda p: priority.get(p.project_id, 99))
     return projects
 
 @router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
@@ -61,6 +64,22 @@ def get_project(project_id: str):
         raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
         
     return Project(**doc.to_dict())
+
+@router.delete("/{project_id}", status_code=status.HTTP_200_OK)
+def delete_project(project_id: str):
+    """Deletes a workspace project."""
+    db = get_db()
+    doc_ref = db.collection('projects').document(project_id)
+    doc = doc_ref.get()
+    
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
+    
+    if project_id in ["proj_northlight_01", "proj_echoes_02", "proj_below_03"]:
+        raise HTTPException(status_code=400, detail="Cannot delete core demo projects.")
+        
+    doc_ref.delete()
+    return {"status": "DELETED", "project_id": project_id}
 
 def _get_storage_client():
     return storage.Client()

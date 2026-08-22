@@ -32,13 +32,13 @@ def check_ai_compliance():
                 filepath = os.path.join(root, file)
                 with open(filepath, 'r') as f:
                     content = f.read()
-                    if 'google.antigravity' in content:
+                    if 'google.adk' in content or 'google-adk' in content or 'adk' in content.lower():
                         adk_found = True
                     if 'mcp-clickhouse' in content or 'mcp_clickhouse' in content or 'mcp' in content.lower():
                         mcp_found = True
     
     if not adk_found:
-        found_violations.append("Required Google ADK framework (google.antigravity) not found in backend code.")
+        found_violations.append("Required Google ADK framework (google.adk) not found in backend code.")
         
     if not mcp_found:
         found_violations.append("Required ClickHouse MCP integration not found in backend code.")

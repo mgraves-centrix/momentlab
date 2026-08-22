@@ -84,7 +84,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
           {/* Real Keyframe Thumbnail Frame */}
           <div style={{ position: 'relative', height: '80px', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px', border: '1px solid #1c2630' }}>
             <img 
-              src="/northlight_thumb.png" 
+              src="/frames/cut_a_control.png" 
               alt="Control Cut A Frame" 
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
             />
@@ -129,7 +129,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
           {/* Real Keyframe Thumbnail Frame */}
           <div style={{ position: 'relative', height: '80px', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
             <img 
-              src="/scene12.png" 
+              src="/frames/cut_b_variant.png" 
               alt="Variant Cut B Frame" 
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
             />
