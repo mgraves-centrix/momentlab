@@ -21,7 +21,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isGeneratingVeo, setIsGeneratingVeo] = useState(false);
   const [currentTimeSec, setCurrentTimeSec] = useState(initialTimecodeMs / 1000);
-  const [durationSec, setDurationSec] = useState(90);
+  const [durationSec, setDurationSec] = useState(61);
   const isYouTube = videoSrc.includes('youtube.com') || videoSrc.includes('youtu.be');
   const [showYoutubeInput, setShowYoutubeInput] = useState(false);
   const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
@@ -57,8 +57,8 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   };
 
   const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDurationSec(videoRef.current.duration || 90);
+    if (videoRef.current && videoRef.current.duration) {
+      setDurationSec(Math.max(61, Math.floor(videoRef.current.duration)));
     }
   };
 
@@ -318,7 +318,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
           }}
           className="tabular-nums"
         >
-          {formatTimecode(currentTimeSec)} / {formatTimecode(durationSec)}
+          {formatTimecode(Math.min(currentTimeSec, durationSec))} / {formatTimecode(durationSec)}
         </div>
       </div>
 

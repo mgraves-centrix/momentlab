@@ -68,17 +68,17 @@ export const MomentEvidencePage: React.FC = () => {
                 
                 {/* Frames */}
                 <div style={{ display: 'flex', gap: '4px', overflowX: 'hidden' }}>
-                  {[1,2,3,4,5,6,7,8,9].map((i) => (
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
                     <div key={i} style={{ 
                       flex: 1, 
                       height: '48px', 
                       backgroundColor: '#162029', 
                       borderRadius: '4px',
                       border: i === 5 ? '2px solid #ff654a' : '1px solid #1c2630',
-                      backgroundImage: `url('/northlight_thumb.png')`,
+                      backgroundImage: `url('/frames/frame_00_${32 + i}.png')`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
-                      opacity: i === 5 ? 1 : 0.6
+                      opacity: i === 5 ? 1 : 0.75
                     }} />
                   ))}
                 </div>
@@ -270,18 +270,22 @@ export const MomentEvidencePage: React.FC = () => {
                 {/* Video Filmstrip */}
                 <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>SCENE CONTEXT (00:30–00:45)</div>
+                    <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>SCENE CONTEXT (00:33–00:41)</div>
                     <div style={{ fontSize: '10px', color: '#ff654a', fontWeight: 600 }}>AFFECTED RANGE: 00:33–00:41</div>
                   </div>
-                  <div style={{ position: 'relative', height: '60px', backgroundColor: '#16232c', borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                      <div key={i} style={{ flex: 1, borderRight: i < 6 ? '1px solid #091218' : 'none', backgroundColor: '#1e2830' }} />
+                  <div style={{ position: 'relative', height: '64px', backgroundColor: '#16232c', borderRadius: '4px', overflow: 'hidden', display: 'flex', gap: '2px' }}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
+                      <div key={i} style={{ 
+                        flex: 1, 
+                        backgroundImage: `url('/frames/frame_00_${32 + i}.png')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        border: i === 5 ? '2px solid #ff654a' : 'none'
+                      }} />
                     ))}
-                    {/* Affected Range Band */}
-                    <div style={{ position: 'absolute', left: '20%', width: '53.3%', height: '100%', backgroundColor: 'rgba(255, 101, 74, 0.15)', borderLeft: '2px dashed rgba(255, 101, 74, 0.5)', borderRight: '2px dashed rgba(255, 101, 74, 0.5)' }} />
                     {/* 00:37 Marker */}
-                    <div style={{ position: 'absolute', left: '46.6%', width: '2px', height: '100%', backgroundColor: '#b7e33d' }}>
-                      <div style={{ position: 'absolute', top: '-18px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#b7e33d', color: '#050a0e', fontSize: '9px', fontWeight: 700, padding: '2px 4px', borderRadius: '2px' }}>00:37</div>
+                    <div style={{ position: 'absolute', left: '50%', width: '2px', height: '100%', backgroundColor: '#b7e33d', transform: 'translateX(-50%)' }}>
+                      <div style={{ position: 'absolute', top: '2px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#b7e33d', color: '#050a0e', fontSize: '9px', fontWeight: 800, padding: '2px 4px', borderRadius: '2px' }}>00:37</div>
                     </div>
                   </div>
                 </div>

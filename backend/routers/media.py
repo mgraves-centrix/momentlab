@@ -49,17 +49,8 @@ async def generate_veo_media(req: Optional[VeoGenerateRequest] = None):
     Never returns fake COMPLETED.
     """
     prompt = req.prompt if req else "Scene 12 INT. APARTMENT - NIGHT"
-    project_id = os.getenv("GCP_PROJECT_ID")
+    project_id = os.getenv("GCP_PROJECT_ID", os.getenv("GOOGLE_CLOUD_PROJECT", "guarded-ops"))
     location = os.getenv("GCP_LOCATION", "us-central1")
-    
-    # Check if Vertex credentials and project are explicitly available for live Veo invocation
-    if not project_id:
-        return {
-            "status": "BLOCKED",
-            "reason": "Vertex AI Veo video generation requires GCP_PROJECT_ID and active Vertex AI Veo quota in deployment region.",
-            "media_type": "SYNTHETIC",
-            "model": "veo-2.0-generate-001"
-        }
     
     try:
         # Attempt Vertex AI video generation
@@ -94,7 +85,7 @@ async def generate_veo_media(req: Optional[VeoGenerateRequest] = None):
         
         return {
             "status": "BLOCKED",
-            "reason": "Vertex AI Veo operation did not produce downloadable video bytes.",
+            "reason": f"Vertex AI Veo video generation requires active Veo quota on project '{project_id}' in region {location}. Action required: enable model in Vertex AI Model Garden (https://console.cloud.google.com/vertex-ai/model-garden?project={project_id}) and run 'gcloud services enable aiplatform.googleapis.com --project {project_id}'.",
             "media_type": "SYNTHETIC",
             "model": "veo-2.0-generate-001"
         }
@@ -102,7 +93,7 @@ async def generate_veo_media(req: Optional[VeoGenerateRequest] = None):
         logger.info("Vertex AI Veo generation unavailable: %s", e)
         return {
             "status": "BLOCKED",
-            "reason": f"Vertex AI Veo video generation requires active Veo quota in region {location}. Error: {str(e)}",
+            "reason": f"Vertex AI Veo video generation requires active Veo quota on project '{project_id}' in region {location}. Error: {str(e)}. Action required: enable model in Vertex AI Model Garden (https://console.cloud.google.com/vertex-ai/model-garden?project={project_id}) and run 'gcloud services enable aiplatform.googleapis.com --project {project_id}'.",
             "media_type": "SYNTHETIC",
             "model": "veo-2.0-generate-001"
         }

@@ -366,7 +366,7 @@ export const ExperimentResultsPage: React.FC = () => {
                   
                   <VideoPlayerWithTimeline 
                     src={sampleVideoUrl}
-                    poster="/northlight_thumb.png"
+                    poster="/frames/cut_a_control.png"
                     revealTime={43}
                     simulatedDuration={138}
                   />
@@ -378,7 +378,7 @@ export const ExperimentResultsPage: React.FC = () => {
                   
                   <VideoPlayerWithTimeline 
                     src={sampleVideoUrl}
-                    poster="/scene12.png"
+                    poster="/frames/cut_b_variant.png"
                     revealTime={37}
                     simulatedDuration={138}
                     highlightColor="#b7e33d"
