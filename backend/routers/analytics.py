@@ -56,7 +56,7 @@ def get_scene_timeline(
             for row in result.result_rows:
                 time_ms = row[0]
                 seconds = time_ms // 1000
-                timecode = f"{seconds//60:02d}:{seconds%60:02d}"
+                timecode = f"{seconds // 60:02d}:{seconds % 60:02d}"
                 median = float(row[2])
                 points.append(TimelinePoint(
                     timecode=timecode,

@@ -15,6 +15,11 @@ export interface Project {
 
 export interface ExperimentSummary {
   total_respondents: number;
+  detected_moment?: string;
+  detected_moment_ms?: number;
+  retention_drop?: string;
+  anomaly_window?: string;
+  confidence?: number;
 }
 
 export interface SceneMetadata {

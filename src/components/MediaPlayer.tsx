@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Play, Pause, Volume2, VolumeX, Upload, Film, Sparkles, Youtube } from 'lucide-react';
+import { useMobile } from '../hooks/useMobile';
 
 interface MediaPlayerProps {
   initialVideoUrl?: string;
@@ -14,26 +15,21 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   onTimeUpdate,
   sceneTitle = '12 · INT. APARTMENT – NIGHT'
 }) => {
+  const isMobile = useMobile();
   const [videoSrc, setVideoSrc] = useState<string>(initialVideoUrl || '/scene12.mp4');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isGeneratingVeo, setIsGeneratingVeo] = useState(false);
   const [currentTimeSec, setCurrentTimeSec] = useState(initialTimecodeMs / 1000);
   const [durationSec, setDurationSec] = useState(90);
-  const [isYouTube, setIsYouTube] = useState(false);
+  const isYouTube = videoSrc.includes('youtube.com') || videoSrc.includes('youtu.be');
   const [showYoutubeInput, setShowYoutubeInput] = useState(false);
   const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
 
+  const [veoStatusMessage, setVeoStatusMessage] = useState<string | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (videoSrc.includes('youtube.com') || videoSrc.includes('youtu.be')) {
-      setIsYouTube(true);
-    } else {
-      setIsYouTube(false);
-    }
-  }, [videoSrc]);
 
   const handlePlayPause = () => {
     if (isYouTube) {
@@ -71,7 +67,6 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
     if (file) {
       const url = URL.createObjectURL(file);
       setVideoSrc(url);
-      setIsYouTube(false);
       setIsPlaying(true);
       setTimeout(() => {
         videoRef.current?.play().catch(() => {});
@@ -85,13 +80,13 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
     const match = youtubeUrlInput.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
     const videoId = match ? match[1] : youtubeUrlInput.trim();
     setVideoSrc(`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1`);
-    setIsYouTube(true);
     setShowYoutubeInput(false);
     setIsPlaying(true);
   };
 
   const handleGenerateVeo = async () => {
     setIsGeneratingVeo(true);
+    setVeoStatusMessage(null);
     try {
       const res = await fetch('/api/v1/media/veo-generate', {
         method: 'POST',
@@ -99,12 +94,16 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
         body: JSON.stringify({ prompt: sceneTitle })
       });
       const data = await res.json();
-      if (data.video_url) {
+      if (data.status === 'COMPLETED' && data.video_url) {
         setVideoSrc(data.video_url);
         setIsPlaying(true);
+        setVeoStatusMessage('Synthetic Veo scene generated successfully.');
+      } else if (data.status === 'BLOCKED') {
+        setVeoStatusMessage(`Veo Generation Blocked: ${data.reason}`);
       }
     } catch (err) {
       console.error('Veo generation call failed:', err);
+      setVeoStatusMessage('Veo generation endpoint unavailable.');
     } finally {
       setIsGeneratingVeo(false);
     }
@@ -125,79 +124,88 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
           <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{sceneTitle}</h3>
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          
-          {/* YouTube Link Button */}
-          <button
-            onClick={() => setShowYoutubeInput(!showYoutubeInput)}
-            style={{
-              backgroundColor: 'rgba(255, 68, 68, 0.1)',
-              border: '1px solid #ff4444',
-              color: '#ff6666',
-              padding: '6px 10px',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '11px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            <Youtube size={12} />
-            <span>YouTube URL</span>
-          </button>
+        {/* Action Buttons (Desktop Only per mobile contract) */}
+        {!isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            
+            {/* YouTube Link Button */}
+            <button
+              onClick={() => setShowYoutubeInput(!showYoutubeInput)}
+              style={{
+                backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                border: '1px solid #ff4444',
+                color: '#ff6666',
+                padding: '6px 10px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '11px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              <Youtube size={12} />
+              <span>YouTube URL</span>
+            </button>
 
-          <button
-            onClick={handleGenerateVeo}
-            disabled={isGeneratingVeo}
-            style={{
-              backgroundColor: 'rgba(139, 92, 246, 0.15)',
-              border: '1px solid var(--violet)',
-              color: 'var(--violet-soft)',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '11px',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            <Sparkles size={12} color="var(--violet)" />
-            <span>{isGeneratingVeo ? 'Generating Veo...' : 'Google Veo'}</span>
-          </button>
+            <button
+              onClick={handleGenerateVeo}
+              disabled={isGeneratingVeo}
+              style={{
+                backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                border: '1px solid var(--violet)',
+                color: 'var(--violet-soft)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '11px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              <Sparkles size={12} color="var(--violet)" />
+              <span>{isGeneratingVeo ? 'Generating Veo...' : 'Google Veo'}</span>
+            </button>
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept="video/mp4,video/webm,video/ogg"
-            onChange={handleFileUpload}
-            style={{ display: 'none' }}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              backgroundColor: 'var(--surface-3)',
-              border: '1px solid var(--border)',
-              color: 'var(--text)',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '11px',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            <Upload size={12} color="var(--violet-soft)" />
-            <span>Upload</span>
-          </button>
-        </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="video/mp4,video/webm,video/ogg"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                backgroundColor: 'var(--surface-3)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '11px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              <Upload size={12} color="var(--violet-soft)" />
+              <span>Upload</span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {veoStatusMessage && (
+        <div style={{ backgroundColor: '#131b22', border: '1px solid #283540', borderRadius: '4px', padding: '8px 12px', fontSize: '11px', color: '#ffb86c', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{veoStatusMessage}</span>
+          <button onClick={() => setVeoStatusMessage(null)} style={{ background: 'none', border: 'none', color: '#8d979f', cursor: 'pointer', fontSize: '12px' }}>✕</button>
+        </div>
+      )}
 
       {showYoutubeInput && (
         <form onSubmit={handleYouTubeSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>

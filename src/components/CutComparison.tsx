@@ -23,6 +23,13 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
     }
   };
 
+  const formatMs = (ms: number) => {
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
   return (
     <div
       style={{
@@ -41,7 +48,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
             Cut Comparison & Timeline Shift
           </h3>
           <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0 0' }}>
-            Synchronized preview of Control Cut A vs Proposed Variant Cut B
+            Synchronized preview of Control Cut A ({formatMs(controlRevealMs)}) vs Proposed Variant Cut B ({formatMs(variantRevealMs)})
           </p>
         </div>
 
@@ -65,17 +72,29 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-              Control Cut A
+              Control Cut A (Reveal at {formatMs(controlRevealMs)})
             </span>
             {selectedCut === 'A' && <Check size={16} color="var(--muted)" />}
           </div>
 
           <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>
-            Original edit sequence
+            Original sequence · Reveal at {formatMs(controlRevealMs)}
+          </div>
+
+          {/* Real Keyframe Thumbnail Frame */}
+          <div style={{ position: 'relative', height: '80px', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px', border: '1px solid #1c2630' }}>
+            <img 
+              src="/northlight_thumb.png" 
+              alt="Control Cut A Frame" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            />
+            <div style={{ position: 'absolute', bottom: '4px', right: '4px', backgroundColor: 'rgba(0,0,0,0.7)', padding: '2px 6px', borderRadius: '2px', fontSize: '9px', color: '#fff', fontWeight: 700 }}>
+              REVEAL: {formatMs(controlRevealMs)}
+            </div>
           </div>
 
           {/* Timeline Bar representation */}
-          <div style={{ height: '24px', backgroundColor: 'var(--surface-1)', borderRadius: 'var(--radius-sm)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ height: '20px', backgroundColor: 'var(--surface-1)', borderRadius: 'var(--radius-sm)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', left: 0, width: `${(controlRevealMs / 60000) * 100}%`, height: '100%', backgroundColor: 'rgba(141, 151, 159, 0.3)' }} />
             <div style={{ position: 'absolute', left: `${(controlRevealMs / 60000) * 100}%`, top: 0, bottom: 0, width: '4px', backgroundColor: 'var(--muted)' }} />
           </div>
@@ -98,22 +117,34 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '11px', color: 'var(--violet-soft)', fontWeight: 700, textTransform: 'uppercase' }}>
-              Variant Cut B (Agent Proposal)
+              Variant Cut B (Reveal at {formatMs(variantRevealMs)})
             </span>
             {selectedCut === 'B' && <Check size={16} color="var(--violet)" />}
           </div>
 
           <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--violet)', marginBottom: '8px' }}>
-            {hypothesis || "Proposed edit sequence"}
+            {hypothesis || `Move reveal 6s earlier to ${formatMs(variantRevealMs)}`}
+          </div>
+
+          {/* Real Keyframe Thumbnail Frame */}
+          <div style={{ position: 'relative', height: '80px', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
+            <img 
+              src="/scene12.png" 
+              alt="Variant Cut B Frame" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            />
+            <div style={{ position: 'absolute', bottom: '4px', right: '4px', backgroundColor: 'rgba(139, 92, 246, 0.85)', padding: '2px 6px', borderRadius: '2px', fontSize: '9px', color: '#fff', fontWeight: 700 }}>
+              REVEAL: {formatMs(variantRevealMs)} (-6s)
+            </div>
           </div>
 
           {/* Timeline Bar representation */}
-          <div style={{ height: '24px', backgroundColor: 'var(--surface-1)', borderRadius: 'var(--radius-sm)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ height: '20px', backgroundColor: 'var(--surface-1)', borderRadius: 'var(--radius-sm)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', left: 0, width: `${(variantRevealMs / 60000) * 100}%`, height: '100%', backgroundColor: 'rgba(139, 92, 246, 0.4)' }} />
             <div style={{ position: 'absolute', left: `${(variantRevealMs / 60000) * 100}%`, top: 0, bottom: 0, width: '4px', backgroundColor: 'var(--violet)' }} />
           </div>
           <span style={{ fontSize: '10px', color: 'var(--violet-soft)', marginTop: '6px', display: 'block' }}>
-            Applied changes to sequence timeline
+            Applied 6s earlier reveal to preserve audience retention
           </span>
         </div>
       </div>

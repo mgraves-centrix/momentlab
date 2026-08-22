@@ -9,7 +9,7 @@ interface ResponseTimelineProps {
 }
 
 export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
-  data,
+  data = [],
   currentTimeMs = 37000,
   onTimeSelect,
   selectedCohort = 'all'
@@ -25,28 +25,48 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  const maxTime = Math.max(...data.map((d) => d.timeMs));
+  const validData = Array.isArray(data) ? data.filter(d => d && typeof d.timeMs === 'number' && !isNaN(d.timeMs)) : [];
+
+  if (validData.length === 0) {
+    return (
+      <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'center', color: 'var(--muted)', minHeight: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 600 }}>Loading second-by-second audience response telemetry...</span>
+        <span style={{ fontSize: '11px', color: '#5b6670' }}>ClickHouse streaming pipeline active</span>
+      </div>
+    );
+  }
+
+  const maxTime = Math.max(1, ...validData.map((d) => d.timeMs)) || 60000;
   const minScore = 30;
   const maxScore = 100;
 
-  const getX = (timeMs: number) => padding.left + (timeMs / maxTime) * chartWidth;
-  const getY = (score: number) => padding.top + chartHeight - ((score - minScore) / (maxScore - minScore)) * chartHeight;
+  const getX = (timeMs: number) => {
+    const t = isNaN(timeMs) ? 0 : Math.max(0, Math.min(maxTime, timeMs));
+    return padding.left + (t / maxTime) * chartWidth;
+  };
 
-  // Build all 3 lines for cohorts
-  const lineAll = data.map((d) => `${getX(d.timeMs)},${getY(d.allCohort)}`).join(' L ');
-  const line1824 = data.map((d) => `${getX(d.timeMs)},${getY(d.cohort18_24)}`).join(' L ');
-  const line2534 = data.map((d) => `${getX(d.timeMs)},${getY(d.cohort25_34)}`).join(' L ');
+  const getY = (score: number) => {
+    const s = isNaN(score) ? 50 : Math.max(minScore, Math.min(maxScore, score));
+    return padding.top + chartHeight - ((s - minScore) / (maxScore - minScore)) * chartHeight;
+  };
 
-  // Build uncertainty band polygon (only for 'all' to keep it clean)
-  const upperPoints = data.map((d) => `${getX(d.timeMs)},${getY(d.uncertaintyUpper)}`).join(' L ');
-  const lowerPoints = data.slice().reverse().map((d) => `${getX(d.timeMs)},${getY(d.uncertaintyLower)}`).join(' L ');
-  const uncertaintyPath = `M ${upperPoints} L ${lowerPoints} Z`;
+  // Build all 3 lines for cohorts safely
+  const lineAllPoints = validData.filter(d => typeof d.allCohort === 'number' && !isNaN(d.allCohort)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.allCohort).toFixed(1)}`);
+  const line1824Points = validData.filter(d => typeof d.cohort18_24 === 'number' && !isNaN(d.cohort18_24)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.cohort18_24).toFixed(1)}`);
+  const line2534Points = validData.filter(d => typeof d.cohort25_34 === 'number' && !isNaN(d.cohort25_34)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.cohort25_34).toFixed(1)}`);
+
+  const lineAll = lineAllPoints.length > 0 ? lineAllPoints.join(' L ') : null;
+  const line1824 = line1824Points.length > 0 ? line1824Points.join(' L ') : null;
+  const line2534 = line2534Points.length > 0 ? line2534Points.join(' L ') : null;
+
+  // Build uncertainty band polygon
+  const upperPoints = validData.filter(d => typeof d.uncertaintyUpper === 'number' && !isNaN(d.uncertaintyUpper)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.uncertaintyUpper).toFixed(1)}`);
+  const lowerPoints = validData.slice().reverse().filter(d => typeof d.uncertaintyLower === 'number' && !isNaN(d.uncertaintyLower)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.uncertaintyLower).toFixed(1)}`);
+  const uncertaintyPath = (upperPoints.length > 0 && lowerPoints.length > 0) ? `M ${upperPoints.join(' L ')} L ${lowerPoints.join(' L ')} Z` : null;
 
   // Anomaly cliff area (00:33 to 00:41)
   const anomalyStartX = getX(33000);
   const anomalyEndX = getX(41000);
-
-  const activePoint = data.find((d) => Math.abs(d.timeMs - currentTimeMs) < 3000) || data[5];
 
   return (
     <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
@@ -99,7 +119,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
             <rect
               x={anomalyStartX}
               y={padding.top}
-              width={anomalyEndX - anomalyStartX}
+              width={Math.max(0, anomalyEndX - anomalyStartX)}
               height={chartHeight}
               fill="rgba(255, 102, 82, 0.12)"
               stroke="var(--coral)"
@@ -108,31 +128,30 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
             />
 
             {/* Uncertainty Band */}
-            <path d={uncertaintyPath} fill="rgba(139, 92, 246, 0.1)" />
-
-            {/* Grid Lines */}
-            {[40, 60, 80, 100].map((tick) => (
-              <line key={tick} x1={padding.left} y1={getY(tick)} x2={width - padding.right} y2={getY(tick)} stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
-            ))}
+            {uncertaintyPath && <path d={uncertaintyPath} fill="rgba(139, 92, 246, 0.1)" />}
 
             {/* Data Lines */}
-            <path d={`M ${line1824}`} fill="none" stroke="rgba(139, 92, 246, 0.4)" strokeWidth="2" strokeDasharray="2 2" />
-            <path d={`M ${line2534}`} fill="none" stroke="rgba(183, 227, 61, 0.4)" strokeWidth="2" strokeDasharray="4 4" />
-            <path d={`M ${lineAll}`} fill="none" stroke="var(--violet)" strokeWidth="3" />
+            {line1824 && <path d={`M ${line1824}`} fill="none" stroke="rgba(139, 92, 246, 0.4)" strokeWidth="2" strokeDasharray="2 2" />}
+            {line2534 && <path d={`M ${line2534}`} fill="none" stroke="rgba(183, 227, 61, 0.4)" strokeWidth="2" strokeDasharray="4 4" />}
+            {lineAll && <path d={`M ${lineAll}`} fill="none" stroke="var(--violet)" strokeWidth="3" />}
 
             {/* Data Points */}
-            {data.map((d) => {
+            {validData.map((d, idx) => {
               const val = selectedCohort === '18_24' ? d.cohort18_24 : selectedCohort === '25_34' ? d.cohort25_34 : d.allCohort;
+              if (typeof val !== 'number' || isNaN(val)) return null;
               const cx = getX(d.timeMs);
               const cy = getY(val);
               const isCliff = d.isAnomaly;
 
+              // In dense mode, only render prominent points or anomaly points to keep DOM light
+              if (validData.length > 20 && !isCliff && idx % 3 !== 0) return null;
+
               return (
                 <circle
-                  key={d.timecode}
+                  key={d.timecode || idx}
                   cx={cx}
                   cy={cy}
-                  r={isCliff ? 5 : 3.5}
+                  r={isCliff ? 4.5 : 3}
                   fill={isCliff ? 'var(--coral)' : 'var(--violet)'}
                   stroke="var(--canvas)"
                   strokeWidth="1.5"
@@ -141,140 +160,130 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
               );
             })}
 
-            {/* Hover Targets for easier interaction */}
-            {data.map((d, i) => {
-              const prevTime = i > 0 ? data[i - 1].timeMs : d.timeMs;
-              const nextTime = i < data.length - 1 ? data[i + 1].timeMs : d.timeMs;
-              
-              const startX = i === 0 ? padding.left : getX((prevTime + d.timeMs) / 2);
-              const endX = i === data.length - 1 ? width - padding.right : getX((d.timeMs + nextTime) / 2);
+            {/* Scrubber Interactivity Overlay */}
+            <rect
+              x={padding.left}
+              y={padding.top}
+              width={chartWidth}
+              height={chartHeight}
+              fill="transparent"
+              style={{ cursor: 'crosshair' }}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const ratio = Math.max(0, Math.min(1, mouseX / chartWidth));
+                const targetTime = ratio * maxTime;
+                const closest = validData.reduce((prev, curr) => (Math.abs(curr.timeMs - targetTime) < Math.abs(prev.timeMs - targetTime) ? curr : prev));
+                setHoveredPoint(closest);
+              }}
+              onMouseLeave={() => setHoveredPoint(null)}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const ratio = Math.max(0, Math.min(1, mouseX / chartWidth));
+                const targetTime = Math.round(ratio * maxTime);
+                if (onTimeSelect) onTimeSelect(targetTime);
+              }}
+            />
 
-              return (
-                <rect
-                  key={`target-${d.timecode}`}
-                  x={startX}
-                  y={padding.top}
-                  width={endX - startX}
-                  height={chartHeight}
-                  fill="transparent"
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={() => setHoveredPoint(d)}
-                  onMouseLeave={() => setHoveredPoint(null)}
-                  onClick={() => onTimeSelect && onTimeSelect(d.timeMs)}
-                />
-              );
-            })}
-
-            {/* Hover Cursor Line */}
-            {hoveredPoint && hoveredPoint.timeMs !== currentTimeMs && (
+            {/* Active Playhead Line */}
+            {currentTimeMs !== undefined && !isNaN(currentTimeMs) && (
               <line
-                x1={getX(hoveredPoint.timeMs)}
+                x1={getX(currentTimeMs)}
                 y1={padding.top}
-                x2={getX(hoveredPoint.timeMs)}
+                x2={getX(currentTimeMs)}
                 y2={height - padding.bottom}
-                stroke="var(--muted)"
-                strokeDasharray="2 2"
-                strokeWidth="1"
+                stroke="var(--lime)"
+                strokeWidth="2"
                 pointerEvents="none"
               />
             )}
 
-            {/* Active Time Cursor Line */}
-            <line
-              x1={getX(currentTimeMs)}
-              y1={padding.top}
-              x2={getX(currentTimeMs)}
-              y2={height - padding.bottom}
-              stroke="var(--coral)"
-              strokeWidth="2"
-            />
-
-            {/* X Axis Time Labels */}
-            {data.map((d) => (
-              <text key={d.timecode} x={getX(d.timeMs)} y={height - 12} fill="var(--muted)" fontSize="10" textAnchor="middle" className="tabular-nums">
-                {d.timecode}
-              </text>
-            ))}
+            {/* Hovered Point Marker */}
+            {hoveredPoint && typeof hoveredPoint.allCohort === 'number' && !isNaN(hoveredPoint.allCohort) && (
+              <g pointerEvents="none">
+                <line
+                  x1={getX(hoveredPoint.timeMs)}
+                  y1={padding.top}
+                  x2={getX(hoveredPoint.timeMs)}
+                  y2={height - padding.bottom}
+                  stroke="rgba(255,255,255,0.4)"
+                  strokeDasharray="2 2"
+                />
+                <circle
+                  cx={getX(hoveredPoint.timeMs)}
+                  cy={getY(hoveredPoint.allCohort)}
+                  r={6}
+                  fill="var(--lime)"
+                  stroke="var(--canvas)"
+                  strokeWidth="2"
+                />
+              </g>
+            )}
           </svg>
 
-          {/* Hover / Active Tooltip */}
-          {(hoveredPoint || activePoint) && (
+          {/* Hover Tooltip Card */}
+          {hoveredPoint && (
             <div
               style={{
-                marginTop: '12px',
-                padding: '8px 12px',
-                backgroundColor: 'var(--surface-2)',
+                position: 'absolute',
+                top: `${getY(hoveredPoint.allCohort) - 40}px`,
+                left: `${getX(hoveredPoint.timeMs)}px`,
+                transform: 'translate(-50%, -100%)',
+                backgroundColor: 'var(--surface-3)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-                fontSize: '12px'
+                padding: '6px 10px',
+                pointerEvents: 'none',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                zIndex: 10,
+                whiteSpace: 'nowrap'
               }}
             >
-              <div>
-                <span style={{ color: 'var(--muted)' }}>Time: </span>
-                <strong className="tabular-nums" style={{ color: 'var(--text)' }}>{(hoveredPoint || activePoint)?.timecode}</strong>
+              <div style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: 600 }} className="tabular-nums">
+                {hoveredPoint.timecode}
               </div>
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div>
-                  <span style={{ color: 'var(--muted)' }}>All: </span>
-                  <strong className="tabular-nums" style={{ color: (hoveredPoint || activePoint)?.isAnomaly ? 'var(--coral)' : 'var(--violet)' }}>
-                    {(hoveredPoint || activePoint)?.allCohort}%
-                  </strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--muted)' }}>18-24: </span>
-                  <strong className="tabular-nums" style={{ color: 'rgba(139, 92, 246, 0.8)' }}>
-                    {(hoveredPoint || activePoint)?.cohort18_24}%
-                  </strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--muted)' }}>25-34: </span>
-                  <strong className="tabular-nums" style={{ color: 'rgba(183, 227, 61, 0.8)' }}>
-                    {(hoveredPoint || activePoint)?.cohort25_34}%
-                  </strong>
-                </div>
-              </div>
-              <div>
-                <span style={{ color: 'var(--muted)' }}>Sample Size: </span>
-                <strong className="tabular-nums" style={{ color: 'var(--text)' }}>{(hoveredPoint || activePoint)?.sampleSize.toLocaleString()}</strong>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: hoveredPoint.isAnomaly ? 'var(--coral)' : 'var(--text)' }} className="tabular-nums">
+                {selectedCohort === '18_24' ? hoveredPoint.cohort18_24 : selectedCohort === '25_34' ? hoveredPoint.cohort25_34 : hoveredPoint.allCohort}%
+                {hoveredPoint.isAnomaly && <span style={{ fontSize: '10px', marginLeft: '4px' }}>CLIFF</span>}
               </div>
             </div>
           )}
         </div>
       ) : (
-        /* Accessible Textual Data Table View */
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', color: 'var(--text)' }}>
+        /* Accessible Table View */
+        <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left', color: 'var(--text)' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--muted)' }}>
-                <th style={{ padding: '8px' }}>Timecode</th>
-                <th style={{ padding: '8px' }}>All Cohort</th>
-                <th style={{ padding: '8px' }}>18–24 Cohort</th>
-                <th style={{ padding: '8px' }}>25–34 Cohort</th>
-                <th style={{ padding: '8px' }}>Anomaly Status</th>
+              <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--muted)' }}>
+                <th style={{ padding: '6px 8px' }}>Timecode</th>
+                <th style={{ padding: '6px 8px' }}>All Cohorts</th>
+                <th style={{ padding: '6px 8px' }}>18–24</th>
+                <th style={{ padding: '6px 8px' }}>25–34</th>
+                <th style={{ padding: '6px 8px' }}>Status</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((d) => (
+              {validData.map((d) => (
                 <tr
                   key={d.timecode}
-                  onClick={() => onTimeSelect && onTimeSelect(d.timeMs)}
                   style={{
-                    borderBottom: '1px solid var(--surface-2)',
-                    backgroundColor: Math.abs(d.timeMs - currentTimeMs) < 2000 ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+                    borderBottom: '1px solid var(--border)',
+                    backgroundColor: d.isAnomaly ? 'rgba(255, 102, 82, 0.08)' : 'transparent',
                     cursor: 'pointer'
                   }}
+                  onClick={() => onTimeSelect && onTimeSelect(d.timeMs)}
                 >
-                  <td style={{ padding: '8px', fontWeight: 700 }} className="tabular-nums">{d.timecode}</td>
-                  <td style={{ padding: '8px' }} className="tabular-nums">{d.allCohort}%</td>
-                  <td style={{ padding: '8px' }} className="tabular-nums">{d.cohort18_24}%</td>
-                  <td style={{ padding: '8px' }} className="tabular-nums">{d.cohort25_34}%</td>
-                  <td style={{ padding: '8px' }}>
-                    {d.isAnomaly ? <span style={{ color: 'var(--coral)', fontWeight: 700 }}>CLIFF (−28%)</span> : <span style={{ color: 'var(--muted)' }}>Normal</span>}
+                  <td style={{ padding: '6px 8px', fontWeight: 600 }} className="tabular-nums">{d.timecode}</td>
+                  <td style={{ padding: '6px 8px', color: 'var(--violet)' }} className="tabular-nums">{d.allCohort}%</td>
+                  <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort18_24}%</td>
+                  <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort25_34}%</td>
+                  <td style={{ padding: '6px 8px' }}>
+                    {d.isAnomaly ? (
+                      <span style={{ color: 'var(--coral)', fontWeight: 700 }}>CLIFF ANOMALY</span>
+                    ) : (
+                      <span style={{ color: 'var(--muted)' }}>Normal</span>
+                    )}
                   </td>
                 </tr>
               ))}
