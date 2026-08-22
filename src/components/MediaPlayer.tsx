@@ -21,7 +21,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isGeneratingVeo, setIsGeneratingVeo] = useState(false);
   const [currentTimeSec, setCurrentTimeSec] = useState(initialTimecodeMs / 1000);
-  const [durationSec, setDurationSec] = useState(61);
+  const [durationSec, setDurationSec] = useState(0);
   const isYouTube = videoSrc.includes('youtube.com') || videoSrc.includes('youtu.be');
   const [showYoutubeInput, setShowYoutubeInput] = useState(false);
   const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
@@ -57,8 +57,8 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   };
 
   const handleLoadedMetadata = () => {
-    if (videoRef.current && videoRef.current.duration) {
-      setDurationSec(Math.max(61, Math.floor(videoRef.current.duration)));
+    if (videoRef.current && !isNaN(videoRef.current.duration)) {
+      setDurationSec(videoRef.current.duration);
     }
   };
 
