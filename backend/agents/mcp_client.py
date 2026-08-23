@@ -9,9 +9,9 @@ from dotenv import load_dotenv
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 env_path = os.path.join(repo_root, ".env")
 if os.path.exists(env_path):
-    load_dotenv(env_path, override=True)
+    load_dotenv(env_path)
 else:
-    load_dotenv(override=True)
+    load_dotenv()
 
 # Ensure Vertex AI environment variables are set for google-adk and google-genai
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "true"
@@ -39,8 +39,14 @@ async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
     
     clickhouse_host = os.environ.get("CLICKHOUSE_HOST", "localhost")
     clickhouse_port = os.environ.get("CLICKHOUSE_PORT", "8443")
-    clickhouse_user = os.environ.get("CLICKHOUSE_MCP_USER", os.environ.get("CLICKHOUSE_USER", "default"))
-    clickhouse_pass = os.environ.get("CLICKHOUSE_MCP_PASSWORD", os.environ.get("CLICKHOUSE_PASSWORD", ""))
+    clickhouse_user = os.environ.get("CLICKHOUSE_MCP_USER")
+    if not clickhouse_user:
+        raise ValueError("Missing required environment variable: CLICKHOUSE_MCP_USER")
+
+    clickhouse_pass = os.environ.get("CLICKHOUSE_MCP_PASSWORD")
+    if not clickhouse_pass:
+        raise ValueError("Missing required environment variable: CLICKHOUSE_MCP_PASSWORD")
+
     clickhouse_secure = os.environ.get("CLICKHOUSE_SECURE", "true" if clickhouse_port == "8443" else "false")
     clickhouse_db = os.environ.get("CLICKHOUSE_DATABASE", "momentlab")
 
