@@ -1,10 +1,19 @@
 import os
+import uuid
 import logging
 from typing import List, Dict, Any
 from datetime import datetime, timezone
 from backend.services.clickhouse import get_client
 
 logger = logging.getLogger("momentlab.ingestion")
+
+def _ensure_uuid(val: Any) -> str:
+    if not val:
+        return str(uuid.uuid4())
+    try:
+        return str(uuid.UUID(str(val)))
+    except Exception:
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(val)))
 
 class ClickHouseBatchWriter:
     """
@@ -53,8 +62,8 @@ class ClickHouseBatchWriter:
             try:
                 data = [
                     [
-                        ev["event_id"],
-                        ev["session_id"],
+                        _ensure_uuid(ev.get("event_id")),
+                        _ensure_uuid(ev.get("session_id")),
                         ev["project_id"],
                         ev["experiment_id"],
                         ev["scene_id"],

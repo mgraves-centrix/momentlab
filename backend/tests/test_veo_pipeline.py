@@ -41,7 +41,7 @@ def test_stitch_video_clips_fails_on_missing_input_file(tmp_path):
     assert success is False
 
 def test_discover_veo_models_returns_matrix():
-    matrix = discover_available_veo_models("guarded-ops")
+    matrix = discover_available_veo_models("momentlab-504305")
     assert isinstance(matrix, list)
     assert len(matrix) >= 1
     assert any(m["region"] == "us-central1" for m in matrix)

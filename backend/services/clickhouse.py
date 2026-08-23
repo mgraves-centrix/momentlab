@@ -5,6 +5,9 @@ import sqlite3
 import logging
 from typing import List, Any, Optional, Dict
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger("momentlab.clickhouse")
 
@@ -151,6 +154,8 @@ def get_client():
     port = int(os.environ.get("CLICKHOUSE_PORT", "8123"))
     user = os.environ.get("CLICKHOUSE_USER", "default")
     password = os.environ.get("CLICKHOUSE_PASSWORD", "")
+    database = os.environ.get("CLICKHOUSE_DATABASE", os.environ.get("CLICKHOUSE_DB", "momentlab"))
+    secure = os.environ.get("CLICKHOUSE_SECURE", "false").lower() in ("true", "1", "yes")
     
     try:
         import clickhouse_connect
@@ -159,7 +164,9 @@ def get_client():
             port=port,
             username=user,
             password=password,
-            connect_timeout=1
+            database=database,
+            secure=secure,
+            connect_timeout=2
         )
         return client
     except Exception:
