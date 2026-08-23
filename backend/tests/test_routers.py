@@ -42,3 +42,35 @@ def test_approve_hypothesis_endpoint():
     data = response.json()
     assert data["status"] == "APPROVED"
     assert "audit_id" in data
+
+def test_generate_hypothesis_failure_returns_502():
+    from unittest.mock import patch
+    with patch("backend.routers.hypotheses.generate_hypothesis", side_effect=RuntimeError("ADK connection timeout")):
+        response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+        assert response.status_code == 502
+        assert "Hypothesis generation failed: ADK connection timeout" in response.json()["detail"]
+
+def test_generate_hypothesis_success_returns_hypothesis():
+    from unittest.mock import patch
+    mock_payload = {
+        "id": "hyp_test_01",
+        "proposedChange": "Move reveal earlier",
+        "confidenceScore": 92,
+        "rationale": "Evidence-backed shift",
+        "forecastEngagement": "+18%",
+        "forecastCompletion": "+9%",
+        "forecastConfusion": "-4%",
+        "evidenceIds": ["ev_01"],
+        "evidenceRecords": [],
+        "trace": {"runId": "trace_01", "totalDurationMs": 120, "steps": []},
+        "status": "PROPOSED",
+        "isSimulated": False
+    }
+    with patch("backend.routers.hypotheses.generate_hypothesis", return_value=mock_payload):
+        response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["hypothesis"]["confidenceScore"] == 92
+        assert data["hypothesis"]["proposedChange"] == "Move reveal earlier"
+
