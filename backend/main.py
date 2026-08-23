@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from backend.schemas.events import ConsentRecord, PlaybackEvent, ReactionEvent, IngestionResponse
 from backend.ingestion.batch_writer import ClickHouseBatchWriter
 from backend.routers import projects, analytics, export, telemetry
-from backend.services.clickhouse import init_db
+from backend.services.clickhouse import init_db, check_connection
 
 app = FastAPI(
     title="MomentLab API Engine",
@@ -55,11 +55,19 @@ if os.path.exists(static_dir):
 
 @app.get("/health")
 def health_check():
-    return {
-        "status": "HEALTHY",
-        "database_connected": writer.client is not None,
+    db_health = check_connection(timeout=3)
+    is_connected = db_health["connected"]
+    res: Dict[str, Any] = {
+        "status": "HEALTHY" if is_connected else "UNHEALTHY",
+        "database_connected": is_connected,
+        "database_host": db_health["host"],
+        "database_version": db_health["version"],
+        "server_version": db_health["version"],
         "buffered_events": writer.get_buffered_event_count()
     }
+    if not is_connected and db_health.get("error"):
+        res["error"] = db_health["error"]
+    return res
 
 @app.post("/api/v1/screenings/consent", response_model=ConsentRecord)
 def register_screening_consent(consent: ConsentRecord):

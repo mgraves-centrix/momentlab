@@ -10,6 +10,20 @@ def test_health_check():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "HEALTHY"
+    assert data["database_connected"] is True
+    assert data["database_host"] is not None
+    assert data["server_version"] is not None
+
+def test_health_check_failure(monkeypatch):
+    monkeypatch.setenv("CLICKHOUSE_HOST", "nonexistent.invalid")
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "UNHEALTHY"
+    assert data["database_connected"] is False
+    assert data["database_host"] == "nonexistent.invalid"
+    assert data["database_version"] is None
+    assert "password" not in str(data).lower()
 
 def test_screening_consent_registration():
     # Test valid consent
