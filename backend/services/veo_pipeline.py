@@ -189,7 +189,7 @@ def generate_multi_clip_veo_sequence(
         if generated_clips:
             final_id = f"synth_seq_{uuid.uuid4().hex[:8]}"
             final_path = os.path.join(output_dir, f"{final_id}.mp4")
-            if stitch_video_clips(generated_clips, final_path):
+            if stitch_video_clips(generated_clips, final_path) and os.path.exists(final_path) and os.path.getsize(final_path) > 0:
                 return {
                     "status": "COMPLETED",
                     "model": selected_model,
