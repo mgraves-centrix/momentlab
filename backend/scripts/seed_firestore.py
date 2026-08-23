@@ -1,11 +1,12 @@
 import os
 from google.cloud import firestore
 from dotenv import load_dotenv
+from backend.services.gcp_config import get_gcp_project_id
 
 load_dotenv(".env")
 os.environ["FIRESTORE_EMULATOR_HOST"] = "localhost:8080"
 
-project_id = os.getenv("GCP_PROJECT_ID", "guarded-ops")
+project_id = get_gcp_project_id()
 db = firestore.Client(project=project_id)
 
 projects = [

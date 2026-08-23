@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from backend.services.db import get_db
+from backend.services.gcp_config import get_gcp_project_id, get_gcp_location
 from backend.services.veo_pipeline import (
     discover_available_veo_models,
     generate_multi_clip_veo_sequence
@@ -50,7 +51,7 @@ def list_veo_models(project_id: Optional[str] = None):
     """
     Returns the live Model Garden Veo access and region discovery matrix.
     """
-    proj = project_id or os.getenv("GCP_PROJECT_ID", "guarded-ops")
+    proj = get_gcp_project_id(project_id)
     return {
         "project_id": proj,
         "models": discover_available_veo_models(proj)
@@ -66,8 +67,8 @@ async def generate_veo_media(req: Optional[VeoGenerateRequest] = None):
     """
     prompt = req.prompt if req else "Scene 12 INT. APARTMENT - NIGHT"
     target_dur = req.target_duration_sec if req else 61
-    project_id = os.getenv("GCP_PROJECT_ID", os.getenv("GOOGLE_CLOUD_PROJECT", "guarded-ops"))
-    location = os.getenv("GCP_LOCATION", "us-central1")
+    project_id = get_gcp_project_id()
+    location = get_gcp_location()
     
     return generate_multi_clip_veo_sequence(
         prompt=prompt,

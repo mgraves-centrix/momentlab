@@ -3,6 +3,7 @@ import uuid
 import logging
 import subprocess
 from typing import List, Dict, Any, Optional
+from backend.services.gcp_config import get_gcp_project_id
 
 logger = logging.getLogger("momentlab.veo")
 
@@ -21,7 +22,7 @@ def discover_available_veo_models(project_id: Optional[str] = None) -> List[Dict
     """
     Queries live Vertex AI across supported regions to probe Veo availability.
     """
-    proj = project_id or os.getenv("GCP_PROJECT_ID", "guarded-ops")
+    proj = get_gcp_project_id(project_id)
     matrix = []
     
     try:
@@ -153,7 +154,7 @@ def generate_multi_clip_veo_sequence(
     Generates a continuous multi-clip sequence using Vertex AI Veo models,
     stitching the clips server-side to match the target scene duration.
     """
-    proj = project_id or os.getenv("GCP_PROJECT_ID", "guarded-ops")
+    proj = get_gcp_project_id(project_id)
     
     try:
         from google.genai import Client
