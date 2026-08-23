@@ -162,6 +162,7 @@ def get_client(
     database: Optional[str] = None,
     secure: Optional[bool] = None,
     connect_timeout: Optional[int] = None,
+    send_receive_timeout: Optional[int] = None,
 ):
     # Opt-in local SQLite fallback ONLY when explicitly requested
     if os.environ.get("MOMENTLAB_LOCAL_DB") == "1":
@@ -183,7 +184,7 @@ def get_client(
         ch_secure = os.environ.get("CLICKHOUSE_SECURE", "true" if ch_port == 8443 else "false").lower() in ("true", "1", "yes")
 
     timeout_val = connect_timeout if connect_timeout is not None else int(os.environ.get("CLICKHOUSE_CONNECT_TIMEOUT", "10"))
-    ch_timeout = max(10, timeout_val)
+    sr_timeout = send_receive_timeout if send_receive_timeout is not None else int(os.environ.get("CLICKHOUSE_SEND_RECEIVE_TIMEOUT", "30"))
 
     import clickhouse_connect
     return clickhouse_connect.get_client(
@@ -193,8 +194,52 @@ def get_client(
         password=ch_password,
         database=ch_database,
         secure=ch_secure,
-        connect_timeout=ch_timeout,
+        connect_timeout=timeout_val,
+        send_receive_timeout=sr_timeout,
     )
+
+def check_connection(timeout: int = 3) -> Dict[str, Any]:
+    """
+    Performs a real round-trip query (SELECT 1) against ClickHouse with a short timeout.
+    Returns connection status, server version, and resolved host without exposing credentials.
+    """
+    ch_host = os.environ.get("CLICKHOUSE_HOST", "localhost")
+    try:
+        client = get_client(connect_timeout=timeout, send_receive_timeout=timeout)
+        result = client.query("SELECT 1", settings={"max_execution_time": timeout} if hasattr(client, "server_version") else None)
+        if not result or not result.result_rows or result.result_rows[0][0] != 1:
+            return {
+                "connected": False,
+                "host": ch_host,
+                "version": None,
+                "error": "Unexpected query result from ClickHouse",
+            }
+        version = getattr(client, "server_version", None)
+        if not version and hasattr(client, "is_local") and client.is_local:
+            version = "sqlite-adapter"
+        elif not version:
+            v_res = client.query("SELECT version()")
+            version = str(v_res.result_rows[0][0]) if v_res and v_res.result_rows else "unknown"
+
+        return {
+            "connected": True,
+            "host": ch_host,
+            "version": str(version),
+            "error": None,
+        }
+    except Exception as e:
+        logger.error("ClickHouse health check failed: %s", e)
+        err_msg = f"{type(e).__name__}: {str(e)}"
+        for secret_env in ("CLICKHOUSE_PASSWORD", "CLICKHOUSE_ADMIN_PASSWORD", "CLICKHOUSE_WRITER_PASSWORD", "CLICKHOUSE_MCP_PASSWORD"):
+            secret = os.environ.get(secret_env)
+            if secret:
+                err_msg = err_msg.replace(secret, "******")
+        return {
+            "connected": False,
+            "host": ch_host,
+            "version": None,
+            "error": err_msg,
+        }
 
 def init_db():
     client = get_client()
