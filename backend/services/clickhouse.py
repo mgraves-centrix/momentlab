@@ -24,8 +24,13 @@ class LocalClickHouseClient:
     """
     def __init__(self, db_file: str = DB_FILE):
         self.db_file = db_file
+        logger.warning("================================================================================")
+        logger.warning("WARNING: LocalClickHouseClient active (MOMENTLAB_LOCAL_DB=1).")
+        logger.warning("Running on SQLite adapter: %s (NOT REAL CLICKHOUSE CLOUD)", self.db_file)
+        logger.warning("================================================================================")
         os.makedirs(os.path.dirname(os.path.abspath(self.db_file)), exist_ok=True)
         self._init_tables()
+        self.is_local = True
 
     def _get_conn(self):
         return sqlite3.connect(self.db_file, check_same_thread=False)
@@ -149,29 +154,47 @@ class LocalClickHouseClient:
         conn.commit()
         conn.close()
 
-def get_client():
-    host = os.environ.get("CLICKHOUSE_HOST", "localhost")
-    port = int(os.environ.get("CLICKHOUSE_PORT", "8123"))
-    user = os.environ.get("CLICKHOUSE_USER", "default")
-    password = os.environ.get("CLICKHOUSE_PASSWORD", "")
-    database = os.environ.get("CLICKHOUSE_DATABASE", os.environ.get("CLICKHOUSE_DB", "momentlab"))
-    secure = os.environ.get("CLICKHOUSE_SECURE", "false").lower() in ("true", "1", "yes")
-    
-    try:
-        import clickhouse_connect
-        client = clickhouse_connect.get_client(
-            host=host,
-            port=port,
-            username=user,
-            password=password,
-            database=database,
-            secure=secure,
-            connect_timeout=2
+def get_client(
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+    username: Optional[str] = None,
+    password: Optional[str] = None,
+    database: Optional[str] = None,
+    secure: Optional[bool] = None,
+    connect_timeout: Optional[int] = None,
+):
+    # Opt-in local SQLite fallback ONLY when explicitly requested
+    if os.environ.get("MOMENTLAB_LOCAL_DB") == "1":
+        logger.warning(
+            "MOMENTLAB_LOCAL_DB=1 is set: using LocalClickHouseClient SQLite adapter (NOT REAL CLICKHOUSE)."
         )
-        return client
-    except Exception:
-        # Fallback to contract-faithful local SQLite ClickHouse adapter
         return LocalClickHouseClient()
+
+    ch_host = host or os.environ.get("CLICKHOUSE_HOST", "localhost")
+    port_val = port if port is not None else os.environ.get("CLICKHOUSE_PORT", "8443")
+    ch_port = int(port_val)
+    ch_user = username or os.environ.get("CLICKHOUSE_USER", "default")
+    ch_password = password if password is not None else os.environ.get("CLICKHOUSE_PASSWORD", "")
+    ch_database = database or os.environ.get("CLICKHOUSE_DATABASE", os.environ.get("CLICKHOUSE_DB", "momentlab"))
+
+    if secure is not None:
+        ch_secure = secure
+    else:
+        ch_secure = os.environ.get("CLICKHOUSE_SECURE", "true" if ch_port == 8443 else "false").lower() in ("true", "1", "yes")
+
+    timeout_val = connect_timeout if connect_timeout is not None else int(os.environ.get("CLICKHOUSE_CONNECT_TIMEOUT", "10"))
+    ch_timeout = max(10, timeout_val)
+
+    import clickhouse_connect
+    return clickhouse_connect.get_client(
+        host=ch_host,
+        port=ch_port,
+        username=ch_user,
+        password=ch_password,
+        database=ch_database,
+        secure=ch_secure,
+        connect_timeout=ch_timeout,
+    )
 
 def init_db():
     client = get_client()
