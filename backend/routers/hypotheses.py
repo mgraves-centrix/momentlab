@@ -1,8 +1,11 @@
-from fastapi import APIRouter, HTTPException
+import logging
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional
 from backend.agents.mcp_client import generate_hypothesis
 from backend.services.db import get_db
+
+logger = logging.getLogger("momentlab.hypotheses")
 
 router = APIRouter()
 
@@ -37,8 +40,11 @@ async def create_hypothesis(project_id: str, experiment_id: str):
             "status": "success",
             "hypothesis": hypothesis_data
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to generate hypothesis: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Hypothesis generation failed: {str(e)}")
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}/hypothesis/request-revision")
 async def request_hypothesis_revision(project_id: str, experiment_id: str, req: Optional[RevisionRequest] = None):
