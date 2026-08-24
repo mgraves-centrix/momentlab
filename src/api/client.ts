@@ -7,10 +7,18 @@ export interface Project {
   video_url?: string;
   thumbnail_url?: string;
   
-  // Computed/Legacy properties used by UI
+  // Computed / live properties from backend
   sceneCount?: number;
+  scene_count?: number;
   totalRespondents?: number;
+  total_respondents?: number;
   status?: string;
+  latestFinding?: string;
+  latest_finding?: string;
+  screeningProgress?: number;
+  screening_progress?: number;
+  analysisStatus?: string;
+  analysis_status?: string;
 }
 
 export interface ExperimentSummary {

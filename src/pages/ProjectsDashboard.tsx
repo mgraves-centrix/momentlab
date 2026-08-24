@@ -4,30 +4,38 @@ import { Plus, Star, ChevronRight, ChevronDown, LayoutGrid, List, ArrowRight, Fl
 import { AppShell } from '../components/AppShell';
 import { NewProjectModal } from '../components/NewProjectModal';
 import { fetchProjects, Project } from '../api/client';
+import { useMobile } from '../hooks/useMobile';
 
 export const ProjectsDashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const isMobile = useMobile();
 
   useEffect(() => {
     fetchProjects().then(data => {
       setProjects(data);
       setIsLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setIsLoading(false);
     });
   }, []);
 
+  const northlightProject = projects.find(p => p.project_id === 'proj_northlight_01');
+  const northlightRespondents = northlightProject?.total_respondents ?? northlightProject?.totalRespondents ?? 527;
+
   return (
     <AppShell>
-      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '28px 32px' }}>
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: isMobile ? '16px' : '28px 32px', boxSizing: 'border-box', width: '100%' }}>
         
         {/* Page Top Header Bar */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+            <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', marginBottom: '4px' }}>
               PROJECTS
             </h1>
-            <p style={{ fontSize: '13px', color: '#8d979f' }}>
+            <p style={{ fontSize: '13px', color: '#8d979f', margin: 0 }}>
               Manage your film projects, experiments, and audience insights.
             </p>
           </div>
@@ -78,8 +86,8 @@ export const ProjectsDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Main 2-Column Grid (~68% / ~32%) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '67% 31%', gap: '24px', alignItems: 'start' }}>
+        {/* Main 2-Column Grid (~68% / ~32% on desktop, 1fr on mobile) */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '67% 31%', gap: '24px', alignItems: 'start' }}>
           
           {/* LEFT COLUMN: Project Cards List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -92,115 +100,140 @@ export const ProjectsDashboard: React.FC = () => {
                 <p>No projects found. Create one to get started.</p>
               </div>
             ) : (
-              projects.map(project => (
-                <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '10px', overflow: 'hidden' }}>
-                  <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: '220px 1fr', gap: '20px' }}>
-                    {/* Thumbnail */}
-                    <div style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', height: '124px', backgroundColor: '#162029' }}>
-                      <img
-                        src={project.thumbnail_url || "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80"}
-                        alt="Thumbnail"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                      <span style={{ position: 'absolute', bottom: '6px', left: '6px', backgroundColor: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.04em' }}>
-                        PROJECT MEDIA
-                      </span>
-                    </div>
+              projects.map(project => {
+                const cutsCount = project.scene_count ?? project.sceneCount;
+                const respCount = project.total_respondents ?? project.totalRespondents;
+                const finding = project.latest_finding || project.latestFinding;
+                const status = project.status || (respCount ? 'ACTIVE' : 'DRAFT');
+                const screeningProg = project.screening_progress ?? project.screeningProgress;
+                const isReady = project.analysis_status === 'ANALYSIS READY' || finding;
 
-                    {/* Details & Metrics */}
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                              {project.title}
-                            </h2>
-                            <Star size={14} color="#8d979f" style={{ cursor: 'pointer' }} />
-                          </div>
-                          <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '3px', border: '1px solid rgba(88, 201, 75, 0.3)' }}>
-                            {project.status || 'ACTIVE'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '2px' }}>
-                          {project.description || 'Feature Film Project'}
-                        </div>
+                return (
+                  <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div style={{ padding: isMobile ? '16px' : '20px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px 1fr', gap: '20px' }}>
+                      {/* Thumbnail */}
+                      <div style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', height: '124px', backgroundColor: '#162029' }}>
+                        <img
+                          src={project.thumbnail_url || "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80"}
+                          alt="Thumbnail"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <span style={{ position: 'absolute', bottom: '6px', left: '6px', backgroundColor: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.04em' }}>
+                          PROJECT MEDIA
+                        </span>
                       </div>
 
-                      {/* 3 Metric Columns */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '70px 110px 1fr', gap: '16px', backgroundColor: '#131b22', padding: '10px 14px', borderRadius: '6px', border: '1px solid #1c2630', marginTop: '12px' }}>
+                      {/* Details & Metrics */}
+                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div>
-                          <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">{project.sceneCount || 0}</div>
-                          <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cuts</div>
-                        </div>
-
-                        <div>
-                          <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">{project.totalRespondents || 0}</div>
-                          <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respondents</div>
-                        </div>
-
-                        <div>
-                          <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Latest Finding</div>
-                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#8d979f', marginTop: '2px' }}>
-                            No findings yet
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                                {project.title}
+                              </h2>
+                              <Star size={14} color="#8d979f" style={{ cursor: 'pointer' }} />
+                            </div>
+                            <span style={{
+                              backgroundColor: status === 'ACTIVE' ? 'rgba(88, 201, 75, 0.15)' : 'rgba(141, 151, 159, 0.15)',
+                              color: status === 'ACTIVE' ? '#58c94b' : '#8d979f',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '3px',
+                              border: `1px solid ${status === 'ACTIVE' ? 'rgba(88, 201, 75, 0.3)' : 'rgba(141, 151, 159, 0.3)'}`
+                            }}>
+                              {status}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '2px' }}>
+                            {project.description || 'Feature Film Project'}
                           </div>
                         </div>
-                      </div>
 
-                      {/* Status Banner & Action Button */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '24px', height: '24px', borderRadius: '4px', backgroundColor: 'rgba(139, 92, 246, 0.2)', color: '#c4a7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <FlaskConical size={14} />
-                          </div>
+                        {/* 3 Metric Columns */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '70px 110px 1fr', gap: '16px', backgroundColor: '#131b22', padding: '10px 14px', borderRadius: '6px', border: '1px solid #1c2630', marginTop: '12px' }}>
                           <div>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#c4a7ff', letterSpacing: '0.04em' }}>ANALYSIS PENDING</div>
-                            <div style={{ fontSize: '10px', color: '#8d979f' }}>Waiting for completion</div>
+                            <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">
+                              {cutsCount != null ? cutsCount : '—'}
+                            </div>
+                            <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cuts</div>
+                          </div>
+
+                          <div>
+                            <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">
+                              {respCount != null ? respCount.toLocaleString() : '—'}
+                            </div>
+                            <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respondents</div>
+                          </div>
+
+                          <div>
+                            <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Latest Finding</div>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: finding ? '#ff6652' : '#8d979f', marginTop: '2px' }}>
+                              {finding || 'No findings yet'}
+                            </div>
                           </div>
                         </div>
 
-                        <Link
-                          to={`/projects/${project.project_id}/experiments/exp_23a/finding`}
-                          style={{
-                            backgroundColor: '#b7e33d',
-                            color: '#080b0e',
-                            textDecoration: 'none',
-                            padding: '8px 14px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <span>OPEN EXPERIMENT</span>
-                          <ChevronRight size={14} strokeWidth={2.5} />
-                        </Link>
+                        {/* Status Banner & Action Button */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '24px', height: '24px', borderRadius: '4px', backgroundColor: isReady ? 'rgba(139, 92, 246, 0.2)' : 'rgba(141, 151, 159, 0.1)', color: isReady ? '#c4a7ff' : '#8d979f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <FlaskConical size={14} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '11px', fontWeight: 700, color: isReady ? '#c4a7ff' : '#8d979f', letterSpacing: '0.04em' }}>
+                                {isReady ? 'ANALYSIS READY' : respCount ? 'ANALYSIS PENDING' : 'NO EXPERIMENTS'}
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#8d979f' }}>
+                                {isReady ? 'Findings available for review' : respCount ? 'Collecting screening data' : 'Ready to configure test'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <Link
+                            to={`/projects/${project.project_id}/experiments/exp_23a/finding`}
+                            style={{
+                              backgroundColor: '#b7e33d',
+                              color: '#080b0e',
+                              textDecoration: 'none',
+                              padding: '8px 14px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <span>OPEN EXPERIMENT</span>
+                            <ChevronRight size={14} strokeWidth={2.5} />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Footer Row */}
+                    <div style={{ borderTop: '1px solid #1a232b', padding: '10px 20px', backgroundColor: '#090e12', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#8d979f', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#202b35', color: '#fff', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>AD</div>
+                          <span>{project.owner_id || 'Admin'} <span style={{ color: '#5b6670' }}>Owner</span></span>
+                        </div>
+                        <span>Created {new Date(project.created_at).toLocaleDateString()}</span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span>SCREENING PROGRESS</span>
+                        <div style={{ width: '120px', height: '6px', backgroundColor: '#172027', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: `${screeningProg != null ? screeningProg : 0}%`, height: '100%', backgroundColor: '#8b5cf6' }} />
+                        </div>
+                        <span style={{ color: '#fff', fontWeight: 600 }}>{screeningProg != null ? `${screeningProg}%` : '—'}</span>
+                        <MoreHorizontal size={14} color="#8d979f" style={{ marginLeft: '8px', cursor: 'pointer' }} />
                       </div>
                     </div>
                   </div>
-
-                  {/* Card Footer Row */}
-                  <div style={{ borderTop: '1px solid #1a232b', padding: '10px 20px', backgroundColor: '#090e12', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#8d979f' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#202b35', color: '#fff', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>AD</div>
-                        <span>{project.owner_id || 'Admin'} <span style={{ color: '#5b6670' }}>Owner</span></span>
-                      </div>
-                      <span>Created {new Date(project.created_at).toLocaleDateString()}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span>SCREENING PROGRESS</span>
-                      <div style={{ width: '120px', height: '6px', backgroundColor: '#172027', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ width: '0%', height: '100%', backgroundColor: '#8b5cf6' }} />
-                      </div>
-                      <span style={{ color: '#fff', fontWeight: 600 }}>0%</span>
-                      <MoreHorizontal size={14} color="#8d979f" style={{ marginLeft: '8px', cursor: 'pointer' }} />
-                    </div>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -229,7 +262,7 @@ export const ProjectsDashboard: React.FC = () => {
                       <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>ACTIVE</span>
                     </div>
                     <div style={{ fontSize: '11px', color: '#c4a7ff', marginTop: '2px' }}>Move reveal 6s earlier</div>
-                    <div style={{ fontSize: '10px', color: '#8d979f', marginTop: '2px' }}>Started May 19, 2025 · 2 Variants · 4,732 Respondents</div>
+                    <div style={{ fontSize: '10px', color: '#8d979f', marginTop: '2px' }}>Started May 19, 2025 · 2 Variants · {northlightRespondents.toLocaleString()} Respondents</div>
                   </div>
                 </div>
 
