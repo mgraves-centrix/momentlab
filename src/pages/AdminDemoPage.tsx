@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppShell } from '../components/AppShell';
 import { StatePanel, StateType } from '../components/StatePanel';
 import { Activity, RefreshCw, AlertTriangle, CheckCircle, Database, Server, Check } from 'lucide-react';
+import { useMobile } from '../hooks/useMobile';
 
 interface HealthData {
   status: string;
@@ -13,12 +14,13 @@ interface HealthData {
 }
 
 export const AdminDemoPage: React.FC = () => {
-  const [activeState, setActiveState] = useState<StateType>('insufficient_sample');
   const [health, setHealth] = useState<HealthData | null>(null);
   const [isHealthLoading, setIsHealthLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetConfirmed, setResetConfirmed] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [activeState, setActiveState] = useState<StateType>('insufficient_sample');
+  const isMobile = useMobile();
 
   const fetchHealth = () => {
     setIsHealthLoading(true);
@@ -84,11 +86,11 @@ export const AdminDemoPage: React.FC = () => {
         })
       });
       const data = await res.json();
-      setResetMessage(`Successfully reseeded ${data.reseeded_respondents} respondents (${data.total_events_inserted} events, 61s timeline).`);
+      setResetMessage(`Success: Reseeded ${data.reseeded_respondents} respondents (${data.total_events_inserted} events).`);
       setResetConfirmed(false);
       fetchHealth();
-    } catch (err: any) {
-      setResetMessage(`Reset failed: ${err.message}`);
+    } catch (e: any) {
+      setResetMessage(`Reset failed: ${e.message || 'Unknown error'}`);
     } finally {
       setIsResetting(false);
     }
@@ -113,12 +115,12 @@ export const AdminDemoPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ maxWidth: '1100px', width: '100%', boxSizing: 'border-box', overflowX: 'hidden', margin: '0 auto', padding: isMobile ? '16px' : '32px 24px' }}>
         
         {/* Header Bar */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text)', letterSpacing: '-0.02em', margin: 0 }}>
+            <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text)', letterSpacing: '-0.02em', margin: 0 }}>
               System Health & Demo Operations
             </h1>
             <p style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '4px' }}>
@@ -149,7 +151,7 @@ export const AdminDemoPage: React.FC = () => {
         </div>
 
         {/* Top Controls Grid: Live Health Panel & Telemetry Reset Panel */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
           
           {/* 1. Live Health Panel */}
           <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>

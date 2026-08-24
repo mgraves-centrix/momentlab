@@ -22,6 +22,8 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+import { useMobile } from '../hooks/useMobile';
+
 export const EditHypothesisPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,6 +32,7 @@ export const EditHypothesisPage: React.FC = () => {
   const [summaryData, setSummaryData] = useState<ExperimentSummary | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const isMobile = useMobile();
 
   useEffect(() => {
     if (projectId && experimentId) {
@@ -80,10 +83,10 @@ export const EditHypothesisPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 32px 64px 32px', color: '#f1f3f2' }}>
+      <div style={{ maxWidth: '1440px', width: '100%', boxSizing: 'border-box', overflowX: 'hidden', margin: '0 auto', padding: isMobile ? '16px' : '24px 32px 64px 32px', color: '#f1f3f2' }}>
         
         {/* Breadcrumb Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600, color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600, color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '16px', flexWrap: 'wrap' }}>
           <span>EXPERIMENTS</span>
           <ChevronRight size={12} color="#8d979f" />
           <span>SCENE 12</span>
@@ -96,8 +99,8 @@ export const EditHypothesisPage: React.FC = () => {
         {/* Page Top Header Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: isMobile ? '20px' : '26px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0 }}>
                 HYPOTHESIS REVIEW & DECISION
               </h1>
               <span className="badge badge-advisory" style={{ backgroundColor: '#2d1b54', color: '#c4a7ff', border: '1px solid #492e8a', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
@@ -110,7 +113,7 @@ export const EditHypothesisPage: React.FC = () => {
           </div>
 
           {/* Action Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <button
               onClick={handleDiscard}
               disabled={!!actionLoading}
@@ -185,11 +188,11 @@ export const EditHypothesisPage: React.FC = () => {
           </div>
         )}
 
-        {/* 2-Column Workspace (64% / 36%) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '64% 34%', gap: '24px', alignItems: 'start' }}>
+        {/* 2-Column Workspace (64% / 36%) or 1-Column on Mobile */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 64%) minmax(0, 34%)', gap: '24px', alignItems: 'start', width: '100%', boxSizing: 'border-box' }}>
           
           {/* LEFT COLUMN: Structured Specification Rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
             
             {/* ROW 1: OBSERVATION */}
             <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '8px', padding: '20px' }}>
