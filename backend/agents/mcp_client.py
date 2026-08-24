@@ -61,7 +61,7 @@ async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
                     "CLICKHOUSE_PORT": clickhouse_port,
                     "CLICKHOUSE_USER": clickhouse_user,
                     "CLICKHOUSE_PASSWORD": clickhouse_pass,
-                    "CLICKHOUSE_SECURE": clickhouse_secure,
+                    "CLICKHOUSE_SECURE": "true" if clickhouse_secure else "false",
                     "CLICKHOUSE_DATABASE": clickhouse_db,
                     "PATH": os.environ.get("PATH", "")
                 }
