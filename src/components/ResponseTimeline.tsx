@@ -50,14 +50,9 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
     return padding.top + chartHeight - ((s - minScore) / (maxScore - minScore)) * chartHeight;
   };
 
-  // Build all 3 lines for cohorts safely
-  const lineAllPoints = validData.filter(d => typeof d.allCohort === 'number' && !isNaN(d.allCohort)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.allCohort).toFixed(1)}`);
-  const line1824Points = validData.filter(d => typeof d.cohort18_24 === 'number' && !isNaN(d.cohort18_24)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.cohort18_24).toFixed(1)}`);
-  const line2534Points = validData.filter(d => typeof d.cohort25_34 === 'number' && !isNaN(d.cohort25_34)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.cohort25_34).toFixed(1)}`);
-
-  const lineAll = lineAllPoints.length > 0 ? lineAllPoints.join(' L ') : null;
-  const line1824 = line1824Points.length > 0 ? line1824Points.join(' L ') : null;
-  const line2534 = line2534Points.length > 0 ? line2534Points.join(' L ') : null;
+  // Build line for active cohort series from ClickHouse
+  const lineActivePoints = validData.filter(d => typeof d.allCohort === 'number' && !isNaN(d.allCohort)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.allCohort).toFixed(1)}`);
+  const lineActive = lineActivePoints.length > 0 ? lineActivePoints.join(' L ') : null;
 
   // Build uncertainty band polygon
   const upperPoints = validData.filter(d => typeof d.uncertaintyUpper === 'number' && !isNaN(d.uncertaintyUpper)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.uncertaintyUpper).toFixed(1)}`);
@@ -130,14 +125,12 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
             {/* Uncertainty Band */}
             {uncertaintyPath && <path d={uncertaintyPath} fill="rgba(139, 92, 246, 0.1)" />}
 
-            {/* Data Lines */}
-            {line1824 && <path d={`M ${line1824}`} fill="none" stroke="rgba(139, 92, 246, 0.4)" strokeWidth="2" strokeDasharray="2 2" />}
-            {line2534 && <path d={`M ${line2534}`} fill="none" stroke="rgba(183, 227, 61, 0.4)" strokeWidth="2" strokeDasharray="4 4" />}
-            {lineAll && <path d={`M ${lineAll}`} fill="none" stroke="var(--violet)" strokeWidth="3" />}
+            {/* Main Active Line from ClickHouse */}
+            {lineActive && <path d={`M ${lineActive}`} fill="none" stroke="var(--violet)" strokeWidth="3" />}
 
             {/* Data Points */}
             {validData.map((d, idx) => {
-              const val = selectedCohort === '18_24' ? d.cohort18_24 : selectedCohort === '25_34' ? d.cohort25_34 : d.allCohort;
+              const val = d.allCohort;
               if (typeof val !== 'number' || isNaN(val)) return null;
               const cx = getX(d.timeMs);
               const cy = getY(val);

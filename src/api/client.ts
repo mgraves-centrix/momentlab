@@ -104,8 +104,9 @@ export async function fetchExperimentSummary(projectId: string, experimentId: st
   return await res.json();
 }
 
-export async function fetchExperimentTimeline(projectId: string, experimentId: string): Promise<TimelineDataPoint[]> {
-  const res = await fetch(`${API_BASE}/telemetry/timeline?project_id=${projectId}&experiment_id=${experimentId}`);
+export async function fetchExperimentTimeline(projectId: string, experimentId: string, cohort: string = 'all'): Promise<TimelineDataPoint[]> {
+  const url = `${API_BASE}/telemetry/timeline?project_id=${projectId}&experiment_id=${experimentId}${cohort && cohort !== 'all' ? `&cohort=${cohort}` : ''}`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch experiment timeline');
   const data = await res.json();
   if (data.length > 0) {
@@ -116,8 +117,8 @@ export async function fetchExperimentTimeline(projectId: string, experimentId: s
         timecode: `00:${String(Math.floor(d.media_time_ms / 1000)).padStart(2, '0')}`,
         timeMs: d.media_time_ms,
         allCohort: val,
-        cohort18_24: isAnomaly ? Math.max(0, val - 12) : val,
-        cohort25_34: isAnomaly ? Math.max(0, val - 6) : val,
+        cohort18_24: val,
+        cohort25_34: val,
         uncertaintyUpper: Math.min(100, val + 4),
         uncertaintyLower: Math.max(0, val - 4),
         sampleSize: d.total_events || 0,

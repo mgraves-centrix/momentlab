@@ -30,11 +30,11 @@ export const ResponseTimelinePage: React.FC = () => {
 
   React.useEffect(() => {
     if (projectId && experimentId) {
-      fetchExperimentTimeline(projectId, experimentId).then(setTimelineData);
+      fetchExperimentTimeline(projectId, experimentId, selectedCohort).then(setTimelineData);
       fetchExperimentHypothesis(projectId, experimentId).then(setHypothesisData);
       fetchExperimentSummary(projectId, experimentId).then(setSummaryData);
     }
-  }, [projectId, experimentId]);
+  }, [projectId, experimentId, selectedCohort]);
 
   const updateQueryParams = (updates: { cohort?: string; window?: string; media_time_ms?: number }) => {
     const newParams = new URLSearchParams(searchParams);
@@ -125,7 +125,7 @@ export const ResponseTimelinePage: React.FC = () => {
                   data={timelineData}
                   currentTimeMs={selectedTimeMs}
                   onTimeSelect={(t) => updateQueryParams({ media_time_ms: t })}
-                  selectedCohort="all"
+                  selectedCohort={selectedCohort}
                 />
               </div>
             </div>
@@ -176,10 +176,10 @@ export const ResponseTimelinePage: React.FC = () => {
 
             {/* Cohort Selector Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-              <button style={{ backgroundColor: '#1a103c', color: '#f1f3f2', border: '1px solid #8b5cf6', padding: '12px 0', borderRadius: '8px', fontSize: '12px', fontWeight: 700 }}>ALL</button>
-              <button style={{ backgroundColor: '#091218', color: '#9aa8b2', border: '1px solid #16232c', padding: '12px 0', borderRadius: '8px', fontSize: '12px', fontWeight: 600 }}>18–24</button>
-              <button style={{ backgroundColor: '#091218', color: '#9aa8b2', border: '1px solid #16232c', padding: '12px 0', borderRadius: '8px', fontSize: '12px', fontWeight: 600 }}>25–34</button>
-              <button style={{ backgroundColor: '#091218', color: '#9aa8b2', border: '1px solid #16232c', padding: '12px 0', borderRadius: '8px', fontSize: '12px', fontWeight: 600 }}>35+</button>
+              <button onClick={() => updateQueryParams({ cohort: 'all' })} style={{ backgroundColor: selectedCohort === 'all' ? '#1a103c' : '#091218', color: selectedCohort === 'all' ? '#f1f3f2' : '#9aa8b2', border: `1px solid ${selectedCohort === 'all' ? '#8b5cf6' : '#16232c'}`, padding: '12px 0', borderRadius: '8px', fontSize: '12px', fontWeight: selectedCohort === 'all' ? 700 : 600, cursor: 'pointer' }}>ALL</button>
+              <button onClick={() => updateQueryParams({ cohort: '18_24' })} style={{ backgroundColor: selectedCohort === '18_24' ? '#1a103c' : '#091218', color: selectedCohort === '18_24' ? '#f1f3f2' : '#9aa8b2', border: `1px solid ${selectedCohort === '18_24' ? '#8b5cf6' : '#16232c'}`, padding: '12px 0', borderRadius: '8px', fontSize: '12px', fontWeight: selectedCohort === '18_24' ? 700 : 600, cursor: 'pointer' }}>18–24</button>
+              <button onClick={() => updateQueryParams({ cohort: '25_34' })} style={{ backgroundColor: selectedCohort === '25_34' ? '#1a103c' : '#091218', color: selectedCohort === '25_34' ? '#f1f3f2' : '#9aa8b2', border: `1px solid ${selectedCohort === '25_34' ? '#8b5cf6' : '#16232c'}`, padding: '12px 0', borderRadius: '8px', fontSize: '12px', fontWeight: selectedCohort === '25_34' ? 700 : 600, cursor: 'pointer' }}>25–34</button>
+              <button onClick={() => updateQueryParams({ cohort: '35_44' })} style={{ backgroundColor: (selectedCohort as string) === '35_44' ? '#1a103c' : '#091218', color: (selectedCohort as string) === '35_44' ? '#f1f3f2' : '#9aa8b2', border: `1px solid ${(selectedCohort as string) === '35_44' ? '#8b5cf6' : '#16232c'}`, padding: '12px 0', borderRadius: '8px', fontSize: '12px', fontWeight: (selectedCohort as string) === '35_44' ? 700 : 600, cursor: 'pointer' }}>35+</button>
             </div>
 
             {/* Primary Action Button */}
