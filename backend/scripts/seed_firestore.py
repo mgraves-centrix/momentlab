@@ -15,19 +15,25 @@ projects = [
         "project_id": "proj_northlight_01",
         "title": "Northlight",
         "description": "Indie thriller short",
-        "owner_id": "admin"
+        "owner_id": "admin",
+        "video_url": "/frames/northlight/scene.mp4",
+        "thumbnail_url": "/northlight_thumb.png"
     },
     {
         "project_id": "proj_echoes_02",
         "title": "Echoes of Salt",
         "description": "Drama",
-        "owner_id": "admin"
+        "owner_id": "admin",
+        "video_url": "/frames/echoes_of_salt/scene.mp4",
+        "thumbnail_url": "/echoes_of_salt_thumb.png"
     },
     {
         "project_id": "proj_below_03",
         "title": "Below the Surface",
         "description": "Documentary",
-        "owner_id": "admin"
+        "owner_id": "admin",
+        "video_url": "/frames/below_the_surface/scene.mp4",
+        "thumbnail_url": "/below_the_surface_thumb.png"
     }
 ]
 

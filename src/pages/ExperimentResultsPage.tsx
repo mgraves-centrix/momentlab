@@ -152,7 +152,7 @@ export const ExperimentResultsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'SUPPORTED' | 'REJECTED' | 'INCONCLUSIVE'>('SUPPORTED');
   const isMobile = useMobile();
 
-  const sampleVideoUrl = "/scene12.mp4";
+  const sampleVideoUrl = "/frames/northlight/scene.mp4";
 
   useEffect(() => {
     const fetchResults = async () => {

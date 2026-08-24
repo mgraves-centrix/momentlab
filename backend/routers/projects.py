@@ -20,6 +20,21 @@ class SignedUrlResponse(BaseModel):
     method: str
     expires_at: datetime
 
+PROJECT_MEDIA = {
+    "proj_northlight_01": {
+        "video_url": "/frames/northlight/scene.mp4",
+        "thumbnail_url": "/northlight_thumb.png",
+    },
+    "proj_echoes_02": {
+        "video_url": "/frames/echoes_of_salt/scene.mp4",
+        "thumbnail_url": "/echoes_of_salt_thumb.png",
+    },
+    "proj_below_03": {
+        "video_url": "/frames/below_the_surface/scene.mp4",
+        "thumbnail_url": "/below_the_surface_thumb.png",
+    }
+}
+
 @router.get("", response_model=List[Project])
 def list_projects():
     """Lists all active projects with canonical demo projects ordered first."""
@@ -68,6 +83,11 @@ def list_projects():
             data["latest_finding"] = None
             data["screening_progress"] = None
             data["analysis_status"] = None
+
+        # Wire canonical media per project
+        if pid in PROJECT_MEDIA:
+            data["video_url"] = data.get("video_url") or PROJECT_MEDIA[pid]["video_url"]
+            data["thumbnail_url"] = data.get("thumbnail_url") or PROJECT_MEDIA[pid]["thumbnail_url"]
 
         projects.append(Project(**data))
         
@@ -118,6 +138,10 @@ def get_project(project_id: str):
         data["screening_progress"] = 100
         data["analysis_status"] = "ANALYSIS READY"
         
+    if project_id in PROJECT_MEDIA:
+        data["video_url"] = data.get("video_url") or PROJECT_MEDIA[project_id]["video_url"]
+        data["thumbnail_url"] = data.get("thumbnail_url") or PROJECT_MEDIA[project_id]["thumbnail_url"]
+
     return Project(**data)
 
 @router.delete("/{project_id}", status_code=status.HTTP_200_OK)

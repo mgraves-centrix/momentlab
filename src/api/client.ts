@@ -92,6 +92,12 @@ export async function fetchProjects(): Promise<Project[]> {
   return await res.json();
 }
 
+export async function fetchProject(projectId: string): Promise<Project> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}`);
+  if (!res.ok) throw new Error(`Failed to fetch project ${projectId}`);
+  return await res.json();
+}
+
 export async function fetchRecentQueries(): Promise<any[]> {
   const res = await fetch(`${API_BASE}/telemetry/queries`);
   if (!res.ok) throw new Error('Failed to fetch queries');

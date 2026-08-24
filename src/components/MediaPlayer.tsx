@@ -11,6 +11,7 @@ declare global {
 
 interface MediaPlayerProps {
   initialVideoUrl?: string;
+  posterUrl?: string;
   initialTimecodeMs?: number;
   onTimeUpdate?: (timeMs: number) => void;
   sceneTitle?: string;
@@ -18,18 +19,19 @@ interface MediaPlayerProps {
 
 export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   initialVideoUrl,
+  posterUrl,
   initialTimecodeMs = 37000,
   onTimeUpdate,
   sceneTitle = '12 · INT. APARTMENT – NIGHT'
 }) => {
   const isMobile = useMobile();
-  const [videoSrc, setVideoSrc] = useState<string>(initialVideoUrl || '/scene12.mp4');
+  const [videoSrc, setVideoSrc] = useState<string | null>(initialVideoUrl || null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isGeneratingVeo, setIsGeneratingVeo] = useState(false);
   const [currentTimeSec, setCurrentTimeSec] = useState(initialTimecodeMs / 1000);
   const [durationSec, setDurationSec] = useState(0);
-  const isYouTube = videoSrc.includes('youtube.com') || videoSrc.includes('youtu.be');
+  const isYouTube = Boolean(videoSrc && (videoSrc.includes('youtube.com') || videoSrc.includes('youtu.be')));
   const [showYoutubeInput, setShowYoutubeInput] = useState(false);
   const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
 
@@ -40,6 +42,10 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   const ytContainerRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setVideoSrc(initialVideoUrl || null);
+  }, [initialVideoUrl]);
 
   // Extract 11-char YouTube ID
   const extractVideoId = useCallback((url: string) => {
@@ -71,7 +77,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
 
   // Initialize YouTube IFrame Player API
   useEffect(() => {
-    if (!isYouTube) {
+    if (!isYouTube || !videoSrc) {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
@@ -381,14 +387,72 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
           justifyContent: 'center'
         }}
       >
-        {isYouTube ? (
+        {!videoSrc ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '32px',
+              textAlign: 'center',
+              color: 'var(--muted)',
+              gap: '12px'
+            }}
+          >
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--muted)'
+              }}
+            >
+              <Film size={24} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                No Media Attached
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
+                This project has no active scene footage. Upload video or generate via Google Veo.
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  backgroundColor: 'var(--surface-3)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Upload size={12} />
+                <span>Upload Media</span>
+              </button>
+            </div>
+          </div>
+        ) : isYouTube ? (
           <div ref={ytContainerRef} style={{ width: '100%', height: '100%' }} />
         ) : (
           <>
             <video
               ref={videoRef}
               src={videoSrc}
-              poster="/northlight_thumb.png"
+              poster={posterUrl || "/northlight_thumb.png"}
               playsInline
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               onTimeUpdate={handleTimeUpdate}
@@ -396,6 +460,26 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
               muted={isMuted}
               onClick={handlePlayPause}
             />
+
+            {/* Synthetic Footage Badge */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '12px',
+                left: '12px',
+                backgroundColor: 'rgba(8, 11, 14, 0.85)',
+                border: '1px solid var(--border)',
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '10px',
+                fontWeight: 700,
+                color: 'var(--violet-soft)',
+                letterSpacing: '0.04em',
+                pointerEvents: 'none'
+              }}
+            >
+              SYNTHETIC
+            </div>
 
             {!isPlaying && (
               <div
@@ -422,23 +506,25 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
         )}
 
         {/* Floating Timecode Badge */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '12px',
-            left: '12px',
-            backgroundColor: 'rgba(8, 11, 14, 0.85)',
-            border: '1px solid var(--border)',
-            padding: '4px 8px',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text)'
-          }}
-          className="tabular-nums"
-        >
-          {formatTimecode(durationSec > 0 ? Math.min(currentTimeSec, durationSec) : currentTimeSec)} / {formatTimecode(durationSec)}
-        </div>
+        {videoSrc && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '12px',
+              left: '12px',
+              backgroundColor: 'rgba(8, 11, 14, 0.85)',
+              border: '1px solid var(--border)',
+              padding: '4px 8px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: 'var(--text)'
+            }}
+            className="tabular-nums"
+          >
+            {formatTimecode(durationSec > 0 ? Math.min(currentTimeSec, durationSec) : currentTimeSec)} / {formatTimecode(durationSec)}
+          </div>
+        )}
       </div>
 
       {/* Media Transport Controls */}
