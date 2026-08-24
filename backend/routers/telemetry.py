@@ -10,20 +10,48 @@ class TelemetryResetRequest(BaseModel):
     sample_size: int = 525
 
 @router.get("/timeline")
-async def get_timeline(project_id: str, experiment_id: str):
+async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str] = "all"):
     try:
         from backend.services.clickhouse import get_client
         client = get_client()
-        query = f"""
-            SELECT 
-                toFloat32(toInt32(media_time_ms / 1000) * 1000) AS time_bucket,
-                count() as total_events,
-                avg(retention_score) as avg_value
-            FROM momentlab.audience_events
-            WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'
-            GROUP BY time_bucket
-            ORDER BY time_bucket
-        """
+        
+        cohort_clean = (cohort or "all").strip().lower()
+        if cohort_clean in ["18-24", "18_24"]:
+            cohort_val = "18_24"
+        elif cohort_clean in ["25-34", "25_34"]:
+            cohort_val = "25_34"
+        elif cohort_clean in ["35-44", "35_44", "35+"]:
+            cohort_val = "35_44"
+        elif cohort_clean in ["45+", "45_plus"]:
+            cohort_val = "45_plus"
+        else:
+            cohort_val = "all"
+
+        if cohort_val != "all":
+            query = f"""
+                SELECT 
+                    toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket,
+                    count() as total_events,
+                    avg(ae.retention_score) as avg_value
+                FROM momentlab.audience_events ae
+                INNER JOIN momentlab.screening_sessions ss ON ae.session_id = ss.session_id
+                WHERE ae.project_id = '{project_id}' 
+                  AND ae.experiment_id = '{experiment_id}'
+                  AND ss.respondent_cohort = '{cohort_val}'
+                GROUP BY time_bucket
+                ORDER BY time_bucket
+            """
+        else:
+            query = f"""
+                SELECT 
+                    toFloat32(toInt32(media_time_ms / 1000) * 1000) AS time_bucket,
+                    count() as total_events,
+                    avg(retention_score) as avg_value
+                FROM momentlab.audience_events
+                WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'
+                GROUP BY time_bucket
+                ORDER BY time_bucket
+            """
         result = client.query(query)
         timeline = []
         for row in result.result_rows:
@@ -33,7 +61,8 @@ async def get_timeline(project_id: str, experiment_id: str):
                 "avg_value": row[2]
             })
         return timeline
-    except Exception:
+    except Exception as e:
+        print(f"Error fetching timeline: {e}")
         return []
 
 @router.get("/queries")
@@ -135,16 +164,21 @@ async def reset_telemetry(req: Optional[TelemetryResetRequest] = None):
     sample_size = req.sample_size if req else 525
     
     from backend.services.clickhouse import get_client
-    from backend.simulator.fixtures import generate_northlight_simulated_events
+    from backend.simulator.fixtures import generate_northlight_events_and_sessions
     from backend.ingestion.batch_writer import ClickHouseBatchWriter
     
     client = get_client()
-    # 1. Clear previous events for target experiment
-    client.query(f"DELETE FROM momentlab.audience_events WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'")
+    # 1. Clear previous events and sessions for target experiment
+    try:
+        client.query(f"DELETE FROM momentlab.audience_events WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'")
+        client.query(f"DELETE FROM momentlab.screening_sessions WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'")
+    except Exception as e:
+        print(f"Error clearing ClickHouse tables: {e}")
     
-    # 2. Re-seed dense second-by-second events
-    events = generate_northlight_simulated_events(count=sample_size)
+    # 2. Re-seed dense second-by-second events & sessions
+    events, sessions = generate_northlight_events_and_sessions(count=sample_size)
     writer = ClickHouseBatchWriter()
+    writer.insert_screening_sessions(sessions)
     res = writer.insert_playback_events(events)
     
     return {

@@ -93,5 +93,43 @@ class ClickHouseBatchWriter:
             self._memory_events.extend(new_events)
             return {"status": "SUCCESS", "inserted_count": len(new_events)}
 
+    def insert_screening_sessions(self, sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Inserts session records into screening_sessions.
+        """
+        if not sessions:
+            return {"status": "EMPTY", "inserted_count": 0}
+
+        if self.client:
+            try:
+                data = [
+                    [
+                        _ensure_uuid(s.get("session_id")),
+                        s.get("screening_token", f"tok_{str(s.get('session_id'))[:8]}"),
+                        s["project_id"],
+                        s["experiment_id"],
+                        s["scene_id"],
+                        s["respondent_cohort"],
+                        int(s.get("consent_given", 1)),
+                        s.get("consent_timestamp", datetime.now(timezone.utc)),
+                        s.get("created_at", datetime.now(timezone.utc))
+                    ]
+                    for s in sessions
+                ]
+                self.client.insert(
+                    "screening_sessions",
+                    data,
+                    column_names=[
+                        "session_id", "screening_token", "project_id", "experiment_id",
+                        "scene_id", "respondent_cohort", "consent_given",
+                        "consent_timestamp", "created_at"
+                    ]
+                )
+                return {"status": "SUCCESS", "inserted_count": len(sessions)}
+            except Exception as e:
+                logger.error("ClickHouse session insert error: %s", str(e))
+                return {"status": "ERROR", "inserted_count": 0, "error": str(e)}
+        return {"status": "SUCCESS", "inserted_count": len(sessions)}
+
     def get_buffered_event_count(self) -> int:
         return len(self._memory_events)
