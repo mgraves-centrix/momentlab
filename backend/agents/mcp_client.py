@@ -37,18 +37,18 @@ logger = logging.getLogger("momentlab.agent.adk")
 async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
     """Uses Google ADK and ClickHouse MCP to analyze data and generate a hypothesis."""
     
-    clickhouse_host = os.environ.get("CLICKHOUSE_HOST", "localhost")
-    clickhouse_port = os.environ.get("CLICKHOUSE_PORT", "8443")
-    clickhouse_user = os.environ.get("CLICKHOUSE_MCP_USER")
+    clickhouse_host = os.environ.get("CLICKHOUSE_HOST", "localhost").strip()
+    clickhouse_port = os.environ.get("CLICKHOUSE_PORT", "8443").strip()
+    clickhouse_user = (os.environ.get("CLICKHOUSE_MCP_USER") or "").strip()
     if not clickhouse_user:
         raise ValueError("Missing required environment variable: CLICKHOUSE_MCP_USER")
 
-    clickhouse_pass = os.environ.get("CLICKHOUSE_MCP_PASSWORD")
+    clickhouse_pass = (os.environ.get("CLICKHOUSE_MCP_PASSWORD") or "").strip()
     if not clickhouse_pass:
         raise ValueError("Missing required environment variable: CLICKHOUSE_MCP_PASSWORD")
 
-    clickhouse_secure = os.environ.get("CLICKHOUSE_SECURE", "true" if clickhouse_port == "8443" else "false")
-    clickhouse_db = os.environ.get("CLICKHOUSE_DATABASE", "momentlab")
+    clickhouse_secure = os.environ.get("CLICKHOUSE_SECURE", "true" if clickhouse_port == "8443" else "false").strip().lower() in ("true", "1", "yes")
+    clickhouse_db = os.environ.get("CLICKHOUSE_DATABASE", "momentlab").strip()
 
     clickhouse_mcp = McpToolset(
         tool_name_prefix="clickhouse",
