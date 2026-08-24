@@ -11,7 +11,7 @@ import { ConfidenceMeter } from '../components/ConfidenceMeter';
 import { CutComparison } from '../components/CutComparison';
 import { McpActivityPanel } from '../components/McpActivityPanel';
 import { ApprovalGate } from '../components/ApprovalGate';
-import { fetchExperimentTimeline, fetchExperimentHypothesis, fetchExperimentSummary, fetchRecentQueries, TimelineDataPoint, Hypothesis, ExperimentSummary, generateHypothesis } from '../api/client';
+import { fetchExperimentTimeline, fetchExperimentHypothesis, fetchExperimentSummary, fetchRecentQueries, fetchProject, Project, TimelineDataPoint, Hypothesis, ExperimentSummary, generateHypothesis } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 
 export const ResponseTimelinePage: React.FC = () => {
@@ -24,12 +24,16 @@ export const ResponseTimelinePage: React.FC = () => {
   const selectedWindow = (searchParams.get('window') as TimeWindow) || '30s';
   const selectedTimeMs = parseInt(searchParams.get('media_time_ms') || '37000', 10);
 
+  const [projectData, setProjectData] = React.useState<Project | null>(null);
   const [timelineData, setTimelineData] = React.useState<TimelineDataPoint[]>([]);
   const [hypothesisData, setHypothesisData] = React.useState<Hypothesis | null>(null);
   const [summaryData, setSummaryData] = React.useState<ExperimentSummary | null>(null);
   const [activities, setActivities] = React.useState<any[]>([]);
 
   React.useEffect(() => {
+    if (projectId) {
+      fetchProject(projectId).then(setProjectData).catch(console.error);
+    }
     if (projectId && experimentId) {
       fetchExperimentTimeline(projectId, experimentId, selectedCohort).then(setTimelineData);
       fetchExperimentHypothesis(projectId, experimentId).then(setHypothesisData);
@@ -91,8 +95,11 @@ export const ResponseTimelinePage: React.FC = () => {
 
             <div style={{ margin: '0 -16px' }}>
               <MediaPlayer
+                initialVideoUrl={projectData?.video_url}
+                posterUrl={projectData?.thumbnail_url}
                 initialTimecodeMs={selectedTimeMs}
                 onTimeUpdate={(t) => updateQueryParams({ media_time_ms: t })}
+                sceneTitle={projectData?.title ? `${projectData.title} · Scene Evaluation` : '12 · INT. APARTMENT – NIGHT'}
               />
             </div>
 
@@ -136,10 +143,10 @@ export const ResponseTimelinePage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-                  Response Finding — Scene 12
+                  Response Finding — {projectData?.title || "Scene 12"}
                 </h1>
                 <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0 0' }}>
-                  Int. Apartment – Night · 00:37 Anomaly Detected
+                  {projectData?.project_id === 'proj_northlight_01' ? 'Int. Apartment – Night · 00:37 Anomaly Detected' : `${projectData?.title || 'Film'} · Scene Screening Evaluation`}
                 </p>
               </div>
 
@@ -182,14 +189,17 @@ export const ResponseTimelinePage: React.FC = () => {
             <div className="finding-layout-grid">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
                 <MediaPlayer
+                  initialVideoUrl={projectData?.video_url}
+                  posterUrl={projectData?.thumbnail_url}
                   initialTimecodeMs={selectedTimeMs}
                   onTimeUpdate={(t) => updateQueryParams({ media_time_ms: t })}
-                  sceneTitle="12 · INT. APARTMENT – NIGHT"
+                  sceneTitle={projectData?.title ? `${projectData.title} · ${projectData.project_id === 'proj_northlight_01' ? '12 · INT. APARTMENT – NIGHT' : 'Scene Evaluation'}` : '12 · INT. APARTMENT – NIGHT'}
                 />
 
                 <SceneFilmstrip
                   currentTimeMs={selectedTimeMs}
                   onTimeSelect={(t) => updateQueryParams({ media_time_ms: t })}
+                  durationMs={65000}
                 />
 
                 <AnomalyCallout
