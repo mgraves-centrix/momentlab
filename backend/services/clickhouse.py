@@ -174,8 +174,8 @@ def get_client(
     ch_host = host or os.environ.get("CLICKHOUSE_HOST", "localhost")
     port_val = port if port is not None else os.environ.get("CLICKHOUSE_PORT", "8443")
     ch_port = int(port_val)
-    ch_user = username or os.environ.get("CLICKHOUSE_USER", "default")
-    ch_password = password if password is not None else os.environ.get("CLICKHOUSE_PASSWORD", "")
+    ch_user = username or os.environ.get("CLICKHOUSE_USER") or os.environ.get("CLICKHOUSE_WRITER_USER") or "default"
+    ch_password = password if password is not None else (os.environ.get("CLICKHOUSE_PASSWORD") or os.environ.get("CLICKHOUSE_WRITER_PASSWORD") or "")
     ch_database = database or os.environ.get("CLICKHOUSE_DATABASE", os.environ.get("CLICKHOUSE_DB", "momentlab"))
 
     if secure is not None:

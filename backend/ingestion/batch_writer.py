@@ -23,9 +23,9 @@ class ClickHouseBatchWriter:
     def __init__(self):
         self.host = os.getenv("CLICKHOUSE_HOST", "localhost")
         self.port = int(os.getenv("CLICKHOUSE_PORT", "8123"))
-        self.user = os.getenv("CLICKHOUSE_USER", "momentlab_writer")
-        self.password = os.getenv("CLICKHOUSE_PASSWORD", "")
-        self.database = os.getenv("CLICKHOUSE_DB", "momentlab")
+        self.user = os.getenv("CLICKHOUSE_USER") or os.getenv("CLICKHOUSE_WRITER_USER", "momentlab_writer")
+        self.password = os.getenv("CLICKHOUSE_PASSWORD") or os.getenv("CLICKHOUSE_WRITER_PASSWORD", "")
+        self.database = os.getenv("CLICKHOUSE_DATABASE") or os.getenv("CLICKHOUSE_DB", "momentlab")
         
         self.client = None
         self._memory_events: List[Dict[str, Any]] = []
