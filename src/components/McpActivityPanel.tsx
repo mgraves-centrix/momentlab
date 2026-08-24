@@ -24,37 +24,44 @@ export const McpActivityPanel: React.FC<McpActivityPanelProps> = ({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {activities.map((act) => (
-          <div
-            key={act.id}
-            style={{
-              backgroundColor: 'var(--surface-2)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 12px',
-              fontSize: '12px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span style={{ fontFamily: 'monospace', color: 'var(--violet-soft)', fontWeight: 600 }}>
-                {act.toolName}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', fontSize: '11px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                  <Clock size={11} />
-                  <span className="tabular-nums">{act.durationMs}ms</span>
+        {activities.length > 0 ? (
+          activities.map((act) => (
+            <div
+              key={act.id}
+              style={{
+                backgroundColor: 'var(--surface-2)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 12px',
+                fontSize: '12px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ fontFamily: 'monospace', color: 'var(--violet-soft)', fontWeight: 600 }}>
+                  {act.toolName}
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--success)' }}>
-                  <CheckCircle size={11} />
-                  <span className="tabular-nums">{act.rowCount} rows</span>
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', fontSize: '11px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <Clock size={11} />
+                    <span className="tabular-nums">{act.durationMs}ms</span>
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--success)' }}>
+                    <CheckCircle size={11} />
+                    <span className="tabular-nums">{act.rowCount} rows</span>
+                  </span>
+                </div>
+              </div>
+              <div style={{ color: 'var(--muted)', fontSize: '11px', lineHeight: 1.4, wordBreak: 'break-word', fontFamily: 'monospace' }}>
+                {act.queryPurpose}
               </div>
             </div>
-            <div style={{ color: 'var(--muted)', fontSize: '11px', lineHeight: 1.4 }}>
-              {act.queryPurpose}
-            </div>
+          ))
+        ) : (
+          <div style={{ padding: '16px', backgroundColor: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--muted)', fontSize: '11px', lineHeight: 1.5 }}>
+            <p style={{ margin: '0 0 4px 0', fontWeight: 600, color: 'var(--text)' }}>Telemetry Audit Stream Ready</p>
+            <p style={{ margin: 0 }}>MCP analytical queries execute in ClickHouse upon playback ingestion and ADK inference runs.</p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
