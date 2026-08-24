@@ -187,6 +187,10 @@ def get_client(
     timeout_val = connect_timeout if connect_timeout is not None else int(os.environ.get("CLICKHOUSE_CONNECT_TIMEOUT", "10"))
     sr_timeout = send_receive_timeout if send_receive_timeout is not None else int(os.environ.get("CLICKHOUSE_SEND_RECEIVE_TIMEOUT", "30"))
 
+    kwargs = {}
+    if ch_secure:
+        kwargs["ca_cert"] = "certifi"
+
     import clickhouse_connect
     return clickhouse_connect.get_client(
         host=ch_host,
@@ -197,6 +201,7 @@ def get_client(
         secure=ch_secure,
         connect_timeout=timeout_val,
         send_receive_timeout=sr_timeout,
+        **kwargs,
     )
 
 def check_connection(timeout: int = 3) -> Dict[str, Any]:
