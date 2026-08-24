@@ -35,6 +35,8 @@
 
 html, body, #root {
   width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   height: 100%;
   background-color: var(--canvas);
   color: var(--text);
@@ -42,6 +44,35 @@ html, body, #root {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+}
+
+/* Responsive Grid for Finding Route */
+.finding-layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3.3fr) minmax(0, 5.3fr) minmax(0, 3.4fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1279px) and (min-width: 900px) {
+  .finding-layout-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+  .finding-col-rail {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 899px) {
+  .finding-layout-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Tabular numbers for precise timecode and data alignment */
