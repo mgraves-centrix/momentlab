@@ -143,11 +143,14 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+import { useMobile } from '../hooks/useMobile';
+
 export const ExperimentResultsPage: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
   const [activeTab, setActiveTab] = useState<'SUPPORTED' | 'REJECTED' | 'INCONCLUSIVE'>('SUPPORTED');
+  const isMobile = useMobile();
 
   const sampleVideoUrl = "/scene12.mp4";
 
@@ -177,9 +180,9 @@ export const ExperimentResultsPage: React.FC = () => {
 
   const handleExportCSV = () => {
     if (!data) return;
-    let csv = "Cohort,Cut A,Cut B,Lift,95% CI,Confidence\\n";
+    let csv = "Cohort,Cut A,Cut B,Lift,95% CI,Confidence\n";
     data.cohort_breakdown.forEach((c: any) => {
-      csv += `${c.cohort},${c.cut_a}%,${c.cut_b}%,+${c.lift}%,${c.ci},${c.confidence}%\\n`;
+      csv += `${c.cohort},${c.cut_a}%,${c.cut_b}%,+${c.lift}%,${c.ci},${c.confidence}%\n`;
     });
     
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -211,7 +214,7 @@ export const ExperimentResultsPage: React.FC = () => {
 
   return (
     <AppShell>
-      <div style={{ backgroundColor: '#080b0e', minHeight: 'calc(100vh - 64px)', padding: '24px 32px 64px 32px', color: '#f1f3f2', position: 'relative' }}>
+      <div style={{ backgroundColor: '#080b0e', minHeight: 'calc(100vh - 64px)', padding: isMobile ? '16px' : '24px 32px 64px 32px', width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden', color: '#f1f3f2', position: 'relative' }}>
         
         {hoverInfo && (
           <div style={{
@@ -224,7 +227,7 @@ export const ExperimentResultsPage: React.FC = () => {
         )}
 
         {/* Breadcrumbs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600, color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600, color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '16px', flexWrap: 'wrap' }}>
           <span>EXPERIMENTS</span>
           <ChevronRight size={12} color="#8d979f" />
           <span>SCENE 12</span>
@@ -235,9 +238,9 @@ export const ExperimentResultsPage: React.FC = () => {
         </div>
 
         {/* Header Title Row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0, textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0, textTransform: 'uppercase' }}>
               SCREEN 08 — EXPERIMENT RESULTS
             </h1>
             <div style={{ border: '1px solid #3b2c6e', backgroundColor: 'transparent', color: '#c4a7ff', fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '4px', letterSpacing: '0.04em' }}>
@@ -245,7 +248,7 @@ export const ExperimentResultsPage: React.FC = () => {
             </div>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <button onClick={handleExportCSV} style={{ backgroundColor: 'transparent', border: '1px solid #283540', color: '#8d979f', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
               <Download size={16} />
               EXPORT REPORT
@@ -258,7 +261,7 @@ export const ExperimentResultsPage: React.FC = () => {
         </div>
 
         {/* Top Metrics Row (5 Panels) */}
-        <div style={{ display: 'flex', border: '1px solid #1c2630', borderRadius: '6px', backgroundColor: '#0c1115', marginBottom: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', border: '1px solid #1c2630', borderRadius: '6px', backgroundColor: '#0c1115', marginBottom: '16px' }}>
           
           {/* HYPOTHESIS */}
           <div style={{ flex: 1, padding: '20px', borderRight: '1px solid #1c2630' }}>
@@ -348,11 +351,11 @@ export const ExperimentResultsPage: React.FC = () => {
         {activeTab !== 'SUPPORTED' ? (
            <div style={{ padding: '64px', textAlign: 'center', color: '#8d979f' }}>No results for this category.</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
             {/* Main Grid: 40% | 40% | 20% */}
             
             {/* LEFT COLUMN */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
               
               {/* REVEAL COMPARISON */}
               <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '6px' }}>
@@ -387,34 +390,36 @@ export const ExperimentResultsPage: React.FC = () => {
               </div>
 
               {/* COHORT BREAKDOWN */}
-              <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '6px' }}>
+              <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '6px', overflow: 'hidden' }}>
                 <div style={{ padding: '16px', borderBottom: '1px solid #1c2630', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   COHORT BREAKDOWN — ENGAGEMENT LIFT <Info size={12} color="#8d979f" onMouseEnter={(e) => handleInfoHover(e, "Engagement lift broken down by age cohorts")} onMouseLeave={handleInfoLeave} />
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                  <thead>
-                    <tr style={{ color: '#8d979f', fontSize: '10px', textTransform: 'uppercase' }}>
-                      <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600 }}>COHORT</th>
-                      <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>CUT A</th>
-                      <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>CUT B</th>
-                      <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>LIFT</th>
-                      <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>95% CI</th>
-                      <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>CONFIDENCE</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cohort_breakdown.map((row: any, i: number) => (
-                      <tr key={i} style={{ borderTop: '1px solid #1c2630' }}>
-                        <td style={{ padding: '16px', fontWeight: 600 }}>{row.cohort}</td>
-                        <td style={{ textAlign: 'center', color: '#8d979f' }}>{row.cut_a}%</td>
-                        <td style={{ textAlign: 'center', color: '#8d979f' }}>{row.cut_b}%</td>
-                        <td style={{ textAlign: 'center', color: '#b7e33d', fontWeight: 700 }}>+{row.lift}%</td>
-                        <td style={{ textAlign: 'center', color: '#b7e33d' }}>{row.ci}</td>
-                        <td style={{ textAlign: 'center', color: '#b7e33d', fontWeight: 700, paddingRight: '16px' }}>{row.confidence}%</td>
+                <div style={{ width: '100%', overflowX: 'auto' }}>
+                  <table style={{ width: '100%', minWidth: '420px', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ color: '#8d979f', fontSize: '10px', textTransform: 'uppercase' }}>
+                        <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600 }}>COHORT</th>
+                        <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>CUT A</th>
+                        <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>CUT B</th>
+                        <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>LIFT</th>
+                        <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>95% CI</th>
+                        <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>CONFIDENCE</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {cohort_breakdown.map((row: any, i: number) => (
+                        <tr key={i} style={{ borderTop: '1px solid #1c2630' }}>
+                          <td style={{ padding: '16px', fontWeight: 600 }}>{row.cohort}</td>
+                          <td style={{ textAlign: 'center', color: '#8d979f' }}>{row.cut_a}%</td>
+                          <td style={{ textAlign: 'center', color: '#8d979f' }}>{row.cut_b}%</td>
+                          <td style={{ textAlign: 'center', color: '#b7e33d', fontWeight: 700 }}>+{row.lift}%</td>
+                          <td style={{ textAlign: 'center', color: '#b7e33d' }}>{row.ci}</td>
+                          <td style={{ textAlign: 'center', color: '#b7e33d', fontWeight: 700, paddingRight: '16px' }}>{row.confidence}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
             </div>
