@@ -21,11 +21,11 @@ class ClickHouseBatchWriter:
     Uses clickhouse-connect or the local ClickHouse adapter.
     """
     def __init__(self):
-        self.host = os.getenv("CLICKHOUSE_HOST", "localhost")
-        self.port = int(os.getenv("CLICKHOUSE_PORT", "8123"))
-        self.user = os.getenv("CLICKHOUSE_USER") or os.getenv("CLICKHOUSE_WRITER_USER", "momentlab_writer")
-        self.password = os.getenv("CLICKHOUSE_PASSWORD") or os.getenv("CLICKHOUSE_WRITER_PASSWORD", "")
-        self.database = os.getenv("CLICKHOUSE_DATABASE") or os.getenv("CLICKHOUSE_DB", "momentlab")
+        self.host = (os.getenv("CLICKHOUSE_HOST", "localhost")).strip()
+        self.port = int(str(os.getenv("CLICKHOUSE_PORT", "8123")).strip())
+        self.user = (os.getenv("CLICKHOUSE_USER") or os.getenv("CLICKHOUSE_WRITER_USER", "momentlab_writer")).strip()
+        self.password = (os.getenv("CLICKHOUSE_PASSWORD") or os.getenv("CLICKHOUSE_WRITER_PASSWORD", "")).strip()
+        self.database = (os.getenv("CLICKHOUSE_DATABASE") or os.getenv("CLICKHOUSE_DB", "momentlab")).strip()
         
         self.client = None
         self._memory_events: List[Dict[str, Any]] = []
