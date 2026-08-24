@@ -16,6 +16,12 @@ class Project(BaseModel):
     owner_id: str
     video_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
+    scene_count: Optional[int] = None
+    total_respondents: Optional[int] = None
+    status: Optional[str] = "DRAFT"
+    latest_finding: Optional[str] = None
+    screening_progress: Optional[int] = None
+    analysis_status: Optional[str] = None
 
 class Experiment(BaseModel):
     experiment_id: str
