@@ -132,3 +132,32 @@ def test_telemetry_reaction_events_invalid_payload_honesty():
     assert res.status_code in (400, 422, 500)
     assert "SUCCESS" not in str(res.json().get("status", ""))
 
+def test_reaction_idempotent_across_requests():
+    from backend.services.clickhouse import get_client
+    ch = get_client()
+    sid = str(uuid.uuid4())
+    body = {
+        "session_id": sid,
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
+        "media_time_ms": 37000,
+        "reaction_type": "confused"
+    }
+
+    # First POST
+    res1 = client.post("/api/v1/telemetry/events", json=body)
+    assert res1.status_code == 201
+    assert res1.json()["status"] == "SUCCESS"
+    assert res1.json()["inserted_count"] == 1
+
+    # Second POST with identical body (processed in a new writer instance)
+    res2 = client.post("/api/v1/telemetry/events", json=body)
+    assert res2.status_code == 201
+    assert res2.json()["inserted_count"] == 0
+
+    # Query ClickHouse and verify row count is exactly 1
+    q_res = ch.query(f"SELECT count() FROM momentlab.reaction_events WHERE session_id=toUUID('{sid}')")
+    assert q_res.result_rows[0][0] == 1
+
+

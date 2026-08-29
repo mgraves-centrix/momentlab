@@ -57,6 +57,20 @@ class ClickHouseBatchWriter:
 
         if self.client:
             try:
+                candidate_keys = [str(ev["idempotency_key"]) for ev in new_events if ev.get("idempotency_key")]
+                if candidate_keys:
+                    existing_query = "SELECT idempotency_key FROM momentlab.audience_events WHERE idempotency_key IN {keys:Array(String)}"
+                    res = self.client.query(existing_query, parameters={"keys": candidate_keys})
+                    existing_keys = {str(row[0]) for row in res.result_rows}
+                    if existing_keys:
+                        new_events = [ev for ev in new_events if str(ev.get("idempotency_key")) not in existing_keys]
+            except Exception as e:
+                logger.warning("ClickHouse audience_events idempotency pre-check warning: %s", str(e))
+
+            if not new_events:
+                return {"status": "DUPLICATE", "inserted_count": 0}
+
+            try:
                 data = [
                     [
                         _ensure_uuid(ev.get("event_id")),
@@ -146,6 +160,20 @@ class ClickHouseBatchWriter:
             return {"status": "DUPLICATE", "inserted_count": 0}
 
         if self.client:
+            try:
+                candidate_keys = [str(r["idempotency_key"]) for r in new_reactions if r.get("idempotency_key")]
+                if candidate_keys:
+                    existing_query = "SELECT idempotency_key FROM momentlab.reaction_events WHERE idempotency_key IN {keys:Array(String)}"
+                    res = self.client.query(existing_query, parameters={"keys": candidate_keys})
+                    existing_keys = {str(row[0]) for row in res.result_rows}
+                    if existing_keys:
+                        new_reactions = [r for r in new_reactions if str(r.get("idempotency_key")) not in existing_keys]
+            except Exception as e:
+                logger.warning("ClickHouse reaction idempotency pre-check warning: %s", str(e))
+
+            if not new_reactions:
+                return {"status": "DUPLICATE", "inserted_count": 0}
+
             try:
                 data = [
                     [
