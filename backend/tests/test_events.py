@@ -45,15 +45,16 @@ def test_screening_consent_registration():
     assert res_denied.status_code == 400
 
 def test_playback_event_ingestion_and_idempotency():
+    sess_id = str(uuid.uuid4())
     event_payload = {
-        "session_id": "sess_test_100",
+        "session_id": sess_id,
         "project_id": "proj_northlight_01",
         "experiment_id": "exp_23a",
         "scene_id": "sc_12",
         "media_time_ms": 37000,
         "retention_score": 50.0,
         "playback_state": "PLAYING",
-        "idempotency_key": "idemp_test_37000"
+        "idempotency_key": f"idemp_test_{sess_id[:8]}_37000"
     }
 
     # First insertion - SUCCESS
@@ -79,32 +80,55 @@ def test_northlight_simulated_timeline_alignment():
         # Retention drops around ~50%
         assert 40.0 <= e["retention_score"] <= 60.0
 
+import uuid
+
 def test_telemetry_reaction_events_ingestion():
-    # Single event
+    # Single event with omitted idempotency_key
+    sid1 = str(uuid.uuid4())
     single_ev = {
-        "session_id": "sess_reaction_test_01",
+        "session_id": sid1,
         "project_id": "proj_northlight_01",
         "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
         "media_time_ms": 1000,
-        "event_type": "CONFUSED",
+        "reaction_type": "CONFUSED",
         "value": 0.45
     }
     res = client.post("/api/v1/telemetry/events", json=single_ev)
     assert res.status_code == 201
     assert res.json()["status"] == "SUCCESS"
+    assert res.json()["inserted_count"] == 1
 
     # List of events
+    sid2 = str(uuid.uuid4())
     batch_ev = [
         {
-            "session_id": "sess_reaction_test_02",
+            "session_id": sid2,
             "project_id": "proj_northlight_01",
             "experiment_id": "exp_23a",
+            "scene_id": "sc_12",
             "media_time_ms": 2000,
-            "event_type": "ENGAGING",
+            "reaction_type": "ENGAGING",
             "value": 0.95
         }
     ]
     res_batch = client.post("/api/v1/telemetry/events", json=batch_ev)
     assert res_batch.status_code == 201
     assert res_batch.json()["status"] == "SUCCESS"
+    assert res_batch.json()["inserted_count"] == 1
+
+def test_telemetry_reaction_events_invalid_payload_honesty():
+    # Invalid session_id must produce non-2xx status and not report SUCCESS
+    bad_payload = {
+        "session_id": "not-a-uuid",
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
+        "media_time_ms": 37000,
+        "reaction_type": "CONFUSED"
+    }
+    res = client.post("/api/v1/telemetry/events", json=bad_payload)
+    assert res.status_code != 200 and res.status_code != 201
+    assert res.status_code in (400, 422, 500)
+    assert "SUCCESS" not in str(res.json().get("status", ""))
 

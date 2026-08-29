@@ -10,6 +10,7 @@ export const ScreeningConsentPage: React.FC = () => {
   const [lastReaction, setLastReaction] = useState<{ type: string; timestamp: string } | null>(null);
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({ CONFUSED: 0, ENGAGING: 0, BORED: 0, ENGAGED: 0, FUNNY: 0, 'TOO SLOW': 0 });
   const [noteText, setNoteText] = useState('');
+  const [sessionId] = useState(() => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'a0000000-0000-4000-8000-000000000001'));
   const [eventSaveStatus, setEventSaveStatus] = useState<'SAVED' | 'SAVING' | 'ERROR'>('SAVED');
   
   // Desktop consent state
@@ -32,7 +33,7 @@ export const ScreeningConsentPage: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify([{
-          session_id: 'sess_screener_demo_01',
+          session_id: sessionId,
           project_id: 'proj_northlight_01',
           experiment_id: 'exp_23a',
           media_time_ms: currentTimeMs,
