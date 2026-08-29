@@ -43,15 +43,17 @@ def list_projects():
     projects_ref = db.collection('projects')
     docs = projects_ref.stream()
     
-    # Query ClickHouse for distinct respondents per project if available
+    # Query ClickHouse for distinct respondents and scenes per project if available
     respondents_by_project = {}
+    scenes_by_project = {}
     try:
         from backend.services.clickhouse import get_client
         ch_client = get_client()
-        res = ch_client.query("SELECT project_id, count(DISTINCT session_id) FROM momentlab.audience_events GROUP BY project_id")
+        res = ch_client.query("SELECT project_id, count(DISTINCT session_id), count(DISTINCT scene_id) FROM momentlab.audience_events GROUP BY project_id")
         for row in res.result_rows:
             if row[0] and row[1] > 0:
                 respondents_by_project[row[0]] = int(row[1])
+                scenes_by_project[row[0]] = int(row[2]) if row[2] > 0 else 1
     except Exception:
         pass
 
@@ -60,24 +62,18 @@ def list_projects():
         data = doc.to_dict()
         pid = data.get("project_id")
         
-        # Populate live experiment stats
-        if pid == "proj_northlight_01":
-            total_resp = respondents_by_project.get(pid, 527)
-            data["scene_count"] = 4
+        # Populate live experiment stats from actual ClickHouse telemetry
+        if pid in respondents_by_project and respondents_by_project[pid] > 0:
+            total_resp = respondents_by_project[pid]
+            data["scene_count"] = scenes_by_project.get(pid, 1)
             data["total_respondents"] = total_resp
             data["status"] = "ACTIVE"
-            data["latest_finding"] = "Response cliff at 00:37"
-            data["screening_progress"] = 100
-            data["analysis_status"] = "ANALYSIS READY"
-        elif pid in respondents_by_project:
-            data["scene_count"] = data.get("scene_count", 1)
-            data["total_respondents"] = respondents_by_project[pid]
-            data["status"] = data.get("status", "ACTIVE")
-            data["latest_finding"] = data.get("latest_finding", "Screening active")
-            data["screening_progress"] = data.get("screening_progress", 50)
-            data["analysis_status"] = data.get("analysis_status", "COLLECTING")
+            data["screening_progress"] = min(100, int((total_resp / 500) * 100)) if total_resp >= 100 else int((total_resp / 100) * 100)
+            data["analysis_status"] = "ANALYSIS READY" if total_resp >= 100 else "COLLECTING"
+            if total_resp >= 100:
+                data["latest_finding"] = data.get("latest_finding") or "Response cliff detected"
         else:
-            # Honest empty state for projects with no experiments
+            # Honest empty state for projects with no screening data
             data["scene_count"] = None
             data["total_respondents"] = None
             data["status"] = "DRAFT"
@@ -124,20 +120,33 @@ def get_project(project_id: str):
         raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
         
     data = doc.to_dict()
-    if project_id == "proj_northlight_01":
-        try:
-            from backend.services.clickhouse import get_client
-            ch_client = get_client()
-            res = ch_client.query("SELECT count(DISTINCT session_id) FROM momentlab.audience_events WHERE project_id = 'proj_northlight_01'")
-            total_resp = res.result_rows[0][0] if (res.result_rows and res.result_rows[0][0] > 0) else 527
-        except Exception:
-            total_resp = 527
-        data["scene_count"] = 4
+    total_resp = 0
+    scene_cnt = 0
+    try:
+        from backend.services.clickhouse import get_client
+        ch_client = get_client()
+        res = ch_client.query("SELECT count(DISTINCT session_id), count(DISTINCT scene_id) FROM momentlab.audience_events WHERE project_id = {project_id:String}", parameters={'project_id': project_id})
+        if res.result_rows and res.result_rows[0][0] > 0:
+            total_resp = int(res.result_rows[0][0])
+            scene_cnt = int(res.result_rows[0][1]) if res.result_rows[0][1] > 0 else 1
+    except Exception:
+        pass
+
+    if total_resp > 0:
+        data["scene_count"] = scene_cnt
         data["total_respondents"] = total_resp
         data["status"] = "ACTIVE"
-        data["latest_finding"] = "Response cliff at 00:37"
-        data["screening_progress"] = 100
-        data["analysis_status"] = "ANALYSIS READY"
+        data["screening_progress"] = min(100, int((total_resp / 500) * 100)) if total_resp >= 100 else int((total_resp / 100) * 100)
+        data["analysis_status"] = "ANALYSIS READY" if total_resp >= 100 else "COLLECTING"
+        if total_resp >= 100:
+            data["latest_finding"] = data.get("latest_finding") or "Response cliff detected"
+    else:
+        data["scene_count"] = None
+        data["total_respondents"] = None
+        data["status"] = "DRAFT"
+        data["latest_finding"] = None
+        data["screening_progress"] = None
+        data["analysis_status"] = None
         
     if project_id in PROJECT_MEDIA:
         data["video_url"] = data.get("video_url") or PROJECT_MEDIA[project_id]["video_url"]

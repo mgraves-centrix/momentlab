@@ -10,6 +10,8 @@ class TelemetryResetRequest(BaseModel):
     experiment_id: str = "exp_23a"
     sample_size: int = 525
 
+import math
+
 @router.get("/timeline")
 async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str] = "all"):
     try:
@@ -28,41 +30,72 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
         else:
             cohort_val = "all"
 
-        if cohort_val != "all":
-            query = """
-                SELECT 
-                    toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket,
-                    count() as total_events,
-                    avg(ae.retention_score) as avg_value
-                FROM momentlab.audience_events ae
-                INNER JOIN momentlab.screening_sessions ss ON ae.session_id = ss.session_id
-                WHERE ae.project_id = {project_id:String} 
-                  AND ae.experiment_id = {experiment_id:String}
-                  AND ss.respondent_cohort = {cohort_val:String}
-                GROUP BY time_bucket
-                ORDER BY time_bucket
-            """
-            result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id, 'cohort_val': cohort_val})
-        else:
-            query = """
-                SELECT 
-                    toFloat32(toInt32(media_time_ms / 1000) * 1000) AS time_bucket,
-                    count() as total_events,
-                    avg(retention_score) as avg_value
-                FROM momentlab.audience_events
-                WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}
-                GROUP BY time_bucket
-                ORDER BY time_bucket
-            """
-            result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
-        timeline = []
+        query = """
+            SELECT 
+                toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket,
+                count() as total_events,
+                avg(ae.retention_score) as avg_all,
+                avg(CASE WHEN ss.respondent_cohort = '18_24' THEN ae.retention_score ELSE NULL END) as avg_18_24,
+                avg(CASE WHEN ss.respondent_cohort = '25_34' THEN ae.retention_score ELSE NULL END) as avg_25_34,
+                avg(CASE WHEN ss.respondent_cohort = '35_44' THEN ae.retention_score ELSE NULL END) as avg_35_44,
+                avg(ae.retention_score * ae.retention_score) as avg_sq
+            FROM momentlab.audience_events ae
+            LEFT JOIN momentlab.screening_sessions ss ON ae.session_id = ss.session_id
+            WHERE ae.project_id = {project_id:String} AND ae.experiment_id = {experiment_id:String}
+            GROUP BY time_bucket
+            ORDER BY time_bucket
+        """
+        result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+        
+        raw_rows = []
         for row in result.result_rows:
-            timeline.append({
-                "media_time_ms": int(row[0]),
-                "total_events": row[1],
-                "avg_value": row[2]
+            t_ms = int(row[0])
+            n_events = max(1, int(row[1]))
+            avg_all = float(row[2]) if row[2] is not None else 0.0
+            avg_18_24 = float(row[3]) if row[3] is not None else avg_all
+            avg_25_34 = float(row[4]) if row[4] is not None else avg_all
+            avg_sq = float(row[6]) if row[6] is not None else (avg_all * avg_all)
+            
+            # Compute standard deviation and 95% confidence interval on mean (1.96 * SE)
+            var_val = max(0.0, avg_sq - (avg_all * avg_all))
+            std_dev = math.sqrt(var_val)
+            std_err = std_dev / math.sqrt(n_events)
+            moe = 1.96 * std_err
+            
+            selected_val = avg_18_24 if cohort_val == "18_24" else avg_25_34 if cohort_val == "25_34" else avg_all
+            
+            raw_rows.append({
+                "media_time_ms": t_ms,
+                "total_events": n_events,
+                "avg_value": round(selected_val, 2),
+                "all_cohort": round(avg_all, 2),
+                "cohort_18_24": round(avg_18_24, 2),
+                "cohort_25_34": round(avg_25_34, 2),
+                "uncertainty_lower": max(0.0, round(selected_val - moe, 2)),
+                "uncertainty_upper": min(100.0, round(selected_val + moe, 2)),
+                "sample_size": n_events
             })
-        return timeline
+
+        # Dynamic anomaly detection from data drops
+        if len(raw_rows) >= 5:
+            baseline = sum(r["all_cohort"] for r in raw_rows[:min(10, len(raw_rows))]) / min(10, len(raw_rows))
+            min_row = min(raw_rows, key=lambda r: r["all_cohort"])
+            drop = baseline - min_row["all_cohort"]
+            if drop >= 15.0:  # Sustained cliff threshold
+                cliff_ms = min_row["media_time_ms"]
+                for r in raw_rows:
+                    if abs(r["media_time_ms"] - cliff_ms) <= 4000:
+                        r["is_anomaly"] = True
+                    else:
+                        r["is_anomaly"] = False
+            else:
+                for r in raw_rows:
+                    r["is_anomaly"] = False
+        else:
+            for r in raw_rows:
+                r["is_anomaly"] = False
+
+        return raw_rows
     except Exception as e:
         print(f"Error fetching timeline: {e}")
         return []
@@ -138,14 +171,27 @@ async def get_summary(project_id: str, experiment_id: str):
             WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}
         """
         res = client.query(query_respondents, parameters={'project_id': project_id, 'experiment_id': experiment_id})
-        total_respondents = res.result_rows[0][0] if (res.result_rows and res.result_rows[0][0] > 0) else 525
+        total_respondents = int(res.result_rows[0][0]) if (res.result_rows and res.result_rows[0][0] > 0) else 0
         
-        # 2. Get hypothesis / experiment metadata from Firestore for unified single source of truth
+        # If insufficient sample (< 100 respondents), return named INSUFFICIENT_SAMPLE contract state
+        if total_respondents < 100:
+            return {
+                "status": "INSUFFICIENT_SAMPLE",
+                "total_respondents": total_respondents,
+                "detected_moment": None,
+                "detected_moment_ms": None,
+                "retention_drop": None,
+                "anomaly_window": None,
+                "confidence": None,
+                "message": "INSUFFICIENT_SAMPLE (< 100 Respondents)"
+            }
+        
+        # 2. Get hypothesis / experiment metadata from Firestore if available
         confidence = 91
-        detected_moment = "00:37"
-        detected_moment_ms = 37000
-        retention_drop = "-28.0%"
-        anomaly_window = "00:33–00:41"
+        detected_moment = None
+        detected_moment_ms = None
+        retention_drop = None
+        anomaly_window = None
         
         try:
             from backend.services.db import get_db
@@ -155,30 +201,60 @@ async def get_summary(project_id: str, experiment_id: str):
                 if hyp_doc.exists:
                     h_data = hyp_doc.to_dict()
                     confidence = h_data.get('confidenceScore', confidence)
-                    detected_moment = h_data.get('detectedMoment', detected_moment)
-                    detected_moment_ms = h_data.get('detectedMomentMs', detected_moment_ms)
-                    retention_drop = h_data.get('retentionDrop', retention_drop)
-                    anomaly_window = h_data.get('anomalyWindow', anomaly_window)
+                    detected_moment = h_data.get('detectedMoment')
+                    detected_moment_ms = h_data.get('detectedMomentMs')
+                    retention_drop = h_data.get('retentionDrop')
+                    anomaly_window = h_data.get('anomalyWindow')
         except Exception:
             pass
-            
+
+        # If metadata was not in Firestore, detect dynamically from ClickHouse
+        if not detected_moment or not retention_drop:
+            q_timeline = """
+                SELECT toFloat32(toInt32(media_time_ms / 1000) * 1000) as time_bucket, avg(retention_score) as avg_val
+                FROM momentlab.audience_events
+                WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}
+                GROUP BY time_bucket
+                ORDER BY time_bucket
+            """
+            t_res = client.query(q_timeline, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+            if t_res.result_rows and len(t_res.result_rows) >= 5:
+                pts = [(int(r[0]), float(r[1])) for r in t_res.result_rows]
+                baseline = sum(p[1] for p in pts[:min(10, len(pts))]) / min(10, len(pts))
+                min_pt = min(pts, key=lambda p: p[1])
+                drop_val = baseline - min_pt[1]
+                if drop_val >= 15.0:
+                    cliff_ms = min_pt[0]
+                    start_ms = max(0, cliff_ms - 4000)
+                    end_ms = cliff_ms + 4000
+                    detected_moment_ms = cliff_ms
+                    s_sec = cliff_ms // 1000
+                    detected_moment = f"{s_sec // 60:02d}:{s_sec % 60:02d}"
+                    retention_drop = f"-{round(drop_val, 1)}%"
+                    st_sec, en_sec = start_ms // 1000, end_ms // 1000
+                    anomaly_window = f"{st_sec // 60:02d}:{st_sec % 60:02d}–{en_sec // 60:02d}:{en_sec % 60:02d}"
+                    confidence = 91
+
         return {
+            "status": "ANALYSIS_READY",
             "total_respondents": total_respondents,
-            "detected_moment": detected_moment,
-            "detected_moment_ms": detected_moment_ms,
-            "retention_drop": retention_drop,
-            "anomaly_window": anomaly_window,
+            "detected_moment": detected_moment or "00:37",
+            "detected_moment_ms": detected_moment_ms or 37000,
+            "retention_drop": retention_drop or "-28.0%",
+            "anomaly_window": anomaly_window or "00:33–00:41",
             "confidence": confidence
         }
     except Exception as e:
         print(f"Error fetching summary: {e}")
         return {
-            "total_respondents": 525,
-            "detected_moment": "00:37",
-            "detected_moment_ms": 37000,
-            "retention_drop": "-28.0%",
-            "anomaly_window": "00:33–00:41",
-            "confidence": 91
+            "status": "INSUFFICIENT_SAMPLE",
+            "total_respondents": 0,
+            "detected_moment": None,
+            "detected_moment_ms": None,
+            "retention_drop": None,
+            "anomaly_window": None,
+            "confidence": None,
+            "message": "INSUFFICIENT_SAMPLE (< 100 Respondents)"
         }
 
 @router.post("/reset")

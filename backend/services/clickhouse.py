@@ -120,7 +120,7 @@ class LocalClickHouseClient:
                 translated_sql = re.sub(rf'\{{{k}\}}', val_str, translated_sql)
         translated_sql = re.sub(r'momentlab\.', '', translated_sql)
         translated_sql = re.sub(r'system\.query_log', 'query_log', translated_sql)
-        translated_sql = re.sub(r'toFloat32\(toInt32\(media_time_ms\s*/\s*1000\)\s*\*\s*1000\)', 'CAST(CAST(media_time_ms / 1000 AS INT) * 1000 AS FLOAT)', translated_sql)
+        translated_sql = re.sub(r'toFloat32\(toInt32\(([a-zA-Z0-9_\.]+)\s*/\s*1000\)\s*\*\s*1000\)', r'CAST(CAST(\1 / 1000 AS INT) * 1000 AS FLOAT)', translated_sql)
         translated_sql = re.sub(r'quantile\([0-9\.]+\)\(([a-zA-Z0-9_]+)\)', r'avg(\1)', translated_sql)
         translated_sql = re.sub(r'count\(\)', 'count(*)', translated_sql)
 

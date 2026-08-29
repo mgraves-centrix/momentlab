@@ -13,6 +13,8 @@ import { McpActivityPanel } from '../components/McpActivityPanel';
 import { fetchExperimentTimeline, fetchExperimentHypothesis, fetchExperimentSummary, fetchRecentQueries, fetchProject, Project, TimelineDataPoint, Hypothesis, ExperimentSummary, generateHypothesis } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 
+import { StatePanel } from '../components/StatePanel';
+
 export const ResponseTimelinePage: React.FC = () => {
   const { projectId, experimentId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -28,25 +30,52 @@ export const ResponseTimelinePage: React.FC = () => {
   const [hypothesisData, setHypothesisData] = React.useState<Hypothesis | null>(null);
   const [summaryData, setSummaryData] = React.useState<ExperimentSummary | null>(null);
   const [activities, setActivities] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+
     if (projectId) {
-      fetchProject(projectId).then(setProjectData).catch(console.error);
-    }
-    if (projectId && experimentId) {
-      fetchExperimentTimeline(projectId, experimentId, selectedCohort).then(setTimelineData);
-      fetchExperimentHypothesis(projectId, experimentId).then(setHypothesisData);
-      fetchExperimentSummary(projectId, experimentId).then(setSummaryData);
-      fetchRecentQueries().then(queries => {
-        setActivities(queries.map((q: any, i: number) => ({
-          id: `q_${i}`,
-          toolName: 'ClickHouse Query',
-          durationMs: q.duration_ms,
-          rowCount: q.rows,
-          queryPurpose: q.query
-        })));
+      fetchProject(projectId).then(data => {
+        if (isMounted) setProjectData(data);
       }).catch(console.error);
     }
+    if (projectId && experimentId) {
+      Promise.all([
+        fetchExperimentTimeline(projectId, experimentId, selectedCohort).then(data => {
+          if (isMounted) setTimelineData(data);
+        }).catch(() => {
+          if (isMounted) setTimelineData([]);
+        }),
+        fetchExperimentHypothesis(projectId, experimentId).then(data => {
+          if (isMounted) setHypothesisData(data);
+        }).catch(() => {
+          if (isMounted) setHypothesisData(null);
+        }),
+        fetchExperimentSummary(projectId, experimentId).then(data => {
+          if (isMounted) setSummaryData(data);
+        }).catch(() => {
+          if (isMounted) setSummaryData(null);
+        }),
+        fetchRecentQueries().then(queries => {
+          if (isMounted) {
+            setActivities(queries.map((q: any, i: number) => ({
+              id: `q_${i}`,
+              toolName: 'ClickHouse Query',
+              durationMs: q.duration_ms,
+              rowCount: q.rows,
+              queryPurpose: q.query
+            })));
+          }
+        }).catch(console.error)
+      ]).finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
   }, [projectId, experimentId, selectedCohort]);
 
   const updateQueryParams = (updates: { cohort?: string; window?: string; media_time_ms?: number }) => {
@@ -72,16 +101,62 @@ export const ResponseTimelinePage: React.FC = () => {
 
   const isMobile = useMobile();
 
-  const totalRespondents = summaryData?.total_respondents || 525;
-  const detectedMoment = summaryData?.detected_moment || (hypothesisData as any)?.detectedMoment || "00:37";
-  const retentionDrop = summaryData?.retention_drop || (hypothesisData as any)?.retentionDrop || "-28.0%";
-  const confidence = summaryData?.confidence || hypothesisData?.confidenceScore || 91;
+  const isInsufficientSample = Boolean(
+    summaryData?.status === 'INSUFFICIENT_SAMPLE' || 
+    (summaryData !== null && summaryData.total_respondents < 100) ||
+    (!isLoading && !summaryData && !hypothesisData && timelineData.length === 0)
+  );
+
+  const totalRespondents = summaryData?.total_respondents ?? 0;
+  const detectedMoment = summaryData?.detected_moment ?? (hypothesisData as any)?.detectedMoment ?? '—';
+  const retentionDrop = summaryData?.retention_drop ?? (hypothesisData as any)?.retentionDrop ?? '—';
+  const confidence = summaryData?.confidence ?? hypothesisData?.confidenceScore ?? 0;
 
   return (
     <AppShell>
       <div style={{ padding: isMobile ? '0' : '24px', maxWidth: '1600px', width: '100%', boxSizing: 'border-box', margin: '0 auto', backgroundColor: isMobile ? '#050a0e' : 'transparent', minHeight: isMobile ? '100vh' : 'auto' }}>
         
-        {isMobile ? (
+        {isLoading ? (
+          <div style={{ padding: '40px 16px' }}>
+            <StatePanel type="loading" />
+          </div>
+        ) : isInsufficientSample ? (
+          <div style={{ padding: isMobile ? '16px' : '40px 16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+                  Response Finding — {projectData?.title || 'Film Project'}
+                </h1>
+                <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0 0' }}>
+                  Scene Evaluation · Status: {projectData?.status || 'DRAFT'}
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span className="badge badge-simulated">Synthetic Footage</span>
+                <span className="badge badge-connected">ClickHouse MCP Connected</span>
+              </div>
+            </div>
+
+            <StatePanel 
+              type="insufficient_sample" 
+              message={totalRespondents > 0 
+                ? `Observed ${totalRespondents} respondents (< 100 threshold). Minimum 100 consented completions required before anomaly detection activates.` 
+                : 'No screening data collected for this project yet (0 respondents). Minimum 100 consented completions required before anomaly detection activates.'} 
+            />
+
+            {projectData?.video_url && (
+              <div style={{ marginTop: '16px' }}>
+                <MediaPlayer
+                  initialVideoUrl={projectData.video_url}
+                  posterUrl={projectData.thumbnail_url}
+                  initialTimecodeMs={selectedTimeMs}
+                  onTimeUpdate={(t) => updateQueryParams({ media_time_ms: t })}
+                  sceneTitle={projectData.title}
+                />
+              </div>
+            )}
+          </div>
+        ) : isMobile ? (
           <div style={{ display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px' }}>
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -142,7 +217,7 @@ export const ResponseTimelinePage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-                  Response Finding — {projectData?.title || "Scene 12"}
+                  Response Finding — {projectData?.title || 'Film Project'}
                 </h1>
                 <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0 0' }}>
                   {projectData?.project_id === 'proj_northlight_01' ? 'Int. Apartment – Night · 00:37 Anomaly Detected' : `${projectData?.title || 'Film'} · Scene Screening Evaluation`}
@@ -201,13 +276,15 @@ export const ResponseTimelinePage: React.FC = () => {
                   durationMs={65000}
                 />
 
-                <AnomalyCallout
-                  label="RESPONSE CLIFF"
-                  effect="−28%"
-                  timeRange="00:33–00:41"
-                  isSelected={selectedTimeMs === 37000}
-                  onClick={() => updateQueryParams({ media_time_ms: 37000 })}
-                />
+                {summaryData?.anomaly_window && summaryData?.retention_drop && (
+                  <AnomalyCallout
+                    label="RESPONSE CLIFF"
+                    effect={summaryData.retention_drop}
+                    timeRange={summaryData.anomaly_window}
+                    isSelected={selectedTimeMs === (summaryData.detected_moment_ms || 37000)}
+                    onClick={() => updateQueryParams({ media_time_ms: summaryData.detected_moment_ms || 37000 })}
+                  />
+                )}
 
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Scene Notes</div>
@@ -220,7 +297,7 @@ export const ResponseTimelinePage: React.FC = () => {
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Experiment Info</div>
                   <div style={{ fontSize: '12px', color: 'var(--text)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <span style={{ color: 'var(--muted)' }}>Experiment ID:</span><span>EXP_23A</span>
+                    <span style={{ color: 'var(--muted)' }}>Experiment ID:</span><span>{experimentId?.toUpperCase() || 'EXP_23A'}</span>
                     <span style={{ color: 'var(--muted)' }}>Scene:</span><span>12</span>
                     <span style={{ color: 'var(--muted)' }}>Cut:</span><span>Original (Cut A)</span>
                     <span style={{ color: 'var(--muted)' }}>Status:</span><span style={{ color: 'var(--lime)' }}>Active</span>
@@ -247,7 +324,7 @@ export const ResponseTimelinePage: React.FC = () => {
                           border: 'none'
                         }}
                       >
-                        {c === 'all' ? `All (${totalRespondents.toLocaleString()})` : c === '18_24' ? '18–24' : '25–34'}
+                        {c === 'all' ? (totalRespondents > 0 ? `All (${totalRespondents.toLocaleString()})` : 'All') : c === '18_24' ? '18–24' : '25–34'}
                       </button>
                     ))}
                   </div>
