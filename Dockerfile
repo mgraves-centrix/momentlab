@@ -7,7 +7,7 @@ COPY public ./public
 RUN npm ci && npm run build
 
 # Stage 2: Build Production Container with Python FastAPI
-FROM python:3.11-slim
+FROM python:3.14-slim
 WORKDIR /app
 
 # Install system dependencies and copy official uv/uvx binaries
