@@ -48,6 +48,42 @@ from google.adk.events import Event
 
 ALLOWED_MCP_TOOLS = ["run_query", "list_tables"]
 
+def _extract_text_from_event(event) -> str:
+    texts = []
+    if getattr(event, "error_message", None):
+        logger.error("Event error: %s", event.error_message)
+    if event.content:
+        parts = getattr(event.content, "parts", None)
+        if parts:
+            for part in parts:
+                if hasattr(part, "text") and part.text:
+                    texts.append(str(part.text))
+                elif isinstance(part, dict) and "text" in part:
+                    texts.append(str(part["text"]))
+                elif isinstance(part, str):
+                    texts.append(part)
+        elif isinstance(event.content, dict) and "parts" in event.content:
+            for part in event.content["parts"]:
+                if isinstance(part, dict) and "text" in part:
+                    texts.append(str(part["text"]))
+                elif hasattr(part, "text") and part.text:
+                    texts.append(str(part.text))
+                elif isinstance(part, str):
+                    texts.append(part)
+        elif isinstance(event.content, str):
+            texts.append(event.content)
+    if hasattr(event, "text") and event.text:
+        texts.append(str(event.text))
+    if hasattr(event, "output") and event.output:
+        if isinstance(event.output, str):
+            texts.append(event.output)
+        elif isinstance(event.output, dict):
+            if "text" in event.output:
+                texts.append(str(event.output["text"]))
+        elif hasattr(event.output, "text"):
+            texts.append(str(event.output.text))
+    return "".join(texts)
+
 async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
     """Uses Google ADK and ClickHouse MCP to analyze data and generate a hypothesis."""
     
@@ -81,7 +117,7 @@ async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
                     "PATH": os.environ.get("PATH", "")
                 }
             ),
-            timeout=30.0
+            timeout=60.0
         )
     )
     
@@ -170,14 +206,9 @@ Respond strictly in valid JSON format with the following keys:
                 step_start_time = now
             
         logger.info(f"EVENT RECEIVED: author={event.author} id={event.id}")
-        if event.content and event.content.parts:
-            for part in event.content.parts:
-                if hasattr(part, "text") and part.text:
-                    res += part.text
-        elif hasattr(event, "text") and event.text:
-            res += str(event.text)
-        elif hasattr(event, "output") and event.output:
-            res += str(getattr(event.output, "text", event.output))
+        ev_text = _extract_text_from_event(event)
+        if ev_text:
+            res += ev_text
             
     # Final step
     steps.append({
@@ -186,6 +217,15 @@ Respond strictly in valid JSON format with the following keys:
         "durationMs": int((time.time() - step_start_time) * 1000)
     })
         
+    if not res:
+        session = await session_service.get_session(user_id="default", session_id=session_id, app_name="momentlab")
+        if session and session.events:
+            for ev in session.events:
+                if getattr(ev, "author", None) != "user":
+                    ev_text = _extract_text_from_event(ev)
+                    if ev_text:
+                        res += ev_text
+
     if not res:
         raise RuntimeError("Agent completed execution without returning output.")
 
