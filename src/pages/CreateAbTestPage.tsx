@@ -39,13 +39,16 @@ export const CreateAbTestPage: React.FC = () => {
     if (!projectId || !experimentId || !consentAcknowledged) return;
     setIsApproving(true);
     try {
+      const configRes = await fetch('/api/v1/config');
+      const config = await configRes.json();
       const res = await fetch(`/api/v1/projects/${projectId}/experiments/${experimentId}:approve`, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer reviewer_admin_session_token',
+          'Authorization': `Bearer ${config.reviewer_token}`,
           'Content-Type': 'application/json'
         }
       });
+      if (!res.ok) throw new Error("Approval failed");
       const data = await res.json();
       setAuditId(data.audit_id || 'audit_confirmed');
       setStatus('APPROVED');

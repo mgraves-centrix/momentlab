@@ -85,7 +85,7 @@ export const ScreeningConsentPage: React.FC = () => {
                   <div style={{ backgroundColor: '#121a21', border: '1px solid #1e2830', borderRadius: '8px', padding: '16px', display: 'flex', gap: '12px' }}>
                     <CheckCircle style={{ color: '#8b5cf6', flexShrink: 0, marginTop: '2px' }} size={18} />
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f3f2', marginBottom: '4px' }}>Anonymous Sentiment Tracking</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f3f2', marginBottom: '4px' }}>Pseudonymous Sentiment Tracking</div>
                       <div style={{ fontSize: '13px', color: '#8d979f', lineHeight: 1.5 }}>We collect continuous sentiment data as you watch to help creators understand audience engagement.</div>
                     </div>
                   </div>
@@ -100,17 +100,28 @@ export const ScreeningConsentPage: React.FC = () => {
                     <AlertCircle style={{ color: '#8b5cf6', flexShrink: 0, marginTop: '2px' }} size={18} />
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f3f2', marginBottom: '4px' }}>Right to Delete</div>
-                      <div style={{ fontSize: '13px', color: '#8d979f', lineHeight: 1.5 }}>You can request to delete your anonymous session data at any time via the screening portal.</div>
+                      <div style={{ fontSize: '13px', color: '#8d979f', lineHeight: 1.5 }}>You can request to delete your pseudonymous session data at any time via the screening portal.</div>
                     </div>
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => setHasConsented(true)}
-                  style={{ width: '100%', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s ease', letterSpacing: '0.02em', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)' }}
-                >
-                  I AGREE & START SCREENING PLAYBACK
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                  <button 
+                    onClick={async () => {
+                      await fetch('/api/v1/screenings/consent', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ consent_given: true, session_id: 'sess_screener_demo_01' }) });
+                      setHasConsented(true);
+                    }}
+                    style={{ width: '100%', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s ease', letterSpacing: '0.02em', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)' }}
+                  >
+                    I AGREE & START SCREENING PLAYBACK
+                  </button>
+                  <button
+                    onClick={() => navigate('/projects')}
+                    style={{ width: '100%', backgroundColor: 'transparent', border: '1px solid #1e2830', color: '#8d979f', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.02em' }}
+                  >
+                    DECLINE & LEAVE
+                  </button>
+                </div>
               </div>
             </main>
           </>
@@ -213,17 +224,22 @@ export const ScreeningConsentPage: React.FC = () => {
                   ))}
                 </div>
 
-                <div 
-                  onClick={() => setDesktopConsentChecked(!desktopConsentChecked)}
+                <label 
+                  htmlFor="desktop-consent-checkbox"
                   style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', cursor: 'pointer' }}
                 >
-                  <div style={{ width: '16px', height: '16px', flexShrink: 0, borderRadius: '4px', border: desktopConsentChecked ? 'none' : '1px solid #1c262e', backgroundColor: desktopConsentChecked ? '#8b5cf6' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {desktopConsentChecked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                  </div>
+                  <input
+                    id="desktop-consent-checkbox"
+                    type="checkbox"
+                    checked={desktopConsentChecked}
+                    onChange={(e) => setDesktopConsentChecked(e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: '#8b5cf6', cursor: 'pointer' }}
+                    aria-label="I consent to this screening data use (required)"
+                  />
                   <div style={{ fontSize: '13px', color: '#f1f3f2', fontWeight: 500, userSelect: 'none' }}>
                     I consent to this screening data use <span style={{ color: '#5b6670', fontWeight: 400 }}>(required)</span>
                   </div>
-                </div>
+                </label>
 
                 <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', alignItems: 'flex-end' }}>
                   <div style={{ flex: '1.5' }}>
@@ -266,7 +282,10 @@ export const ScreeningConsentPage: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'auto' }}>
                   <button
                     disabled={!desktopConsentChecked}
-                    onClick={() => setHasConsented(true)}
+                    onClick={async () => {
+                      await fetch('/api/v1/screenings/consent', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ consent_given: true, session_id: 'sess_screener_demo_01' }) });
+                      setHasConsented(true);
+                    }}
                     style={{
                       backgroundColor: desktopConsentChecked ? '#58c94b' : '#33402a',
                       color: desktopConsentChecked ? '#000' : '#4f6140',

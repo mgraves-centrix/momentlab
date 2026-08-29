@@ -43,9 +43,11 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   const pollIntervalRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const [prevInitialUrl, setPrevInitialUrl] = useState(initialVideoUrl);
+  if (initialVideoUrl !== prevInitialUrl) {
+    setPrevInitialUrl(initialVideoUrl);
     setVideoSrc(initialVideoUrl || null);
-  }, [initialVideoUrl]);
+  }
 
   // Extract 11-char YouTube ID
   const extractVideoId = useCallback((url: string) => {

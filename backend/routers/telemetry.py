@@ -1,6 +1,7 @@
 from typing import Optional
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from backend.auth_deps import get_current_reviewer
 
 router = APIRouter()
 
@@ -28,31 +29,32 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
             cohort_val = "all"
 
         if cohort_val != "all":
-            query = f"""
+            query = """
                 SELECT 
                     toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket,
                     count() as total_events,
                     avg(ae.retention_score) as avg_value
                 FROM momentlab.audience_events ae
                 INNER JOIN momentlab.screening_sessions ss ON ae.session_id = ss.session_id
-                WHERE ae.project_id = '{project_id}' 
-                  AND ae.experiment_id = '{experiment_id}'
-                  AND ss.respondent_cohort = '{cohort_val}'
+                WHERE ae.project_id = {project_id:String} 
+                  AND ae.experiment_id = {experiment_id:String}
+                  AND ss.respondent_cohort = {cohort_val:String}
                 GROUP BY time_bucket
                 ORDER BY time_bucket
             """
+            result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id, 'cohort_val': cohort_val})
         else:
-            query = f"""
+            query = """
                 SELECT 
                     toFloat32(toInt32(media_time_ms / 1000) * 1000) AS time_bucket,
                     count() as total_events,
                     avg(retention_score) as avg_value
                 FROM momentlab.audience_events
-                WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'
+                WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}
                 GROUP BY time_bucket
                 ORDER BY time_bucket
             """
-        result = client.query(query)
+            result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
         timeline = []
         for row in result.result_rows:
             timeline.append({
@@ -130,12 +132,12 @@ async def get_summary(project_id: str, experiment_id: str):
         client = get_client()
         
         # 1. Total distinct respondents
-        query_respondents = f"""
+        query_respondents = """
             SELECT count(DISTINCT session_id) 
             FROM momentlab.audience_events 
-            WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'
+            WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}
         """
-        res = client.query(query_respondents)
+        res = client.query(query_respondents, parameters={'project_id': project_id, 'experiment_id': experiment_id})
         total_respondents = res.result_rows[0][0] if (res.result_rows and res.result_rows[0][0] > 0) else 525
         
         # 2. Get hypothesis / experiment metadata from Firestore for unified single source of truth
@@ -180,7 +182,7 @@ async def get_summary(project_id: str, experiment_id: str):
         }
 
 @router.post("/reset")
-async def reset_telemetry(req: Optional[TelemetryResetRequest] = None):
+async def reset_telemetry(req: Optional[TelemetryResetRequest] = None, reviewer_id: str = Depends(get_current_reviewer)):
     """
     Clears existing audience telemetry for the experiment and re-seeds dense second-by-second data.
     Authenticated, idempotent, and safe.
@@ -196,10 +198,11 @@ async def reset_telemetry(req: Optional[TelemetryResetRequest] = None):
     client = get_client()
     # 1. Clear previous events and sessions for target experiment
     try:
-        client.query(f"DELETE FROM momentlab.audience_events WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'")
-        client.query(f"DELETE FROM momentlab.screening_sessions WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'")
+        client.query("DELETE FROM momentlab.audience_events WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}", parameters={'project_id': project_id, 'experiment_id': experiment_id})
+        client.query("DELETE FROM momentlab.screening_sessions WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}", parameters={'project_id': project_id, 'experiment_id': experiment_id})
     except Exception as e:
         print(f"Error clearing ClickHouse tables: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to reset telemetry: {str(e)}")
     
     # 2. Re-seed dense second-by-second events & sessions
     events, sessions = generate_northlight_events_and_sessions(count=sample_size)

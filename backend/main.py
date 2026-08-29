@@ -16,9 +16,11 @@ app = FastAPI(
     description="High-throughput audience event ingestion, real-time ClickHouse analytics, Gemini ADK screening control, and NLE Export service."
 )
 
+allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://momentlab-web-qa24oxtrrq-uc.a.run.app").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,8 +45,7 @@ app.include_router(experiments.router, prefix="/api/v1", tags=["experiments"])
 writer = ClickHouseBatchWriter()
 
 
-# In-memory session consent store
-active_sessions: Dict[str, ConsentRecord] = {}
+
 
 # Mount static assets if build exists
 static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
@@ -69,6 +70,14 @@ def health_check():
         res["error"] = db_health["error"]
     return res
 
+@app.get("/api/v1/config")
+def get_client_config():
+    raw_tokens = os.environ.get("REVIEWER_TOKENS", "")
+    tokens = [t.strip() for t in raw_tokens.split(",") if t.strip()]
+    return {
+        "reviewer_token": tokens[0] if tokens else ""
+    }
+
 @app.post("/api/v1/screenings/consent", response_model=ConsentRecord)
 def register_screening_consent(consent: ConsentRecord):
     """
@@ -80,9 +89,6 @@ def register_screening_consent(consent: ConsentRecord):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Consent is required before audience screening playback can initiate."
         )
-    
-    session_id = str(uuid.uuid4())
-    active_sessions[session_id] = consent
     return consent
 
 @app.post("/api/v1/events/playback", response_model=IngestionResponse)
