@@ -27,7 +27,7 @@ Getting the AI agent to confidently read complex telemetry data without hallucin
 ## Accomplishments We're Proud Of
 - Passing a strict **AI Compliance Check** ensuring 100% adherence to Google ADK and Vertex AI.
 - Building an architecture where the AI has zero ability to silently launch tests; it is strictly an evidence-backed advisor locked behind an immutable **Human Approval Gate**.
-- The `make ui-verify` Playwright tests confirm a **99.2/100 Visual QA Score** against the provided high-fidelity references.
+- Visual fidelity and accessibility checks confirming adherence against the provided editorial workstation design references.
 
 ## What's Next for MomentLab
 - Integrating Pub/Sub for millions of concurrent screening events.
