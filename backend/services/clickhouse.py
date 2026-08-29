@@ -115,11 +115,18 @@ class LocalClickHouseClient:
         translated_sql = query_str
         if parameters:
             for k, v in parameters.items():
-                val_str = f"'{v}'" if isinstance(v, str) else str(v)
-                translated_sql = re.sub(rf'\{{{k}:[A-Za-z0-9_]+\}}', val_str, translated_sql)
+                if isinstance(v, (list, tuple, set)):
+                    escaped_items = [f"'{str(x).replace("'", "''")}'" if isinstance(x, str) else str(x) for x in v]
+                    val_str = f"({', '.join(escaped_items)})" if escaped_items else "(NULL)"
+                elif isinstance(v, str):
+                    val_str = f"'{v.replace("'", "''")}'"
+                else:
+                    val_str = str(v)
+                translated_sql = re.sub(rf'\{{{k}:[A-Za-z0-9_\(\)]+\}}', val_str, translated_sql)
                 translated_sql = re.sub(rf'\{{{k}\}}', val_str, translated_sql)
         translated_sql = re.sub(r'momentlab\.', '', translated_sql)
         translated_sql = re.sub(r'system\.query_log', 'query_log', translated_sql)
+        translated_sql = re.sub(r'toUUID\(([^)]+)\)', r'\1', translated_sql)
         translated_sql = re.sub(r'toFloat32\(toInt32\(([a-zA-Z0-9_\.]+)\s*/\s*1000\)\s*\*\s*1000\)', r'CAST(CAST(\1 / 1000 AS INT) * 1000 AS FLOAT)', translated_sql)
         translated_sql = re.sub(r'quantile\([0-9\.]+\)\(([a-zA-Z0-9_]+)\)', r'avg(\1)', translated_sql)
         translated_sql = re.sub(r'count\(\)', 'count(*)', translated_sql)
