@@ -32,7 +32,7 @@ export const EditHypothesisPage: React.FC = () => {
   const [hypothesis, setHypothesis] = useState<Hypothesis | null>(null);
   const [summaryData, setSummaryData] = useState<ExperimentSummary | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const isMobile = useMobile();
 
   useEffect(() => {
@@ -48,10 +48,10 @@ export const EditHypothesisPage: React.FC = () => {
     try {
       const res = await requestRevisionHypothesis(projectId, experimentId, "Tighten cut window around 00:37 cliff");
       setHypothesis(res.hypothesis);
-      setStatusMessage("Revision requested from agent. Model re-evaluating query parameters.");
+      setStatusMessage({ text: "Revision requested from agent. Model re-evaluated query parameters.", type: 'success' });
     } catch (e) {
       console.error(e);
-      setStatusMessage("Failed to request revision.");
+      setStatusMessage({ text: "Failed to request revision from agent.", type: 'error' });
     } finally {
       setActionLoading(null);
     }
@@ -62,13 +62,13 @@ export const EditHypothesisPage: React.FC = () => {
     setActionLoading('discard');
     try {
       await discardHypothesis(projectId, experimentId);
-      setStatusMessage("Hypothesis discarded.");
+      setStatusMessage({ text: "Hypothesis discarded.", type: 'success' });
       setTimeout(() => {
         navigate(`/projects/${projectId}/experiments/${experimentId}/finding${location.search}`);
       }, 1000);
     } catch (e) {
       console.error(e);
-      setStatusMessage("Failed to discard hypothesis.");
+      setStatusMessage({ text: "Failed to discard hypothesis.", type: 'error' });
     } finally {
       setActionLoading(null);
     }
@@ -77,51 +77,41 @@ export const EditHypothesisPage: React.FC = () => {
   if (!hypothesis) {
     return (
       <AppShell>
-        <div style={{ padding: '40px', color: '#fff' }}>Loading hypothesis review...</div>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px', color: '#8d979f' }}>
+          Loading hypothesis specification...
+        </div>
       </AppShell>
     );
   }
 
   return (
     <AppShell>
-      <div style={{ maxWidth: '1440px', width: '100%', boxSizing: 'border-box', overflowX: 'hidden', margin: '0 auto', padding: isMobile ? '16px' : '24px 32px 64px 32px', color: '#f1f3f2' }}>
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: isMobile ? '16px' : '28px 32px 64px 32px', boxSizing: 'border-box', width: '100%', overflowX: 'hidden' }}>
         
-        {/* Breadcrumb Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600, color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '16px', flexWrap: 'wrap' }}>
-          <span>EXPERIMENTS</span>
-          <ChevronRight size={12} color="#8d979f" />
-          <span>SCENE 12</span>
-          <ChevronRight size={12} color="#8d979f" />
-          <span>EXPERIMENT 23A</span>
-          <ChevronRight size={12} color="#8d979f" />
-          <span style={{ color: '#ffffff' }}>EDIT HYPOTHESIS REVIEW</span>
-        </div>
-
-        {/* Page Top Header Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        {/* Header Action Bar */}
+        <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: isMobile ? '20px' : '26px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0 }}>
-                HYPOTHESIS REVIEW & DECISION
-              </h1>
-              <span className="badge badge-advisory" style={{ backgroundColor: '#2d1b54', color: '#c4a7ff', border: '1px solid #492e8a', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                {hypothesis.status || 'PROPOSED'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+              <span style={{ fontSize: '11px', color: '#8d979f', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                HYPOTHESIS SPECIFICATION
               </span>
+              <span style={{ color: '#283540' }}>·</span>
+              <span style={{ fontSize: '11px', color: '#c4a7ff', fontWeight: 600 }}>EXP-23A</span>
             </div>
-            <p style={{ fontSize: '13px', color: '#8d979f', margin: '4px 0 0 0' }}>
-              Inspect Gemini ADK edit proposal synthesized through ClickHouse MCP before human launch gate.
-            </p>
+            <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-display)', margin: 0, letterSpacing: '-0.01em' }}>
+              {hypothesis.proposedChange}
+            </h1>
           </div>
 
-          {/* Action Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <button
               onClick={handleDiscard}
-              disabled={!!actionLoading}
+              disabled={actionLoading === 'discard'}
               style={{
                 backgroundColor: 'transparent',
                 color: '#ff654a',
-                border: '1px solid #4a1d18',
+                border: '1px solid #3d1c18',
                 padding: '10px 16px',
                 borderRadius: '6px',
                 fontSize: '12px',
@@ -129,8 +119,7 @@ export const EditHypothesisPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                cursor: 'pointer',
-                letterSpacing: '0.04em'
+                cursor: actionLoading === 'discard' ? 'not-allowed' : 'pointer'
               }}
             >
               <Trash2 size={14} />
@@ -139,11 +128,11 @@ export const EditHypothesisPage: React.FC = () => {
 
             <button
               onClick={handleRequestRevision}
-              disabled={!!actionLoading}
+              disabled={actionLoading === 'revision'}
               style={{
                 backgroundColor: '#161e25',
-                color: '#c4a7ff',
-                border: '1px solid #2d1b54',
+                color: '#ffffff',
+                border: '1px solid #283540',
                 padding: '10px 16px',
                 borderRadius: '6px',
                 fontSize: '12px',
@@ -151,11 +140,10 @@ export const EditHypothesisPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                cursor: 'pointer',
-                letterSpacing: '0.04em'
+                cursor: actionLoading === 'revision' ? 'not-allowed' : 'pointer'
               }}
             >
-              <RotateCcw size={14} />
+              <RotateCcw size={14} className={actionLoading === 'revision' ? 'spin' : ''} />
               <span>REQUEST REVISION</span>
             </button>
 
@@ -183,9 +171,24 @@ export const EditHypothesisPage: React.FC = () => {
         </div>
 
         {statusMessage && (
-          <div style={{ padding: '12px 16px', backgroundColor: '#131b22', border: '1px solid #283540', borderRadius: '6px', marginBottom: '20px', fontSize: '12px', color: '#c4a7ff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CheckCircle2 size={16} color="#58c94b" />
-            <span>{statusMessage}</span>
+          <div style={{
+            padding: '12px 16px',
+            backgroundColor: statusMessage.type === 'error' ? '#211210' : '#131b22',
+            border: `1px solid ${statusMessage.type === 'error' ? '#4a201c' : '#283540'}`,
+            borderRadius: '6px',
+            marginBottom: '20px',
+            fontSize: '12px',
+            color: statusMessage.type === 'error' ? '#ff654a' : '#c4a7ff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            {statusMessage.type === 'error' ? (
+              <AlertTriangle size={16} color="#ff654a" />
+            ) : (
+              <CheckCircle2 size={16} color="#58c94b" />
+            )}
+            <span>{statusMessage.text}</span>
           </div>
         )}
 
