@@ -43,7 +43,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from google.adk.events import Event
 
-logger = logging.getLogger("momentlab.agent.adk")
+ALLOWED_MCP_TOOLS = ["run_query", "list_tables"]
 
 async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
     """Uses Google ADK and ClickHouse MCP to analyze data and generate a hypothesis."""
@@ -63,6 +63,7 @@ async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
 
     clickhouse_mcp = McpToolset(
         tool_name_prefix="clickhouse",
+        tool_filter=ALLOWED_MCP_TOOLS,
         connection_params=StdioConnectionParams(
             server_params=StdioServerParameters(
                 command="uvx",
