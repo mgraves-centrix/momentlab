@@ -182,7 +182,14 @@ def get_client(
     port_val = port if port is not None else os.environ.get("CLICKHOUSE_PORT", "8443")
     ch_port = int(str(port_val).strip())
     ch_user = (username or os.environ.get("CLICKHOUSE_USER") or os.environ.get("CLICKHOUSE_WRITER_USER") or "default").strip()
-    raw_pass = password if password is not None else (os.environ.get("CLICKHOUSE_PASSWORD") or os.environ.get("CLICKHOUSE_WRITER_PASSWORD") or "")
+    if password is not None:
+        raw_pass = password
+    elif ch_user == (os.environ.get("CLICKHOUSE_WRITER_USER") or "momentlab_writer").strip() and os.environ.get("CLICKHOUSE_WRITER_PASSWORD"):
+        raw_pass = os.environ.get("CLICKHOUSE_WRITER_PASSWORD")
+    elif ch_user == (os.environ.get("CLICKHOUSE_MCP_USER") or "momentlab_mcp_reader").strip() and os.environ.get("CLICKHOUSE_MCP_PASSWORD"):
+        raw_pass = os.environ.get("CLICKHOUSE_MCP_PASSWORD")
+    else:
+        raw_pass = os.environ.get("CLICKHOUSE_PASSWORD") or os.environ.get("CLICKHOUSE_WRITER_PASSWORD") or ""
     ch_password = raw_pass.strip()
     ch_database = (database or os.environ.get("CLICKHOUSE_DATABASE", os.environ.get("CLICKHOUSE_DB", "momentlab"))).strip()
 
