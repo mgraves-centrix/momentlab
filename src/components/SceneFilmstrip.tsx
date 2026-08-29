@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatTimecodeMs } from '../utils/format';
 
 interface SceneFilmstripProps {
   currentTimeMs: number;
@@ -15,11 +16,11 @@ export const SceneFilmstrip: React.FC<SceneFilmstripProps> = ({
   anomalyStartMs = 33000,
   anomalyEndMs = 41000
 }) => {
-  // Generate 12 frame markers representing keyframes across 60s
+  // Generate 12 frame markers representing keyframes across duration
+  const stepMs = Math.max(1000, Math.floor(durationMs / 12));
   const frames = Array.from({ length: 12 }, (_, i) => {
-    const timeMs = i * 5000;
-    const seconds = Math.floor(timeMs / 1000);
-    const timecode = `00:${String(seconds).padStart(2, '0')}`;
+    const timeMs = i * stepMs;
+    const timecode = formatTimecodeMs(timeMs);
     const isAnomaly = timeMs >= anomalyStartMs && timeMs <= anomalyEndMs;
     return { index: i, timeMs, timecode, isAnomaly };
   });
@@ -62,7 +63,7 @@ export const SceneFilmstrip: React.FC<SceneFilmstripProps> = ({
           Scene Timeline
         </span>
         <span style={{ fontSize: '11px', color: 'var(--lime)', fontWeight: 700 }} className="tabular-nums">
-          {`00:${String(Math.floor(currentTimeMs / 1000)).padStart(2, '0')}`} / {`00:${Math.floor(durationMs / 1000)}`}
+          {formatTimecodeMs(currentTimeMs)} / {formatTimecodeMs(durationMs)}
         </span>
       </div>
 

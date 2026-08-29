@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX, Upload, Film, Sparkles, Youtube } from 'lucide-react';
 import { useMobile } from '../hooks/useMobile';
+import { formatTimecodeSec } from '../utils/format';
 
 declare global {
   interface Window {
@@ -55,28 +56,6 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
     return match ? match[1] : null;
   }, []);
 
-  // Post real playback telemetry to ClickHouse
-  const recordPlaybackEvent = useCallback(async (timeSec: number, state: 'PLAYING' | 'PAUSED' | 'SEEKING') => {
-    try {
-      await fetch('/api/v1/events/playback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: 'sess_screener_demo_01',
-          project_id: 'proj_northlight_01',
-          experiment_id: 'exp_23a',
-          scene_id: 'sc_12',
-          media_time_ms: Math.floor(timeSec * 1000),
-          retention_score: 85.0,
-          playback_state: state,
-          idempotency_key: `evt_${Date.now()}_${Math.floor(timeSec * 1000)}`
-        })
-      });
-    } catch (err) {
-      console.warn('Playback telemetry dispatch:', err);
-    }
-  }, []);
-
   // Initialize YouTube IFrame Player API
   useEffect(() => {
     if (!isYouTube || !videoSrc) {
@@ -114,7 +93,6 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
           onStateChange: (event: any) => {
             if (event.data === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
-              recordPlaybackEvent(event.target.getCurrentTime(), 'PLAYING');
               
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = setInterval(() => {
@@ -124,7 +102,6 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
                   if (onTimeUpdate) {
                     onTimeUpdate(Math.floor(t * 1000));
                   }
-                  recordPlaybackEvent(t, 'PLAYING');
                 }
               }, 500);
             } else {
@@ -132,9 +109,6 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
               if (pollIntervalRef.current) {
                 clearInterval(pollIntervalRef.current);
                 pollIntervalRef.current = null;
-              }
-              if (event.data === window.YT.PlayerState.PAUSED) {
-                recordPlaybackEvent(event.target.getCurrentTime(), 'PAUSED');
               }
             }
           }
@@ -160,7 +134,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
         ytPlayerRef.current.destroy();
       }
     };
-  }, [isYouTube, videoSrc, extractVideoId, recordPlaybackEvent, onTimeUpdate]);
+  }, [isYouTube, videoSrc, extractVideoId, onTimeUpdate]);
 
   const handlePlayPause = () => {
     if (isYouTube && ytPlayerRef.current) {
@@ -240,12 +214,6 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
     } finally {
       setIsGeneratingVeo(false);
     }
-  };
-
-  const formatTimecode = (totalSec: number) => {
-    const mins = Math.floor(totalSec / 60);
-    const secs = Math.floor(totalSec % 60);
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
   return (
@@ -524,7 +492,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
             }}
             className="tabular-nums"
           >
-            {formatTimecode(durationSec > 0 ? Math.min(currentTimeSec, durationSec) : currentTimeSec)} / {formatTimecode(durationSec)}
+            {formatTimecodeSec(durationSec > 0 ? Math.min(currentTimeSec, durationSec) : currentTimeSec)} / {formatTimecodeSec(durationSec)}
           </div>
         )}
       </div>

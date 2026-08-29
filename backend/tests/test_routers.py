@@ -71,7 +71,7 @@ def test_generate_hypothesis_success_returns_hypothesis():
         "evidenceRecords": [],
         "trace": {"runId": "trace_01", "totalDurationMs": 120, "steps": []},
         "status": "PROPOSED",
-        "isSimulated": False
+        "isSimulated": True
     }
     with patch("backend.routers.hypotheses.generate_hypothesis", return_value=mock_payload):
         response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")

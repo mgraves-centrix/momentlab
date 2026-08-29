@@ -3,19 +3,20 @@ import { AlertTriangle } from 'lucide-react';
 
 interface AnomalyCalloutProps {
   label?: string;
-  effect?: string;
-  timeRange?: string;
+  effect: string;
+  timeRange: string;
   onClick?: () => void;
   isSelected?: boolean;
 }
 
 export const AnomalyCallout: React.FC<AnomalyCalloutProps> = ({
   label = 'RESPONSE CLIFF',
-  effect = '−28%',
-  timeRange = '00:33–00:41',
+  effect,
+  timeRange,
   onClick,
   isSelected = true
 }) => {
+  if (!effect || !timeRange) return null;
   return (
     <div
       onClick={onClick}

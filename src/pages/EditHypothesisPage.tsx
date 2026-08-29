@@ -19,7 +19,8 @@ import {
   Trash2, 
   ShieldAlert, 
   Activity,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 
 import { useMobile } from '../hooks/useMobile';
@@ -248,9 +249,12 @@ export const EditHypothesisPage: React.FC = () => {
             {/* ROW 4: SUCCESS METRICS & GUARDRAILS */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '8px', padding: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: '#58c94b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
-                  <CheckCircle2 size={14} />
-                  SUCCESS METRIC TARGETS
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: '#c4a7ff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <Sparkles size={14} color="#c4a7ff" />
+                    <span>SIMULATED TARGETS</span>
+                  </div>
+                  <span className="badge badge-simulated">SIMULATED</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#131b22', borderRadius: '4px' }}>
@@ -271,7 +275,7 @@ export const EditHypothesisPage: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#131b22', borderRadius: '4px' }}>
-                    <span style={{ color: '#8d979f' }}>Max Confusion Increase</span>
+                    <span style={{ color: '#8d979f' }}>Confusion Change</span>
                     <span style={{ color: '#c4a7ff', fontWeight: 700 }} className="tabular-nums">{hypothesis.forecastConfusion}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#131b22', borderRadius: '4px' }}>
@@ -291,7 +295,7 @@ export const EditHypothesisPage: React.FC = () => {
                 <div style={{ padding: '12px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
                   <div style={{ color: '#c4a7ff', fontWeight: 700, marginBottom: '4px' }}>Uncertainty & Sample Size</div>
                   <div style={{ color: '#8d979f', lineHeight: 1.4 }}>
-                    Observed N={summaryData?.total_respondents || 525} respondents with 95% CI on retention dip [−34%, −22%]. p &lt; 0.001 against baseline.
+                    Observed N={summaryData?.total_respondents || 0} respondents with 95% CI on retention dip. p &lt; 0.001 against baseline.
                   </div>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
@@ -311,7 +315,7 @@ export const EditHypothesisPage: React.FC = () => {
             {/* Confidence Meter */}
             <ConfidenceMeter
               confidencePercent={hypothesis.confidenceScore}
-              sampleSize={summaryData?.total_respondents || 525}
+              sampleSize={summaryData?.total_respondents || 0}
             />
 
             {/* Agent Run Trace Panel */}

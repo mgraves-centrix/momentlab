@@ -65,7 +65,7 @@ hyp_data = {
     "forecastCompletion": "+9%",
     "forecastConfusion": "-4%",
     "status": "PROPOSED",
-    "isSimulated": False,
+    "isSimulated": True,
     "evidenceIds": ["EV-01", "EV-02", "EV-03"],
     "evidenceRecords": [
         {

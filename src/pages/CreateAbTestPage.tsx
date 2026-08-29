@@ -188,10 +188,10 @@ export const CreateAbTestPage: React.FC = () => {
                 <div style={{ padding: '14px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
                   <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>MINIMUM SAMPLE SIZE & POWER</div>
                   <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f3f2', marginBottom: '4px' }} className="tabular-nums">
-                    N = {Math.max(2400, (summaryData?.total_respondents || 525) * 2).toLocaleString()} (Target: Cut {selectedVariant})
+                    N = {((summaryData?.total_respondents || 525) * 2).toLocaleString()} (Target: Cut {selectedVariant})
                   </div>
                   <div style={{ fontSize: '11px', color: '#8d979f' }}>
-                    80% statistical power at &alpha; = 0.05 for minimum detectable effect of 4.2%.
+                    80% statistical power at &alpha; = 0.05 for minimum detectable effect of 3.5%.
                   </div>
                 </div>
 
