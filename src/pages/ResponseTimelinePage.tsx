@@ -30,11 +30,13 @@ export const ResponseTimelinePage: React.FC = () => {
   const [hypothesisData, setHypothesisData] = React.useState<Hypothesis | null>(null);
   const [summaryData, setSummaryData] = React.useState<ExperimentSummary | null>(null);
   const [activities, setActivities] = React.useState<any[]>([]);
+  const [mcpStatus, setMcpStatus] = React.useState<'CONNECTED' | 'CONNECTING' | 'DISCONNECTED'>('CONNECTING');
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
+    setMcpStatus('CONNECTING');
 
     if (projectId) {
       fetchProject(projectId).then(data => {
@@ -67,8 +69,12 @@ export const ResponseTimelinePage: React.FC = () => {
               rowCount: q.rows,
               queryPurpose: q.query
             })));
+            setMcpStatus('CONNECTED');
           }
-        }).catch(console.error)
+        }).catch(err => {
+          console.error('Failed to fetch MCP recent queries:', err);
+          if (isMounted) setMcpStatus('DISCONNECTED');
+        })
       ]).finally(() => {
         if (isMounted) setIsLoading(false);
       });
@@ -348,6 +354,7 @@ export const ResponseTimelinePage: React.FC = () => {
                     controlRevealMs={43000} 
                     variantRevealMs={37000} 
                     hypothesis={hypothesisData?.proposedChange}
+                    controlPoster={projectData?.thumbnail_url || "/frames/cut_a_control.png"}
                   />
                 </div>
 
@@ -361,7 +368,7 @@ export const ResponseTimelinePage: React.FC = () => {
               </div>
 
               <div className="finding-col-rail" style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
-                <McpActivityPanel activities={activities} />
+                <McpActivityPanel activities={activities} status={mcpStatus} />
                 
                 {hypothesisData && (
                   <HypothesisCard

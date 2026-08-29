@@ -62,7 +62,17 @@ export const CreateAbTestPage: React.FC = () => {
         headers: {
           'Authorization': `Bearer ${sessionStorage.getItem('reviewer_token')}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          allocation_split: `${allocation}/${100 - allocation}`,
+          allocation_control: allocation,
+          allocation_variant: 100 - allocation,
+          target_cohorts: ['ALL', '18-24', '25-34'],
+          min_sample_size: 100,
+          test_window: '7_DAYS',
+          stopping_rule: 'STATISTICAL_SIGNIFICANCE_OR_MAX_SAMPLE',
+          consent_given: consentAcknowledged
+        })
       });
       if (!res.ok) {
         let errMsg = `Approval failed (HTTP ${res.status})`;
@@ -294,7 +304,7 @@ export const CreateAbTestPage: React.FC = () => {
               </div>
               
               <p style={{ fontSize: '12px', color: '#8d979f', lineHeight: 1.5, marginBottom: '16px' }}>
-                Deploying this experiment will route live screening participants between Control Cut A and Variant Cut B according to the configured 50/50 allocation.
+                Deploying this experiment will route live screening participants between Control Cut A ({allocation}%) and Variant Cut B ({100 - allocation}%) according to the configured {allocation}/{100 - allocation} allocation.
               </p>
 
               {/* Reviewer Sign-In Control */}

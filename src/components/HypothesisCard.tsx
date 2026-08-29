@@ -5,12 +5,55 @@ import { Hypothesis } from '../fixtures/northlight';
 interface HypothesisCardProps {
   hypothesis: Hypothesis;
   onApproveClick?: () => void;
+  onDismiss?: () => void;
 }
 
 export const HypothesisCard: React.FC<HypothesisCardProps> = ({
   hypothesis,
-  onApproveClick
+  onApproveClick,
+  onDismiss
 }) => {
+  const [isDismissed, setIsDismissed] = React.useState(false);
+
+  const handleNotNow = () => {
+    setIsDismissed(true);
+    if (onDismiss) onDismiss();
+  };
+
+  if (isDismissed) {
+    return (
+      <div
+        style={{
+          backgroundColor: 'var(--surface-1)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
+        <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+          Gemini Edit Proposal deferred.
+        </span>
+        <button
+          onClick={() => setIsDismissed(false)}
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
+            padding: '6px 12px',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          REOPEN PROPOSAL
+        </button>
+      </div>
+    );
+  }
   return (
     <div
       style={{
@@ -83,6 +126,7 @@ export const HypothesisCard: React.FC<HypothesisCardProps> = ({
         {onApproveClick && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
+              onClick={handleNotNow}
               style={{
                 backgroundColor: 'transparent',
                 color: 'var(--muted)',

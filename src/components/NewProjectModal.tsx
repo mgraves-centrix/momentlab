@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Film, Youtube, Upload } from 'lucide-react';
+import { X, Film, Youtube, Upload, AlertCircle } from 'lucide-react';
 import { Project } from '../api/client';
 
 interface NewProjectModalProps {
@@ -16,6 +16,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -24,6 +25,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
     if (!name.trim()) return;
 
     setIsSubmitting(true);
+    setErrorMessage(null);
     setUploadProgress(10);
     try {
       // 1. Create project
@@ -33,40 +35,37 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
         body: JSON.stringify({ title: name, description, owner_id: "admin" })
       });
       
-      let newProj: Project;
-      if (res.ok) {
-        newProj = await res.json();
-      } else {
-        newProj = {
-          project_id: `proj_${Date.now()}`,
-          title: name,
-          owner_id: "admin",
-          description: description || 'New audience screening evaluation project',
-          sceneCount: 1,
-          totalRespondents: 0,
-          status: 'ACTIVE',
-          created_at: new Date().toISOString()
-        };
+      if (!res.ok) {
+        let errMsg = `Project creation failed (HTTP ${res.status})`;
+        try {
+          const errData = await res.json();
+          if (errData.detail) errMsg = errData.detail;
+        } catch (_) {}
+        throw new Error(errMsg);
       }
-
+      
+      const newProj: Project = await res.json();
       setUploadProgress(40);
 
       // 2. Handle YouTube Ingest
       if (sourceType === 'youtube' && youtubeUrl.trim()) {
-        await fetch('/api/v1/media/youtube-ingest', {
+        const ytRes = await fetch('/api/v1/media/youtube-ingest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             youtube_url: youtubeUrl.trim(),
-            project_id: newProj.project_id,
-            scene_name: `${name} Scene 1`
+            project_id: newProj.project_id
           })
         });
+        if (!ytRes.ok) {
+          console.warn('YouTube ingestion queued but returned status:', ytRes.status);
+        }
       }
 
-      // 3. Handle Direct File Upload
-      if (sourceType === 'upload' && file && res.ok) {
-        const urlRes = await fetch(`/api/v1/projects/${newProj.project_id}/media?filename=${encodeURIComponent(file.name)}&content_type=${encodeURIComponent(file.type)}`, {
+      // 3. Handle File Direct Upload
+      if (sourceType === 'upload' && file) {
+        setUploadProgress(50);
+        const urlRes = await fetch(`/api/v1/media/upload-url?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`, {
           method: 'POST'
         });
         
@@ -92,24 +91,10 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
       setFile(null);
       setUploadProgress(0);
       onClose();
-    } catch (err) {
-      console.warn('API error creating project, utilizing local state:', err);
-      const newProj: Project = {
-        project_id: `proj_${Date.now()}`,
-        title: name,
-        owner_id: "admin",
-        description: description || 'New audience screening evaluation project',
-        sceneCount: 1,
-        totalRespondents: 0,
-        status: 'ACTIVE',
-        created_at: new Date().toISOString()
-      };
-      onProjectCreated(newProj);
-      setName('');
-      setDescription('');
-      setFile(null);
+    } catch (err: any) {
+      console.error('API error creating project:', err);
+      setErrorMessage(err.message || 'Failed to create project on server. Please try again.');
       setUploadProgress(0);
-      onClose();
     } finally {
       setIsSubmitting(false);
     }
@@ -148,6 +133,25 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             <X size={20} />
           </button>
         </div>
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div style={{
+            padding: '10px 14px',
+            backgroundColor: '#211210',
+            border: '1px solid #4a201c',
+            borderRadius: '6px',
+            color: '#ff654a',
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '16px'
+          }}>
+            <AlertCircle size={16} />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         {/* Source Switcher */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>

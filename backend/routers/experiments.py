@@ -1,3 +1,5 @@
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel
 import datetime
 import uuid
 from fastapi import APIRouter, HTTPException, Request, Depends
@@ -7,9 +9,26 @@ from backend.auth_deps import get_current_reviewer
 
 router = APIRouter()
 
+class ApproveExperimentRequest(BaseModel):
+    allocation_split: Optional[str] = "50/50"
+    allocation_control: Optional[int] = 50
+    allocation_variant: Optional[int] = 50
+    target_cohorts: Optional[List[str]] = ["ALL", "18-24", "25-34"]
+    min_sample_size: Optional[int] = 100
+    test_window: Optional[str] = "7_DAYS"
+    stopping_rule: Optional[str] = "STATISTICAL_SIGNIFICANCE_OR_MAX_SAMPLE"
+    consent_given: Optional[bool] = True
+    notes: Optional[str] = None
+
 @router.post("/projects/{project_id}/experiments/{experiment_id}:approve")
-async def approve_experiment(project_id: str, experiment_id: str, reviewer_id: str = Depends(get_current_reviewer)):
-    """Approves an A/B test and logs an immutable audit record idempotently."""
+async def approve_experiment(
+    project_id: str,
+    experiment_id: str,
+    request: Request,
+    req: Optional[ApproveExperimentRequest] = None,
+    reviewer_id: str = Depends(get_current_reviewer)
+):
+    """Approves an A/B test and logs an immutable audit record idempotently with configured test parameters."""
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Firestore not initialized")
@@ -20,6 +39,13 @@ async def approve_experiment(project_id: str, experiment_id: str, reviewer_id: s
     timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
     audit_id = f"audit_{uuid.uuid4().hex[:8]}"
     
+    ab_config = req.model_dump() if req else {
+        "allocation_split": "50/50",
+        "allocation_control": 50,
+        "allocation_variant": 50,
+        "consent_given": True
+    }
+
     # Check if already approved (Idempotent check)
     if doc.exists and doc.to_dict().get('status') == 'TEST_RUNNING':
         return {
@@ -27,6 +53,7 @@ async def approve_experiment(project_id: str, experiment_id: str, reviewer_id: s
             "message": "Experiment already approved (idempotent)",
             "audit_id": doc.to_dict().get('audit_id', audit_id),
             "experiment_id": experiment_id,
+            "ab_configuration": doc.to_dict().get('ab_configuration', ab_config),
             "idempotent": True
         }
         
@@ -39,7 +66,8 @@ async def approve_experiment(project_id: str, experiment_id: str, reviewer_id: s
         'reviewer_id': reviewer_id,
         'timestamp': timestamp,
         'action': 'A/B_TEST_APPROVED',
-        'ip_address': request.client.host if request.client else 'unknown'
+        'ab_configuration': ab_config,
+        'ip_address': request.client.host if request and request.client else 'unknown'
     }
     
     try:
@@ -47,20 +75,22 @@ async def approve_experiment(project_id: str, experiment_id: str, reviewer_id: s
         exp_ref.set({
             'status': 'TEST_RUNNING',
             'last_updated': timestamp,
-            'audit_id': audit_id
+            'audit_id': audit_id,
+            'ab_configuration': ab_config
         }, merge=True)
         
         # Also update current hypothesis if exists
         hyp_ref = exp_ref.collection('hypotheses').document('current')
         if hyp_ref.get().exists:
-            hyp_ref.set({'status': 'APPROVED', 'approved_at': timestamp}, merge=True)
+            hyp_ref.set({'status': 'APPROVED', 'approved_at': timestamp, 'ab_configuration': ab_config}, merge=True)
     except Exception as e:
         print(f"Error approving experiment: {e}")
         return {
             "status": "APPROVED",
             "message": "Experiment approved and audit logged (local adapter)",
             "audit_id": audit_id,
-            "experiment_id": experiment_id
+            "experiment_id": experiment_id,
+            "ab_configuration": ab_config
         }
 
     return {
@@ -68,7 +98,8 @@ async def approve_experiment(project_id: str, experiment_id: str, reviewer_id: s
         "message": "Experiment approved and audit logged",
         "audit_id": audit_id,
         "experiment_id": experiment_id,
-        "reviewer_id": reviewer_id
+        "reviewer_id": reviewer_id,
+        "ab_configuration": ab_config
     }
 
 @router.get("/projects/{project_id}/experiments/{experiment_id}/results")
@@ -78,11 +109,23 @@ async def get_experiment_results(project_id: str, experiment_id: str):
     
     # Try to fetch from firestore, fallback to seeded data if it fails
     try:
+        exp_doc = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).get()
+        exp_data = exp_doc.to_dict() if exp_doc.exists else {}
+        ab_config = exp_data.get('ab_configuration', {})
+
         doc = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current').get()
         if not doc.exists:
-            return {}
-            
-        hyp = doc.to_dict()
+            # Check if ClickHouse has telemetry
+            from backend.services.clickhouse import get_client
+            client = get_client()
+            query = "SELECT count(DISTINCT session_id) FROM momentlab.audience_events WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}"
+            res = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+            total_respondents = int(res.result_rows[0][0]) if (res.result_rows and res.result_rows[0][0] > 0) else 0
+            if total_respondents == 0:
+                return {}
+            hyp = {}
+        else:
+            hyp = doc.to_dict()
         
         # Get real respondent count from ClickHouse
         from backend.services.clickhouse import get_client
@@ -91,7 +134,8 @@ async def get_experiment_results(project_id: str, experiment_id: str):
         res = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
         total_respondents = int(res.result_rows[0][0]) if (res.result_rows and res.result_rows[0][0] > 0) else 0
         
-        sample_size = total_respondents // 2
+        ctrl_ratio = float(ab_config.get('allocation_control', 50)) / 100.0
+        sample_size = int(total_respondents * ctrl_ratio)
         sample_size_variant = total_respondents - sample_size
         
         # Derive metrics from hypothesis
@@ -128,6 +172,9 @@ async def get_experiment_results(project_id: str, experiment_id: str):
             "test_period_start": "2025-05-19",
             "test_period_end": "2025-05-26",
             "test_duration_days": 7,
+            "allocation_split": ab_config.get("allocation_split", "50/50"),
+            "allocation_control": ab_config.get("allocation_control", 50),
+            "allocation_variant": ab_config.get("allocation_variant", 50),
             "sample_size_control": sample_size,
             "sample_size_variant": sample_size_variant,
             "sample_sizes": {

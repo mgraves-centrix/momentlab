@@ -85,6 +85,9 @@ export const AdminDemoPage: React.FC = () => {
           sample_size: 525
         })
       });
+      if (!res.ok) {
+        throw new Error(`Reset failed with HTTP status ${res.status}`);
+      }
       const data = await res.json();
       setResetMessage(`Success: Reseeded ${data.reseeded_respondents} respondents (${data.total_events_inserted} events).`);
       setResetConfirmed(false);
@@ -309,7 +312,13 @@ export const AdminDemoPage: React.FC = () => {
         </div>
 
         {/* Active State Preview Panel */}
-        <StatePanel type={activeState} onRetry={() => alert('Retry triggered for state: ' + activeState)} />
+        <StatePanel 
+          type={activeState} 
+          onRetry={() => {
+            fetchHealth();
+            setResetMessage(`Retried state: ${activeState} at ${new Date().toLocaleTimeString()}`);
+          }} 
+        />
       </div>
     </AppShell>
   );

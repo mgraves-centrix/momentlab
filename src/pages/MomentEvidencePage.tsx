@@ -12,10 +12,12 @@ export const MomentEvidencePage: React.FC = () => {
   const location = useLocation();
   const [hypothesisData, setHypothesisData] = React.useState<Hypothesis | null>(null);
   const [queries, setQueries] = React.useState<any[]>([]);
+  const [mcpStatus, setMcpStatus] = React.useState<'CONNECTED' | 'CONNECTING' | 'DISCONNECTED'>('CONNECTING');
   const [isLoading, setIsLoading] = React.useState(true);
   
   React.useEffect(() => {
     if (projectId && experimentId) {
+      setMcpStatus('CONNECTING');
       Promise.all([
         fetchExperimentHypothesis(projectId, experimentId),
         fetchRecentQueries()
@@ -28,9 +30,11 @@ export const MomentEvidencePage: React.FC = () => {
           rowCount: q.rows,
           queryPurpose: q.query
         })));
+        setMcpStatus('CONNECTED');
         setIsLoading(false);
       }).catch(err => {
-        console.error(err);
+        console.error('Failed to fetch evidence telemetry:', err);
+        setMcpStatus('DISCONNECTED');
         setIsLoading(false);
       });
     }
@@ -177,7 +181,7 @@ export const MomentEvidencePage: React.FC = () => {
             </div>
 
             {/* ClickHouse MCP */}
-            <McpActivityPanel activities={queries} status="CONNECTED" />
+            <McpActivityPanel activities={queries} status={mcpStatus} />
 
             {/* Hypothesis Preview */}
             <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
@@ -426,7 +430,7 @@ export const MomentEvidencePage: React.FC = () => {
                   </span>
                 </div>
 
-                <McpActivityPanel activities={queries} status="CONNECTED" />
+                <McpActivityPanel activities={queries} status={mcpStatus} />
               </div>
 
             </div>

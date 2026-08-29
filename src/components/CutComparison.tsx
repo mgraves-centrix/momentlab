@@ -5,6 +5,8 @@ interface CutComparisonProps {
   controlRevealMs?: number;
   variantRevealMs?: number;
   hypothesis?: string;
+  controlPoster?: string;
+  variantPoster?: string;
   onSelectVariant?: (variant: 'A' | 'B') => void;
 }
 
@@ -12,6 +14,8 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
   controlRevealMs = 43000,
   variantRevealMs = 37000,
   hypothesis,
+  controlPoster = "/frames/cut_a_control.png",
+  variantPoster = "/frames/cut_b_variant.png",
   onSelectVariant
 }) => {
   const [selectedCut, setSelectedCut] = useState<'A' | 'B'>('B');
@@ -84,7 +88,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
           {/* Real Keyframe Thumbnail Frame */}
           <div style={{ position: 'relative', height: '80px', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px', border: '1px solid #1c2630' }}>
             <img 
-              src="/frames/cut_a_control.png" 
+              src={controlPoster} 
               alt="Control Cut A Frame" 
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
             />
@@ -129,7 +133,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
           {/* Real Keyframe Thumbnail Frame */}
           <div style={{ position: 'relative', height: '80px', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
             <img 
-              src="/frames/cut_b_variant.png" 
+              src={variantPoster} 
               alt="Variant Cut B Frame" 
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
             />
