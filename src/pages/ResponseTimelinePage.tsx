@@ -10,7 +10,6 @@ import { TimeWindowSelector, TimeWindow } from '../components/TimeWindowSelector
 import { ConfidenceMeter } from '../components/ConfidenceMeter';
 import { CutComparison } from '../components/CutComparison';
 import { McpActivityPanel } from '../components/McpActivityPanel';
-import { ApprovalGate } from '../components/ApprovalGate';
 import { fetchExperimentTimeline, fetchExperimentHypothesis, fetchExperimentSummary, fetchRecentQueries, fetchProject, Project, TimelineDataPoint, Hypothesis, ExperimentSummary, generateHypothesis } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 
@@ -293,11 +292,6 @@ export const ResponseTimelinePage: React.FC = () => {
                     onApproveClick={() => navigate(`/projects/${projectId}/experiments/${experimentId}/test`)}
                   />
                 )}
-
-                <ApprovalGate 
-                  proposedChange="MOVE REVEAL 6S EARLIER"
-                  onApproveAndLaunch={(id) => console.log('Approved by', id)}
-                />
               </div>
             </div>
           </>

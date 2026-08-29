@@ -1,0 +1,7 @@
+node_modules/
+.venv/
+dist/
+static/
+public/frames/
+public/media/
+.git/
