@@ -46,11 +46,11 @@ export interface SceneMetadata {
 export interface TimelineDataPoint {
   timecode: string;
   timeMs: number;
-  allCohort: number;
-  cohort18_24: number;
-  cohort25_34: number;
-  uncertaintyUpper: number;
-  uncertaintyLower: number;
+  allCohort: number | null;
+  cohort18_24: number | null;
+  cohort25_34: number | null;
+  uncertaintyUpper: number | null;
+  uncertaintyLower: number | null;
   sampleSize: number;
   isAnomaly?: boolean;
 }
@@ -117,16 +117,25 @@ export async function fetchExperimentSummary(projectId: string, experimentId: st
 export async function fetchExperimentTimeline(projectId: string, experimentId: string, cohort: string = 'all'): Promise<TimelineDataPoint[]> {
   const url = `${API_BASE}/telemetry/timeline?project_id=${projectId}&experiment_id=${experimentId}${cohort && cohort !== 'all' ? `&cohort=${cohort}` : ''}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch experiment timeline');
+  if (!res.ok) {
+    let errorDetail = `Failed to fetch experiment timeline (${res.status})`;
+    try {
+      const errJson = await res.json();
+      if (errJson.detail) errorDetail = errJson.detail;
+    } catch (_) {}
+    throw new Error(errorDetail);
+  }
   const data = await res.json();
   if (data.length > 0) {
     return data.map((d: any) => {
-      const allVal = d.all_cohort !== undefined ? Math.round(d.all_cohort) : (d.avg_value > 1.0 ? Math.round(d.avg_value) : Math.round(d.avg_value * 100));
-      const c18Val = d.cohort_18_24 !== undefined ? Math.round(d.cohort_18_24) : allVal;
-      const c25Val = d.cohort_25_34 !== undefined ? Math.round(d.cohort_25_34) : allVal;
+      const allVal = (d.all_cohort !== null && d.all_cohort !== undefined)
+        ? Math.round(d.all_cohort)
+        : (d.avg_value !== null && d.avg_value !== undefined ? (d.avg_value > 1.0 ? Math.round(d.avg_value) : Math.round(d.avg_value * 100)) : null);
+      const c18Val = (d.cohort_18_24 !== null && d.cohort_18_24 !== undefined) ? Math.round(d.cohort_18_24) : null;
+      const c25Val = (d.cohort_25_34 !== null && d.cohort_25_34 !== undefined) ? Math.round(d.cohort_25_34) : null;
       
-      const uncUpper = d.uncertainty_upper !== undefined ? Math.round(d.uncertainty_upper) : Math.min(100, allVal + 4);
-      const uncLower = d.uncertainty_lower !== undefined ? Math.round(d.uncertainty_lower) : Math.max(0, allVal - 4);
+      const uncUpper = (d.uncertainty_upper !== null && d.uncertainty_upper !== undefined) ? Math.round(d.uncertainty_upper) : null;
+      const uncLower = (d.uncertainty_lower !== null && d.uncertainty_lower !== undefined) ? Math.round(d.uncertainty_lower) : null;
       
       return {
         timecode: formatTimecodeMs(d.media_time_ms),
@@ -192,5 +201,3 @@ export async function discardHypothesis(projectId: string, experimentId: string)
   if (!res.ok) throw new Error('Failed to discard hypothesis');
   return await res.json();
 }
-
-

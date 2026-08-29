@@ -27,6 +27,7 @@ export const ResponseTimelinePage: React.FC = () => {
 
   const [projectData, setProjectData] = React.useState<Project | null>(null);
   const [timelineData, setTimelineData] = React.useState<TimelineDataPoint[]>([]);
+  const [timelineError, setTimelineError] = React.useState<string | null>(null);
   const [hypothesisData, setHypothesisData] = React.useState<Hypothesis | null>(null);
   const [summaryData, setSummaryData] = React.useState<ExperimentSummary | null>(null);
   const [activities, setActivities] = React.useState<any[]>([]);
@@ -46,9 +47,15 @@ export const ResponseTimelinePage: React.FC = () => {
     if (projectId && experimentId) {
       Promise.all([
         fetchExperimentTimeline(projectId, experimentId, selectedCohort).then(data => {
-          if (isMounted) setTimelineData(data);
-        }).catch(() => {
-          if (isMounted) setTimelineData([]);
+          if (isMounted) {
+            setTimelineData(data);
+            setTimelineError(null);
+          }
+        }).catch((err) => {
+          if (isMounted) {
+            setTimelineData([]);
+            setTimelineError(err.message || 'Telemetry database unavailable');
+          }
         }),
         fetchExperimentHypothesis(projectId, experimentId).then(data => {
           if (isMounted) setHypothesisData(data);
@@ -190,6 +197,7 @@ export const ResponseTimelinePage: React.FC = () => {
                   currentTimeMs={selectedTimeMs}
                   onTimeSelect={(t) => updateQueryParams({ media_time_ms: t })}
                   selectedCohort={selectedCohort}
+                  error={timelineError}
                 />
               </div>
             </div>
@@ -346,6 +354,7 @@ export const ResponseTimelinePage: React.FC = () => {
                   currentTimeMs={selectedTimeMs}
                   onTimeSelect={(t) => updateQueryParams({ media_time_ms: t })}
                   selectedCohort={selectedCohort}
+                  error={timelineError}
                 />
 
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>

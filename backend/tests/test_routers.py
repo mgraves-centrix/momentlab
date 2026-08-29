@@ -81,3 +81,44 @@ def test_generate_hypothesis_success_returns_hypothesis():
         assert data["hypothesis"]["confidenceScore"] == 92
         assert data["hypothesis"]["proposedChange"] == "Move reveal earlier"
 
+def test_telemetry_timeline_database_outage_returns_503():
+    from unittest.mock import patch
+    with patch("backend.services.clickhouse.get_client", side_effect=RuntimeError("Connection refused: ClickHouse down")):
+        response = client.get("/api/v1/telemetry/timeline?project_id=proj_northlight_01&experiment_id=exp_23a")
+        assert response.status_code == 503
+        assert "Telemetry database unavailable" in response.json()["detail"]
+
+def test_telemetry_queries_database_outage_returns_503():
+    from unittest.mock import patch
+    with patch("backend.services.clickhouse.get_client", side_effect=RuntimeError("Connection refused: ClickHouse down")):
+        response = client.get("/api/v1/telemetry/queries")
+        assert response.status_code == 503
+        assert "Telemetry query log unavailable" in response.json()["detail"]
+
+def test_telemetry_summary_database_outage_returns_503():
+    from unittest.mock import patch
+    with patch("backend.services.clickhouse.get_client", side_effect=RuntimeError("Connection refused: ClickHouse down")):
+        response = client.get("/api/v1/telemetry/summary?project_id=proj_northlight_01&experiment_id=exp_23a")
+        assert response.status_code == 503
+        assert "Telemetry summary unavailable" in response.json()["detail"]
+
+def test_telemetry_timeline_cohort_null_without_fabrication():
+    from unittest.mock import patch, MagicMock
+    mock_client = MagicMock()
+    # Row format: [time_bucket, total_events, avg_all, avg_18_24, avg_25_34, avg_35_44, avg_sq]
+    # Here avg_18_24 is None (no 18-24 respondents), avg_all is 72.5
+    mock_client.query.return_value.result_rows = [
+        [37000.0, 10, 72.5, None, 68.0, None, 5400.0]
+    ]
+    with patch("backend.services.clickhouse.get_client", return_value=mock_client):
+        response = client.get("/api/v1/telemetry/timeline?project_id=proj_northlight_01&experiment_id=exp_23a&cohort=18_24")
+        assert response.status_code == 200
+        rows = response.json()
+        assert len(rows) == 1
+        # Must report null for 18-24 cohort, NOT substitute 72.5 from all_cohort
+        assert rows[0]["cohort_18_24"] is None
+        assert rows[0]["avg_value"] is None
+        assert rows[0]["all_cohort"] == 72.5
+        assert rows[0]["cohort_25_34"] == 68.0
+
+
