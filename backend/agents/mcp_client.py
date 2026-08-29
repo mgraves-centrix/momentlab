@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import uuid
@@ -173,8 +174,10 @@ Respond strictly in valid JSON format with the following keys:
             for part in event.content.parts:
                 if hasattr(part, "text") and part.text:
                     res += part.text
+        elif hasattr(event, "text") and event.text:
+            res += str(event.text)
         elif hasattr(event, "output") and event.output:
-            res = getattr(event.output, "text", res)
+            res += str(getattr(event.output, "text", event.output))
             
     # Final step
     steps.append({
@@ -187,15 +190,11 @@ Respond strictly in valid JSON format with the following keys:
         raise RuntimeError("Agent completed execution without returning output.")
 
     text = res.strip()
-    if text.startswith("```json"):
-        text = text[7:]
-    if text.startswith("```"):
-        text = text[3:]
-    if text.endswith("```"):
-        text = text[:-3]
+    match = re.search(r'(\{[\s\S]*\})', text)
+    json_str = match.group(1) if match else text
     
     try:
-        parsed_res = json.loads(text.strip())
+        parsed_res = json.loads(json_str.strip())
     except Exception as e:
         logger.error(f"Failed to parse agent JSON output: {e}\nRaw output: {res}")
         raise ValueError(f"Agent generated invalid JSON output: {str(e)}") from e
