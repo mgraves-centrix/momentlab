@@ -52,3 +52,11 @@ def test_empty_reviewer_tokens_fails_closed(monkeypatch):
         headers={"Authorization": "Bearer valid_reviewer_token_123"}
     )
     assert response.status_code == 503
+
+def test_config_endpoint_leaks_no_credential():
+    response = client.get("/api/v1/config")
+    secret_tokens = [t.strip() for t in os.environ.get("REVIEWER_TOKENS", "").split(",") if t.strip()]
+    body = response.text if response.status_code != 404 else ""
+    for secret in secret_tokens:
+        assert secret not in body
+    assert "reviewer_token" not in response.text

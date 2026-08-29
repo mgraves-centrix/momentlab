@@ -1,4 +1,5 @@
 import os
+import secrets
 from fastapi import HTTPException, status, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -20,7 +21,7 @@ def get_current_reviewer(credentials: HTTPAuthorizationCredentials = Security(se
             detail="Reviewer authentication service unavailable: no valid tokens configured."
         )
     
-    if token not in valid_tokens:
+    if not any(secrets.compare_digest(token, t) for t in valid_tokens):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authorization token."
