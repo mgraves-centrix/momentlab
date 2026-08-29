@@ -116,10 +116,10 @@ class LocalClickHouseClient:
         if parameters:
             for k, v in parameters.items():
                 if isinstance(v, (list, tuple, set)):
-                    escaped_items = [f"'{str(x).replace("'", "''")}'" if isinstance(x, str) else str(x) for x in v]
+                    escaped_items = [("'" + str(x).replace("'", "''") + "'") if isinstance(x, str) else str(x) for x in v]
                     val_str = f"({', '.join(escaped_items)})" if escaped_items else "(NULL)"
                 elif isinstance(v, str):
-                    val_str = f"'{v.replace("'", "''")}'"
+                    val_str = "'" + v.replace("'", "''") + "'"
                 else:
                     val_str = str(v)
                 translated_sql = re.sub(rf'\{{{k}:[A-Za-z0-9_\(\)]+\}}', val_str, translated_sql)

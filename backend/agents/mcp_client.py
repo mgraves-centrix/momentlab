@@ -5,6 +5,8 @@ import uuid
 import logging
 from dotenv import load_dotenv
 
+logger = logging.getLogger("momentlab.agents.mcp_client")
+
 # Load environment variables from repo root .env
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 env_path = os.path.join(repo_root, ".env")
