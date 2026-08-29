@@ -128,8 +128,54 @@ class ClickHouseBatchWriter:
                 return {"status": "SUCCESS", "inserted_count": len(sessions)}
             except Exception as e:
                 logger.error("ClickHouse session insert error: %s", str(e))
+    def insert_reaction_events(self, reactions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Inserts reaction events (CONFUSED, ENGAGING, BORED, etc.) into reaction_events.
+        Enforces idempotency deduplication.
+        """
+        new_reactions = []
+        for r in reactions:
+            key = r.get("idempotency_key")
+            if key and key in self._processed_idempotency_keys:
+                continue
+            if key:
+                self._processed_idempotency_keys.add(key)
+            new_reactions.append(r)
+
+        if not new_reactions:
+            return {"status": "DUPLICATE", "inserted_count": 0}
+
+        if self.client:
+            try:
+                data = [
+                    [
+                        _ensure_uuid(r.get("reaction_id")),
+                        _ensure_uuid(r.get("session_id")),
+                        r.get("project_id", "proj_northlight_01"),
+                        r.get("experiment_id", "exp_23a"),
+                        r.get("scene_id", "sc_12"),
+                        int(r.get("media_time_ms", 0)),
+                        str(r.get("reaction_type") or r.get("event_type") or "ENGAGED"),
+                        r.get("idempotency_key", f"{r.get('session_id')}_{r.get('media_time_ms')}_{r.get('reaction_type') or r.get('event_type')}"),
+                        datetime.now(timezone.utc)
+                    ]
+                    for r in new_reactions
+                ]
+                self.client.insert(
+                    "reaction_events",
+                    data,
+                    column_names=[
+                        "reaction_id", "session_id", "project_id", "experiment_id",
+                        "scene_id", "media_time_ms", "reaction_type",
+                        "idempotency_key", "created_at"
+                    ]
+                )
+                return {"status": "SUCCESS", "inserted_count": len(new_reactions)}
+            except Exception as e:
+                logger.error("ClickHouse reaction insert error: %s", str(e))
                 return {"status": "ERROR", "inserted_count": 0, "error": str(e)}
-        return {"status": "SUCCESS", "inserted_count": len(sessions)}
+        return {"status": "SUCCESS", "inserted_count": len(new_reactions)}
 
     def get_buffered_event_count(self) -> int:
         return len(self._memory_events)
+

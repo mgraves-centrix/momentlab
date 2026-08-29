@@ -10,6 +10,7 @@ export const ScreeningConsentPage: React.FC = () => {
   const [lastReaction, setLastReaction] = useState<{ type: string; timestamp: string } | null>(null);
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({ CONFUSED: 0, ENGAGING: 0, BORED: 0, ENGAGED: 0, FUNNY: 0, 'TOO SLOW': 0 });
   const [noteText, setNoteText] = useState('');
+  const [eventSaveStatus, setEventSaveStatus] = useState<'SAVED' | 'SAVING' | 'ERROR'>('SAVED');
   
   // Desktop consent state
   const [desktopConsentChecked, setDesktopConsentChecked] = useState(false);
@@ -22,11 +23,12 @@ export const ScreeningConsentPage: React.FC = () => {
     const seconds = Math.floor(currentTimeMs / 1000);
     const timecode = `00:${String(seconds).padStart(2, '0')}`;
     
+    setEventSaveStatus('SAVING');
     setLastReaction({ type: reactionType, timestamp: timecode });
     setReactionCounts((prev) => ({ ...prev, [reactionType]: prev[reactionType] + 1 }));
 
     try {
-      await fetch('/api/v1/telemetry/events', {
+      const res = await fetch('/api/v1/telemetry/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify([{
@@ -38,8 +40,14 @@ export const ScreeningConsentPage: React.FC = () => {
           value: reactionType === 'ENGAGING' ? 0.95 : reactionType === 'CONFUSED' ? 0.45 : 0.50
         }])
       });
+      if (res.ok) {
+        setEventSaveStatus('SAVED');
+      } else {
+        setEventSaveStatus('ERROR');
+      }
     } catch (err) {
-      console.warn('Telemetry event dispatch offline, reaction recorded locally:', err);
+      console.error('Telemetry event dispatch failed:', err);
+      setEventSaveStatus('ERROR');
     }
   };
 
@@ -484,7 +492,21 @@ export const ScreeningConsentPage: React.FC = () => {
               {/* Bottom Footer */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #1c262e' }}>
                 <div style={{ display: 'flex', gap: '32px', alignItems: 'center', fontSize: '11px', fontWeight: 600, color: '#8d979f', letterSpacing: '0.04em' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b7e33d' }}><CheckCircle size={14} /> EVENTS SAVED</div>
+                  {eventSaveStatus === 'SAVED' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b7e33d' }}>
+                      <CheckCircle size={14} /> EVENTS SAVED
+                    </div>
+                  )}
+                  {eventSaveStatus === 'SAVING' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#8d979f' }}>
+                      <Activity size={14} /> SAVING EVENTS...
+                    </div>
+                  )}
+                  {eventSaveStatus === 'ERROR' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ff6652' }}>
+                      <AlertCircle size={14} /> FAILED TO SAVE EVENTS
+                    </div>
+                  )}
                   <div>SESSION ID: N-8F24-7Q9M</div>
                   <div>YOU: VIEWER_7A1C9D</div>
                 </div>

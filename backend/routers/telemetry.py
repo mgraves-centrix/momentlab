@@ -1,5 +1,5 @@
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional, List, Union, Dict, Any
+from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from backend.auth_deps import get_current_reviewer
 
@@ -10,10 +10,48 @@ class TelemetryResetRequest(BaseModel):
     experiment_id: str = "exp_23a"
     sample_size: int = 525
 
+class ReactionEventPayload(BaseModel):
+    session_id: str
+    project_id: Optional[str] = "proj_northlight_01"
+    experiment_id: Optional[str] = "exp_23a"
+    scene_id: Optional[str] = "sc_12"
+    media_time_ms: int
+    event_type: Optional[str] = None
+    reaction_type: Optional[str] = None
+    value: Optional[float] = None
+    idempotency_key: Optional[str] = None
+
+@router.post("/events", status_code=status.HTTP_201_CREATED)
+async def record_telemetry_events(payload: Union[ReactionEventPayload, List[ReactionEventPayload], Dict[str, Any], List[Dict[str, Any]]]):
+    """
+    Persists audience reaction events directly into momentlab.reaction_events in ClickHouse.
+    Supports single events or batch payloads.
+    """
+    from backend.ingestion.batch_writer import ClickHouseBatchWriter
+    events_list = []
+    if isinstance(payload, list):
+        for item in payload:
+            events_list.append(item.model_dump() if hasattr(item, "model_dump") else dict(item))
+    elif hasattr(payload, "model_dump"):
+        events_list.append(payload.model_dump())
+    elif isinstance(payload, dict):
+        events_list.append(payload)
+    
+    if not events_list:
+        return {"status": "EMPTY", "inserted_count": 0}
+
+    writer = ClickHouseBatchWriter()
+    res = writer.insert_reaction_events(events_list)
+    return {
+        "status": "SUCCESS",
+        "inserted_count": res.get("inserted_count", len(events_list)),
+        "batch_status": res.get("status", "SUCCESS")
+    }
+
 import math
 
 @router.get("/timeline")
-async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str] = "all"):
+async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str] = "all", window: Optional[str] = None):
     try:
         from backend.services.clickhouse import get_client
         client = get_client()

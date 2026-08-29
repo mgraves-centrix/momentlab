@@ -78,3 +78,33 @@ def test_northlight_simulated_timeline_alignment():
     for e in cliff_events:
         # Retention drops around ~50%
         assert 40.0 <= e["retention_score"] <= 60.0
+
+def test_telemetry_reaction_events_ingestion():
+    # Single event
+    single_ev = {
+        "session_id": "sess_reaction_test_01",
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "media_time_ms": 1000,
+        "event_type": "CONFUSED",
+        "value": 0.45
+    }
+    res = client.post("/api/v1/telemetry/events", json=single_ev)
+    assert res.status_code == 201
+    assert res.json()["status"] == "SUCCESS"
+
+    # List of events
+    batch_ev = [
+        {
+            "session_id": "sess_reaction_test_02",
+            "project_id": "proj_northlight_01",
+            "experiment_id": "exp_23a",
+            "media_time_ms": 2000,
+            "event_type": "ENGAGING",
+            "value": 0.95
+        }
+    ]
+    res_batch = client.post("/api/v1/telemetry/events", json=batch_ev)
+    assert res_batch.status_code == 201
+    assert res_batch.json()["status"] == "SUCCESS"
+
