@@ -2,11 +2,12 @@ import os
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from google.cloud import storage
 from backend.services.db import get_db
 from backend.schemas.models import Project
+from backend.auth_deps import get_current_reviewer
 
 router = APIRouter(prefix="/api/v1/projects", tags=["Projects"])
 
@@ -97,7 +98,7 @@ def list_projects():
     return projects
 
 @router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
-def create_project(req: CreateProjectRequest):
+def create_project(req: CreateProjectRequest, reviewer_id: str = Depends(get_current_reviewer)):
     """Creates a new workspace project."""
     db = get_db()
     project_id = f"proj_{uuid.uuid4().hex[:8]}"
@@ -145,7 +146,7 @@ def get_project(project_id: str):
     return Project(**data)
 
 @router.delete("/{project_id}", status_code=status.HTTP_200_OK)
-def delete_project(project_id: str):
+def delete_project(project_id: str, reviewer_id: str = Depends(get_current_reviewer)):
     """Deletes a workspace project."""
     db = get_db()
     doc_ref = db.collection('projects').document(project_id)

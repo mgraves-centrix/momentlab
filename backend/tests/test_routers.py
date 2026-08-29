@@ -13,7 +13,11 @@ def test_list_projects_endpoint():
 
 def test_create_and_delete_project_endpoint():
     payload = {"title": "Temporary Test Project", "description": "Unit test project", "owner_id": "user_dev_01"}
-    response = client.post("/api/v1/projects", json=payload)
+    response = client.post(
+        "/api/v1/projects", 
+        json=payload,
+        headers={"Authorization": "Bearer valid_reviewer_token_123"}
+    )
     assert response.status_code == 201
     data = response.json()
     assert data["title"] == "Temporary Test Project"
@@ -21,7 +25,10 @@ def test_create_and_delete_project_endpoint():
     proj_id = data["project_id"]
 
     # Clean up immediately so test runs do not leak state
-    del_response = client.delete(f"/api/v1/projects/{proj_id}")
+    del_response = client.delete(
+        f"/api/v1/projects/{proj_id}",
+        headers={"Authorization": "Bearer valid_reviewer_token_123"}
+    )
     assert del_response.status_code == 200
     assert del_response.json()["status"] == "DELETED"
 
@@ -36,7 +43,7 @@ def test_get_scene_timeline_endpoint():
 def test_approve_hypothesis_endpoint():
     response = client.post(
         "/api/v1/projects/proj_northlight_01/experiments/exp_23a:approve",
-        headers={"Authorization": "Bearer admin_token_demo"}
+        headers={"Authorization": "Bearer valid_reviewer_token_123"}
     )
     assert response.status_code == 200
     data = response.json()
