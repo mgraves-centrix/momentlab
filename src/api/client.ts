@@ -1,3 +1,5 @@
+import { formatTimecodeMs } from '../utils/format';
+
 export interface Project {
   project_id: string;
   title: string;
@@ -22,12 +24,14 @@ export interface Project {
 }
 
 export interface ExperimentSummary {
+  status?: string;
   total_respondents: number;
-  detected_moment?: string;
-  detected_moment_ms?: number;
-  retention_drop?: string;
-  anomaly_window?: string;
-  confidence?: number;
+  detected_moment?: string | null;
+  detected_moment_ms?: number | null;
+  retention_drop?: string | null;
+  anomaly_window?: string | null;
+  confidence?: number | null;
+  message?: string | null;
 }
 
 export interface SceneMetadata {
@@ -117,22 +121,27 @@ export async function fetchExperimentTimeline(projectId: string, experimentId: s
   const data = await res.json();
   if (data.length > 0) {
     return data.map((d: any) => {
-      const val = d.avg_value > 1.0 ? Math.round(d.avg_value) : Math.round(d.avg_value * 100);
-      const isAnomaly = d.media_time_ms >= 33000 && d.media_time_ms <= 41000;
+      const allVal = d.all_cohort !== undefined ? Math.round(d.all_cohort) : (d.avg_value > 1.0 ? Math.round(d.avg_value) : Math.round(d.avg_value * 100));
+      const c18Val = d.cohort_18_24 !== undefined ? Math.round(d.cohort_18_24) : allVal;
+      const c25Val = d.cohort_25_34 !== undefined ? Math.round(d.cohort_25_34) : allVal;
+      
+      const uncUpper = d.uncertainty_upper !== undefined ? Math.round(d.uncertainty_upper) : Math.min(100, allVal + 4);
+      const uncLower = d.uncertainty_lower !== undefined ? Math.round(d.uncertainty_lower) : Math.max(0, allVal - 4);
+      
       return {
-        timecode: `00:${String(Math.floor(d.media_time_ms / 1000)).padStart(2, '0')}`,
+        timecode: formatTimecodeMs(d.media_time_ms),
         timeMs: d.media_time_ms,
-        allCohort: val,
-        cohort18_24: val,
-        cohort25_34: val,
-        uncertaintyUpper: Math.min(100, val + 4),
-        uncertaintyLower: Math.max(0, val - 4),
-        sampleSize: d.total_events || 0,
-        isAnomaly: isAnomaly
+        allCohort: allVal,
+        cohort18_24: c18Val,
+        cohort25_34: c25Val,
+        uncertaintyUpper: uncUpper,
+        uncertaintyLower: uncLower,
+        sampleSize: d.total_events || d.sample_size || 0,
+        isAnomaly: Boolean(d.is_anomaly)
       };
     });
   } else {
-    throw new Error('No live data available');
+    return [];
   }
 }
 
