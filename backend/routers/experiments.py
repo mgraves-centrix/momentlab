@@ -1,25 +1,15 @@
 import datetime
 import uuid
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 # pyrefly: ignore [missing-import]
 from backend.services.db import get_db
+from backend.auth_deps import get_current_reviewer
 
 router = APIRouter()
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}:approve")
-async def approve_experiment(project_id: str, experiment_id: str, request: Request):
+async def approve_experiment(project_id: str, experiment_id: str, reviewer_id: str = Depends(get_current_reviewer)):
     """Approves an A/B test and logs an immutable audit record idempotently."""
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        raise HTTPException(
-            status_code=401,
-            detail="Authorization token required to authorize and launch an experiment."
-        )
-    token = auth_header.split(' ')[1]
-    if not token.strip():
-        raise HTTPException(status_code=401, detail="Invalid authorization token.")
-    reviewer_id = f"reviewer_{token[:8]}"
-    
     db = get_db()
     if not db:
         raise HTTPException(status_code=500, detail="Firestore not initialized")
@@ -97,8 +87,8 @@ async def get_experiment_results(project_id: str, experiment_id: str):
         # Get real respondent count from ClickHouse
         from backend.services.clickhouse import get_client
         client = get_client()
-        query = f"SELECT count(DISTINCT session_id) FROM momentlab.audience_events WHERE project_id = '{project_id}' AND experiment_id = '{experiment_id}'"
-        res = client.query(query)
+        query = "SELECT count(DISTINCT session_id) FROM momentlab.audience_events WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}"
+        res = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
         total_respondents = res.result_rows[0][0] if (res.result_rows and res.result_rows[0][0] > 0) else 525
         
         sample_size = total_respondents // 2

@@ -1,9 +1,10 @@
 import logging
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from typing import Optional
 from backend.agents.mcp_client import generate_hypothesis
 from backend.services.db import get_db
+from backend.auth_deps import get_current_reviewer
 
 logger = logging.getLogger("momentlab.hypotheses")
 
@@ -84,7 +85,7 @@ async def discard_hypothesis(project_id: str, experiment_id: str):
     }
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}/test/approve")
-async def approve_test(project_id: str, experiment_id: str):
+async def approve_test(project_id: str, experiment_id: str, reviewer_id: str = Depends(get_current_reviewer)):
     db = get_db()
     doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
     doc = doc_ref.get()
