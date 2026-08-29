@@ -10,10 +10,7 @@ logger = logging.getLogger("momentlab.ingestion")
 def _ensure_uuid(val: Any) -> str:
     if not val:
         return str(uuid.uuid4())
-    try:
-        return str(uuid.UUID(str(val)))
-    except Exception:
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(val)))
+    return str(uuid.UUID(str(val)))
 
 class ClickHouseBatchWriter:
     """
@@ -135,11 +132,14 @@ class ClickHouseBatchWriter:
         """
         new_reactions = []
         for r in reactions:
-            key = r.get("idempotency_key")
-            if key and key in self._processed_idempotency_keys:
+            session_id = str(r.get("session_id") or "")
+            media_time = int(r.get("media_time_ms", 0))
+            rxn_type = str(r.get("reaction_type") or r.get("event_type") or "ENGAGED")
+            key = r.get("idempotency_key") or f"{session_id}:{media_time}:{rxn_type}"
+            r["idempotency_key"] = key
+            if key in self._processed_idempotency_keys:
                 continue
-            if key:
-                self._processed_idempotency_keys.add(key)
+            self._processed_idempotency_keys.add(key)
             new_reactions.append(r)
 
         if not new_reactions:
@@ -151,12 +151,12 @@ class ClickHouseBatchWriter:
                     [
                         _ensure_uuid(r.get("reaction_id")),
                         _ensure_uuid(r.get("session_id")),
-                        r.get("project_id", "proj_northlight_01"),
-                        r.get("experiment_id", "exp_23a"),
-                        r.get("scene_id", "sc_12"),
+                        str(r.get("project_id") or "proj_northlight_01"),
+                        str(r.get("experiment_id") or "exp_23a"),
+                        str(r.get("scene_id") or "sc_12"),
                         int(r.get("media_time_ms", 0)),
                         str(r.get("reaction_type") or r.get("event_type") or "ENGAGED"),
-                        r.get("idempotency_key", f"{r.get('session_id')}_{r.get('media_time_ms')}_{r.get('reaction_type') or r.get('event_type')}"),
+                        str(r.get("idempotency_key")),
                         datetime.now(timezone.utc)
                     ]
                     for r in new_reactions

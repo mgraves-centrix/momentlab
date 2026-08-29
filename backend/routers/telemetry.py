@@ -1,5 +1,7 @@
+import uuid
 from typing import Optional, List, Union, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from backend.auth_deps import get_current_reviewer
 
@@ -40,12 +42,44 @@ async def record_telemetry_events(payload: Union[ReactionEventPayload, List[Reac
     if not events_list:
         return {"status": "EMPTY", "inserted_count": 0}
 
+    # Validate UUID session_id for every event
+    for ev in events_list:
+        sid = ev.get("session_id")
+        if not sid:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="session_id is required")
+        try:
+            uuid.UUID(str(sid))
+        except (ValueError, TypeError, AttributeError):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Invalid session_id UUID: '{sid}'")
+
     writer = ClickHouseBatchWriter()
     res = writer.insert_reaction_events(events_list)
+    
+    if res.get("status") == "ERROR" or (res.get("inserted_count", 0) == 0 and res.get("status") != "DUPLICATE"):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to persist reaction events: {res.get('error', 'Database write failed')}"
+        )
+    
+    inserted_count = res.get("inserted_count", 0)
+    batch_status = res.get("status", "SUCCESS")
+    
+    # If partial insertion happened
+    if inserted_count > 0 and inserted_count < len(events_list):
+        return JSONResponse(
+            status_code=status.HTTP_207_MULTI_STATUS,
+            content={
+                "status": "PARTIAL_SUCCESS",
+                "inserted_count": inserted_count,
+                "total_requested": len(events_list),
+                "batch_status": "PARTIAL"
+            }
+        )
+
     return {
-        "status": "SUCCESS",
-        "inserted_count": res.get("inserted_count", len(events_list)),
-        "batch_status": res.get("status", "SUCCESS")
+        "status": batch_status,
+        "inserted_count": inserted_count,
+        "batch_status": batch_status
     }
 
 import math
