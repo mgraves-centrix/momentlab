@@ -83,6 +83,9 @@ async def record_telemetry_events(payload: Union[ReactionEventPayload, List[Reac
     }
 
 import math
+import logging
+
+logger = logging.getLogger("momentlab.telemetry")
 
 @router.get("/timeline")
 async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str] = "all", window: Optional[str] = None):
@@ -123,35 +126,47 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
         for row in result.result_rows:
             t_ms = int(row[0])
             n_events = max(1, int(row[1]))
-            avg_all = float(row[2]) if row[2] is not None else 0.0
-            avg_18_24 = float(row[3]) if row[3] is not None else avg_all
-            avg_25_34 = float(row[4]) if row[4] is not None else avg_all
-            avg_sq = float(row[6]) if row[6] is not None else (avg_all * avg_all)
+            avg_all = float(row[2]) if row[2] is not None else None
+            avg_18_24 = float(row[3]) if row[3] is not None else None
+            avg_25_34 = float(row[4]) if row[4] is not None else None
+            avg_35_44 = float(row[5]) if row[5] is not None else None
+            avg_sq = float(row[6]) if row[6] is not None else None
             
-            # Compute standard deviation and 95% confidence interval on mean (1.96 * SE)
-            var_val = max(0.0, avg_sq - (avg_all * avg_all))
-            std_dev = math.sqrt(var_val)
-            std_err = std_dev / math.sqrt(n_events)
-            moe = 1.96 * std_err
+            selected_val = (
+                avg_18_24 if cohort_val == "18_24"
+                else avg_25_34 if cohort_val == "25_34"
+                else avg_35_44 if cohort_val == "35_44"
+                else avg_all
+            )
             
-            selected_val = avg_18_24 if cohort_val == "18_24" else avg_25_34 if cohort_val == "25_34" else avg_all
+            if selected_val is not None and avg_sq is not None:
+                var_val = max(0.0, avg_sq - (selected_val * selected_val))
+                std_dev = math.sqrt(var_val)
+                std_err = std_dev / math.sqrt(n_events)
+                moe = 1.96 * std_err
+                unc_lower = max(0.0, round(selected_val - moe, 2))
+                unc_upper = min(100.0, round(selected_val + moe, 2))
+            else:
+                unc_lower = None
+                unc_upper = None
             
             raw_rows.append({
                 "media_time_ms": t_ms,
                 "total_events": n_events,
-                "avg_value": round(selected_val, 2),
-                "all_cohort": round(avg_all, 2),
-                "cohort_18_24": round(avg_18_24, 2),
-                "cohort_25_34": round(avg_25_34, 2),
-                "uncertainty_lower": max(0.0, round(selected_val - moe, 2)),
-                "uncertainty_upper": min(100.0, round(selected_val + moe, 2)),
+                "avg_value": round(selected_val, 2) if selected_val is not None else None,
+                "all_cohort": round(avg_all, 2) if avg_all is not None else None,
+                "cohort_18_24": round(avg_18_24, 2) if avg_18_24 is not None else None,
+                "cohort_25_34": round(avg_25_34, 2) if avg_25_34 is not None else None,
+                "uncertainty_lower": unc_lower,
+                "uncertainty_upper": unc_upper,
                 "sample_size": n_events
             })
 
         # Dynamic anomaly detection from data drops
-        if len(raw_rows) >= 5:
-            baseline = sum(r["all_cohort"] for r in raw_rows[:min(10, len(raw_rows))]) / min(10, len(raw_rows))
-            min_row = min(raw_rows, key=lambda r: r["all_cohort"])
+        non_null_all = [r["all_cohort"] for r in raw_rows if r["all_cohort"] is not None]
+        if len(non_null_all) >= 5:
+            baseline = sum(non_null_all[:min(10, len(non_null_all))]) / min(10, len(non_null_all))
+            min_row = min([r for r in raw_rows if r["all_cohort"] is not None], key=lambda r: r["all_cohort"])
             drop = baseline - min_row["all_cohort"]
             if drop >= 15.0:  # Sustained cliff threshold
                 cliff_ms = min_row["media_time_ms"]
@@ -169,8 +184,11 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
 
         return raw_rows
     except Exception as e:
-        print(f"Error fetching timeline: {e}")
-        return []
+        logger.error("Error fetching timeline: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Telemetry database unavailable: {str(e)}"
+        )
 
 @router.get("/queries")
 async def get_recent_queries():
@@ -186,8 +204,8 @@ async def get_recent_queries():
                 query_duration_ms
             FROM system.query_log
             WHERE type = 'QueryFinish'
-              AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%screening_sessions%')
-              AND query NOT LIKE '%system.query_log%'
+               AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%screening_sessions%')
+               AND query NOT LIKE '%system.query_log%'
             ORDER BY query_start_time DESC
             LIMIT 10
         """
@@ -219,16 +237,11 @@ async def get_recent_queries():
             ]
         return queries
     except Exception as e:
-        print(f"Error fetching query log: {e}")
-        from datetime import datetime, timezone
-        return [
-            {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "query": "SELECT media_time_ms, count() AS sample_size, quantile(0.5)(retention_score) * 100 AS retention_median FROM momentlab.audience_events WHERE scene_id = 'sc_12' GROUP BY media_time_ms ORDER BY media_time_ms ASC",
-                "rows": 30358,
-                "duration_ms": 7
-            }
-        ]
+        logger.error("Error fetching query log: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Telemetry query log unavailable: {str(e)}"
+        )
 
 @router.get("/summary")
 async def get_summary(project_id: str, experiment_id: str):
@@ -317,17 +330,11 @@ async def get_summary(project_id: str, experiment_id: str):
             "confidence": confidence
         }
     except Exception as e:
-        print(f"Error fetching summary: {e}")
-        return {
-            "status": "INSUFFICIENT_SAMPLE",
-            "total_respondents": 0,
-            "detected_moment": None,
-            "detected_moment_ms": None,
-            "retention_drop": None,
-            "anomaly_window": None,
-            "confidence": None,
-            "message": "INSUFFICIENT_SAMPLE (< 100 Respondents)"
-        }
+        logger.error("Error fetching summary: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Telemetry summary unavailable: {str(e)}"
+        )
 
 @router.post("/reset")
 async def reset_telemetry(req: Optional[TelemetryResetRequest] = None, reviewer_id: str = Depends(get_current_reviewer)):

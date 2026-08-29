@@ -11,11 +11,11 @@ export interface Project {
 export interface TimelineDataPoint {
   timecode: string;
   timeMs: number;
-  allCohort: number;
-  cohort18_24: number;
-  cohort25_34: number;
-  uncertaintyUpper: number;
-  uncertaintyLower: number;
+  allCohort: number | null;
+  cohort18_24: number | null;
+  cohort25_34: number | null;
+  uncertaintyUpper: number | null;
+  uncertaintyLower: number | null;
   sampleSize: number;
   isAnomaly?: boolean;
 }

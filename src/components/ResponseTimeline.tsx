@@ -1,21 +1,77 @@
 import React, { useState } from 'react';
 import { TimelineDataPoint } from '../fixtures/northlight';
+import { AlertTriangle, Database } from 'lucide-react';
 
 interface ResponseTimelineProps {
   data: TimelineDataPoint[];
   currentTimeMs?: number;
   onTimeSelect?: (timeMs: number) => void;
   selectedCohort?: 'all' | '18_24' | '25_34';
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
   data = [],
   currentTimeMs = 37000,
   onTimeSelect,
-  selectedCohort = 'all'
+  selectedCohort = 'all',
+  error = null,
+  onRetry
 }) => {
   const [hoveredPoint, setHoveredPoint] = useState<TimelineDataPoint | null>(null);
   const [showTableView, setShowTableView] = useState(false);
+
+  // If telemetry database outage / 503 error
+  if (error) {
+    return (
+      <div
+        style={{
+          backgroundColor: 'var(--surface-1)',
+          border: '1px solid var(--coral)',
+          borderRadius: 'var(--radius-md)',
+          padding: '24px',
+          textAlign: 'center',
+          color: 'var(--text)',
+          minHeight: '240px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--coral)' }}>
+          <AlertTriangle size={20} />
+          <span style={{ fontSize: '14px', fontWeight: 700 }}>Telemetry Service Unavailable</span>
+        </div>
+        <p style={{ fontSize: '12px', color: 'var(--muted)', maxWidth: '420px', margin: 0 }}>
+          Unable to query audience telemetry from the ClickHouse database. The telemetry engine may be down or undergoing maintenance.
+        </p>
+        <span style={{ fontSize: '11px', color: 'var(--coral)', fontFamily: 'monospace', backgroundColor: 'rgba(255, 102, 82, 0.1)', padding: '4px 8px', borderRadius: '4px' }}>
+          {error}
+        </span>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            style={{
+              backgroundColor: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
+              fontSize: '12px',
+              fontWeight: 600,
+              padding: '6px 14px',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+              marginTop: '4px'
+            }}
+          >
+            Retry Connection
+          </button>
+        )}
+      </div>
+    );
+  }
 
   // SVG Chart bounds
   const width = 600;
@@ -30,7 +86,8 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
   if (validData.length === 0) {
     return (
       <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'center', color: 'var(--muted)', minHeight: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '13px', fontWeight: 600 }}>Loading second-by-second audience response telemetry...</span>
+        <Database size={20} style={{ color: 'var(--muted)' }} />
+        <span style={{ fontSize: '13px', fontWeight: 600 }}>No audience telemetry recorded for this scene</span>
         <span style={{ fontSize: '11px', color: '#5b6670' }}>ClickHouse streaming pipeline active</span>
       </div>
     );
@@ -56,13 +113,30 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
     return d.allCohort;
   };
 
-  // Build line for active cohort series from ClickHouse
-  const lineActivePoints = validData.filter(d => typeof getCohortVal(d) === 'number' && !isNaN(getCohortVal(d))).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(getCohortVal(d)).toFixed(1)}`);
-  const lineActive = lineActivePoints.length > 0 ? lineActivePoints.join(' L ') : null;
+  // Build line segments for active cohort series from ClickHouse (breaking line across null gaps)
+  const lineSegments: string[] = [];
+  let currentSegment: string[] = [];
+
+  validData.forEach((d) => {
+    const val = getCohortVal(d);
+    if (typeof val === 'number' && !isNaN(val)) {
+      currentSegment.push(`${getX(d.timeMs).toFixed(1)},${getY(val).toFixed(1)}`);
+    } else {
+      if (currentSegment.length > 0) {
+        lineSegments.push(`M ${currentSegment.join(' L ')}`);
+        currentSegment = [];
+      }
+    }
+  });
+  if (currentSegment.length > 0) {
+    lineSegments.push(`M ${currentSegment.join(' L ')}`);
+  }
+  const lineActivePath = lineSegments.join(' ');
+  const hasCohortPoints = lineSegments.length > 0;
 
   // Build uncertainty band polygon
-  const upperPoints = validData.filter(d => typeof d.uncertaintyUpper === 'number' && !isNaN(d.uncertaintyUpper)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.uncertaintyUpper).toFixed(1)}`);
-  const lowerPoints = validData.slice().reverse().filter(d => typeof d.uncertaintyLower === 'number' && !isNaN(d.uncertaintyLower)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.uncertaintyLower).toFixed(1)}`);
+  const upperPoints = validData.filter(d => typeof d.uncertaintyUpper === 'number' && !isNaN(d.uncertaintyUpper)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.uncertaintyUpper!).toFixed(1)}`);
+  const lowerPoints = validData.slice().reverse().filter(d => typeof d.uncertaintyLower === 'number' && !isNaN(d.uncertaintyLower)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.uncertaintyLower!).toFixed(1)}`);
   const uncertaintyPath = (upperPoints.length > 0 && lowerPoints.length > 0) ? `M ${upperPoints.join(' L ')} L ${lowerPoints.join(' L ')} Z` : null;
 
   // Dynamic anomaly cliff region derived strictly from data
@@ -139,8 +213,8 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
             {/* Uncertainty Band */}
             {uncertaintyPath && <path d={uncertaintyPath} fill="rgba(139, 92, 246, 0.1)" />}
 
-            {/* Main Active Line from ClickHouse */}
-            {lineActive && <path d={`M ${lineActive}`} fill="none" stroke="var(--violet)" strokeWidth="3" />}
+            {/* Main Active Line from ClickHouse (broken over nulls) */}
+            {lineActivePath && <path d={lineActivePath} fill="none" stroke="var(--violet)" strokeWidth="3" />}
 
             {/* Data Points */}
             {validData.map((d, idx) => {
@@ -166,6 +240,20 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                 />
               );
             })}
+
+            {/* Insufficient sample notice overlay if cohort has no points */}
+            {!hasCohortPoints && (
+              <text
+                x={width / 2}
+                y={height / 2}
+                textAnchor="middle"
+                fill="var(--muted)"
+                fontSize="12"
+                fontWeight="600"
+              >
+                Insufficient sample for selected cohort
+              </text>
+            )}
 
             {/* Scrubber Interactivity Overlay */}
             <rect
@@ -207,7 +295,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
             )}
 
             {/* Hovered Point Marker */}
-            {hoveredPoint && typeof getCohortVal(hoveredPoint) === 'number' && !isNaN(getCohortVal(hoveredPoint)) && (
+            {hoveredPoint && typeof getCohortVal(hoveredPoint) === 'number' && !isNaN(getCohortVal(hoveredPoint)!) && (
               <g pointerEvents="none">
                 <line
                   x1={getX(hoveredPoint.timeMs)}
@@ -219,7 +307,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                 />
                 <circle
                   cx={getX(hoveredPoint.timeMs)}
-                  cy={getY(getCohortVal(hoveredPoint))}
+                  cy={getY(getCohortVal(hoveredPoint)!)}
                   r={6}
                   fill="var(--lime)"
                   stroke="var(--canvas)"
@@ -234,7 +322,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
             <div
               style={{
                 position: 'absolute',
-                top: `${getY(getCohortVal(hoveredPoint)) - 40}px`,
+                top: `${getCohortVal(hoveredPoint) !== null ? getY(getCohortVal(hoveredPoint)!) - 40 : padding.top}px`,
                 left: `${getX(hoveredPoint.timeMs)}px`,
                 transform: 'translate(-50%, -100%)',
                 backgroundColor: 'var(--surface-3)',
@@ -251,7 +339,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                 {hoveredPoint.timecode}
               </div>
               <div style={{ fontSize: '13px', fontWeight: 700, color: hoveredPoint.isAnomaly ? 'var(--coral)' : 'var(--text)' }} className="tabular-nums">
-                {selectedCohort === '18_24' ? hoveredPoint.cohort18_24 : selectedCohort === '25_34' ? hoveredPoint.cohort25_34 : hoveredPoint.allCohort}%
+                {getCohortVal(hoveredPoint) !== null ? `${getCohortVal(hoveredPoint)}%` : 'Insufficient Sample'}
                 {hoveredPoint.isAnomaly && <span style={{ fontSize: '10px', marginLeft: '4px' }}>CLIFF</span>}
               </div>
             </div>
@@ -282,9 +370,9 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                   onClick={() => onTimeSelect && onTimeSelect(d.timeMs)}
                 >
                   <td style={{ padding: '6px 8px', fontWeight: 600 }} className="tabular-nums">{d.timecode}</td>
-                  <td style={{ padding: '6px 8px', color: 'var(--violet)' }} className="tabular-nums">{d.allCohort}%</td>
-                  <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort18_24}%</td>
-                  <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort25_34}%</td>
+                  <td style={{ padding: '6px 8px', color: 'var(--violet)' }} className="tabular-nums">{d.allCohort !== null ? `${d.allCohort}%` : '—'}</td>
+                  <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort18_24 !== null ? `${d.cohort18_24}%` : '—'}</td>
+                  <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort25_34 !== null ? `${d.cohort25_34}%` : '—'}</td>
                   <td style={{ padding: '6px 8px' }}>
                     {d.isAnomaly ? (
                       <span style={{ color: 'var(--coral)', fontWeight: 700 }}>CLIFF ANOMALY</span>
