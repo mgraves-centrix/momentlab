@@ -25,10 +25,21 @@ if os.environ.get("GCP_LOCATION"):
 elif not os.environ.get("GOOGLE_CLOUD_LOCATION"):
     os.environ["GOOGLE_CLOUD_LOCATION"] = "us-central1"
 
+try:
+    from google.adk.tools import McpToolset
+    from google.adk.tools.mcp_tool.mcp_toolset import StdioConnectionParams
+    from mcp.client.stdio import StdioServerParameters
+except ImportError:
+    try:
+        from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
+        from mcp.client.stdio import StdioServerParameters
+    except ImportError:
+        McpToolset = None
+        StdioConnectionParams = None
+        StdioServerParameters = None
+
 from google.adk import Agent, Runner
 from google.adk.sessions import InMemorySessionService
-from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams
-from mcp.client.stdio import StdioServerParameters
 from google.genai.types import Content, Part
 from google.adk.events import Event
 
@@ -99,7 +110,7 @@ Respond strictly in valid JSON format with the following keys:
   - totalDurationMs: An integer representing total execution time.
   - steps: A list of objects containing name, status ("success"), and durationMs.
 - status: Must be "PROPOSED".
-- isSimulated: Must be false.
+- isSimulated: Must be true.
 """
     
     # Initialize agent

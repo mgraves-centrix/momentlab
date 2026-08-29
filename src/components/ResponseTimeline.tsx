@@ -50,8 +50,14 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
     return padding.top + chartHeight - ((s - minScore) / (maxScore - minScore)) * chartHeight;
   };
 
+  const getCohortVal = (d: TimelineDataPoint) => {
+    if (selectedCohort === '18_24') return d.cohort18_24;
+    if (selectedCohort === '25_34') return d.cohort25_34;
+    return d.allCohort;
+  };
+
   // Build line for active cohort series from ClickHouse
-  const lineActivePoints = validData.filter(d => typeof d.allCohort === 'number' && !isNaN(d.allCohort)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.allCohort).toFixed(1)}`);
+  const lineActivePoints = validData.filter(d => typeof getCohortVal(d) === 'number' && !isNaN(getCohortVal(d))).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(getCohortVal(d)).toFixed(1)}`);
   const lineActive = lineActivePoints.length > 0 ? lineActivePoints.join(' L ') : null;
 
   // Build uncertainty band polygon
@@ -59,9 +65,11 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
   const lowerPoints = validData.slice().reverse().filter(d => typeof d.uncertaintyLower === 'number' && !isNaN(d.uncertaintyLower)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.uncertaintyLower).toFixed(1)}`);
   const uncertaintyPath = (upperPoints.length > 0 && lowerPoints.length > 0) ? `M ${upperPoints.join(' L ')} L ${lowerPoints.join(' L ')} Z` : null;
 
-  // Anomaly cliff area (00:33 to 00:41)
-  const anomalyStartX = getX(33000);
-  const anomalyEndX = getX(41000);
+  // Dynamic anomaly cliff region derived strictly from data
+  const anomalyPoints = validData.filter(d => d.isAnomaly);
+  const hasAnomaly = anomalyPoints.length > 0;
+  const anomalyStartX = hasAnomaly ? getX(Math.min(...anomalyPoints.map(d => d.timeMs))) : 0;
+  const anomalyEndX = hasAnomaly ? getX(Math.max(...anomalyPoints.map(d => d.timeMs))) : 0;
 
   return (
     <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
@@ -89,9 +97,13 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--muted)' }}>
             <span style={{ display: 'inline-block', width: '12px', height: '3px', background: 'var(--violet)' }}></span>
-            <span>Retention</span>
-            <span style={{ display: 'inline-block', width: '12px', height: '12px', background: 'rgba(255, 102, 82, 0.2)', border: '1px solid var(--coral)', marginLeft: '8px' }}></span>
-            <span style={{ color: 'var(--coral)' }}>Cliff Anomaly</span>
+            <span>Retention ({selectedCohort === 'all' ? 'All' : selectedCohort === '18_24' ? '18–24' : '25–34'})</span>
+            {hasAnomaly && (
+              <>
+                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: 'rgba(255, 102, 82, 0.2)', border: '1px solid var(--coral)', marginLeft: '8px' }}></span>
+                <span style={{ color: 'var(--coral)' }}>Cliff Anomaly</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -110,17 +122,19 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
               </g>
             ))}
 
-            {/* Anomaly Cliff Highlight Region */}
-            <rect
-              x={anomalyStartX}
-              y={padding.top}
-              width={Math.max(0, anomalyEndX - anomalyStartX)}
-              height={chartHeight}
-              fill="rgba(255, 102, 82, 0.12)"
-              stroke="var(--coral)"
-              strokeDasharray="4 4"
-              strokeWidth="1"
-            />
+            {/* Anomaly Cliff Highlight Region (Rendered only when anomaly exists in data) */}
+            {hasAnomaly && (
+              <rect
+                x={anomalyStartX}
+                y={padding.top}
+                width={Math.max(4, anomalyEndX - anomalyStartX)}
+                height={chartHeight}
+                fill="rgba(255, 102, 82, 0.12)"
+                stroke="var(--coral)"
+                strokeDasharray="4 4"
+                strokeWidth="1"
+              />
+            )}
 
             {/* Uncertainty Band */}
             {uncertaintyPath && <path d={uncertaintyPath} fill="rgba(139, 92, 246, 0.1)" />}
@@ -130,7 +144,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
 
             {/* Data Points */}
             {validData.map((d, idx) => {
-              const val = d.allCohort;
+              const val = getCohortVal(d);
               if (typeof val !== 'number' || isNaN(val)) return null;
               const cx = getX(d.timeMs);
               const cy = getY(val);
@@ -193,7 +207,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
             )}
 
             {/* Hovered Point Marker */}
-            {hoveredPoint && typeof hoveredPoint.allCohort === 'number' && !isNaN(hoveredPoint.allCohort) && (
+            {hoveredPoint && typeof getCohortVal(hoveredPoint) === 'number' && !isNaN(getCohortVal(hoveredPoint)) && (
               <g pointerEvents="none">
                 <line
                   x1={getX(hoveredPoint.timeMs)}
@@ -205,7 +219,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                 />
                 <circle
                   cx={getX(hoveredPoint.timeMs)}
-                  cy={getY(hoveredPoint.allCohort)}
+                  cy={getY(getCohortVal(hoveredPoint))}
                   r={6}
                   fill="var(--lime)"
                   stroke="var(--canvas)"
@@ -220,7 +234,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
             <div
               style={{
                 position: 'absolute',
-                top: `${getY(hoveredPoint.allCohort) - 40}px`,
+                top: `${getY(getCohortVal(hoveredPoint)) - 40}px`,
                 left: `${getX(hoveredPoint.timeMs)}px`,
                 transform: 'translate(-50%, -100%)',
                 backgroundColor: 'var(--surface-3)',
