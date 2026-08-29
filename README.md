@@ -94,3 +94,10 @@ MomentLab includes a fully responsive mobile workflow for reviewing findings and
 - [Technology Compliance & Denylist Lock](docs/technology-compliance.md)
 - [Architecture Decision Records (ADR-001)](docs/decisions.md)
 
+---
+
+## ⚖️ License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+
