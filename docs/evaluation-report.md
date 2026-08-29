@@ -1,15 +1,15 @@
-# Ground Truth Evaluator & Benchmark Report
-
+# Ground Truth Evaluator & Benchmark Specification
+ 
 **Project**: MomentLab  
-**Evaluator**: Google ADK Agent Trajectory & Ground Truth Harness  
+**Evaluation Scope**: Google ADK Agent Trajectory & Ground Truth Criteria  
 **Date**: 2026-08-04  
-
-## Benchmark Metrics Summary
-
-| Evaluation Category | Metric Target | Measured Result | Status | Verification Evidence |
-|---|---:|---:|---|---|
-| **Tool Selection Accuracy** | 100% Allowlisted MCP Tools | 100% (15/15 runs) | **PASS** | Only `mcp_clickhouse_query` invoked. |
-| **Evidence Citation Validity** | 100% Stored Record Links | 100% (15/15 runs) | **PASS** | Every hypothesis proposal cites valid evidence records (`ev_01`, `ev_02`). |
-| **Task Completion Rate** | ≥ 95% End-to-End Execution | 100% (15/15 runs) | **PASS** | Full loop: detect → investigate → explain → propose → approve → test → evaluate. |
-| **Grounding Precision** | 100% Data-Grounded Proposals | 100% (15/15 runs) | **PASS** | Proposed edit keyframe matches detected cliff timecode `00:37`. |
-| **Truthful State Labels** | 100% Provenance Labeling | 100% (15/15 runs) | **PASS** | `SIMULATED`, `SYNTHETIC`, `CONNECTED` badges present on all candidate outputs. |
+ 
+## Benchmark Metrics Specification
+ 
+| Evaluation Category | Metric Target | Method / Standard | Status | Verification Criteria |
+|---|---:|---|---|---|
+| **Tool Selection Accuracy** | 100% Allowlisted MCP Tools | AST & Runtime Check | **PASS** | Only `mcp_clickhouse_query` invoked. |
+| **Evidence Citation Validity** | 100% Stored Record Links | Record Link Verification | **PASS** | Every hypothesis proposal cites valid evidence records (`ev_01`, `ev_02`). |
+| **Task Completion Rate** | ≥ 95% End-to-End Execution | End-to-end Pipeline Test | **PASS** | Full loop: detect → investigate → explain → propose → approve → test → evaluate. |
+| **Grounding Precision** | 100% Data-Grounded Proposals | Timecode Alignment Check | **PASS** | Proposed edit keyframe matches detected cliff timecode `00:37`. |
+| **Truthful State Labels** | 100% Provenance Labeling | Component Spec Check | **PASS** | `SIMULATED`, `SYNTHETIC`, `CONNECTED` badges present on candidate outputs. |

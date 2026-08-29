@@ -84,7 +84,7 @@
 grep -E "openai|anthropic|langchain|llamaindex|crewai|autogen|ollama" package.json requirements.txt
 
 # 2. Verify official ClickHouse MCP distribution reference
-grep "ClickHouse/mcp-clickhouse" docs/decisions.md backend/mcp/config.json
+grep "ClickHouse/mcp-clickhouse" docs/decisions.md backend/agents/mcp_client.py
 
 # 3. Verify Vertex AI project credentials
 gcloud config get-value project

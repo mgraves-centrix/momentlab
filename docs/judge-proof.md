@@ -12,7 +12,7 @@ This document maps the Agentic Cinema Hackathon judging criteria to concrete evi
 ## 2. Design & Usability (25%)
 **Does the application have an intuitive, professional, and accessible user interface?**
 
-* **Visual Fidelity**: MomentLab achieved a **99.2/100 Visual QA score** against the premium editorial workstation reference designs (see `docs/visual-qa.md`).
+* **Visual Fidelity**: MomentLab reconstructed the premium editorial workstation reference designs with faithful fidelity (see `docs/visual-qa.md`).
 * **Responsive Mobile Experience**: Rather than a clunky collapse of the desktop dashboard, MomentLab provides three dedicated mobile routes (`Finding`, `Evidence`, `Test`) with a native-feeling persistent bottom navigation.
 * **Accessibility**: The application conforms to WCAG 2.2 AA standards, ensuring keyboard-navigable charts, accessible tooltips, and appropriate contrast for the "dark mode" aesthetic.
 
