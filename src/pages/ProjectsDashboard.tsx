@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Star, ChevronRight, ChevronDown, LayoutGrid, List, ArrowRight, FlaskConical, MoreHorizontal, Loader2 } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
 import { NewProjectModal } from '../components/NewProjectModal';
@@ -10,6 +10,10 @@ export const ProjectsDashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'respondents'>('recent');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [starredProjects, setStarredProjects] = useState<Record<string, boolean>>({ proj_northlight_01: true });
+  const navigate = useNavigate();
   const isMobile = useMobile();
 
   useEffect(() => {
@@ -21,6 +25,26 @@ export const ProjectsDashboard: React.FC = () => {
       setIsLoading(false);
     });
   }, []);
+
+  const toggleStar = (projectId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setStarredProjects(prev => ({ ...prev, [projectId]: !prev[projectId] }));
+  };
+
+  const handleSortToggle = () => {
+    setSortBy(prev => prev === 'recent' ? 'name' : prev === 'name' ? 'respondents' : 'recent');
+  };
+
+  const sortedProjects = [...projects].sort((a, b) => {
+    if (sortBy === 'name') return a.title.localeCompare(b.title);
+    if (sortBy === 'respondents') {
+      const respA = a.total_respondents ?? a.totalRespondents ?? 0;
+      const respB = b.total_respondents ?? b.totalRespondents ?? 0;
+      return respB - respA;
+    }
+    return 0; // default order preserved from API (priority Northlight -> Echoes -> Below)
+  });
 
   const northlightProject = projects.find(p => p.project_id === 'proj_northlight_01');
   const northlightRespondents = northlightProject?.total_respondents ?? northlightProject?.totalRespondents ?? 527;
@@ -67,8 +91,11 @@ export const ProjectsDashboard: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <span style={{ fontWeight: 600, color: '#f1f3f2' }}>{projects.length} PROJECTS</span>
             <span style={{ color: '#283540' }}>|</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-              <span>Sort: <strong>Recently Updated</strong></span>
+            <div 
+              onClick={handleSortToggle}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none' }}
+            >
+              <span>Sort: <strong>{sortBy === 'recent' ? 'Recently Updated' : sortBy === 'name' ? 'Project Name' : 'Respondent Count'}</strong></span>
               <ChevronDown size={14} />
             </div>
           </div>
@@ -76,10 +103,16 @@ export const ProjectsDashboard: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>View:</span>
             <div style={{ display: 'flex', backgroundColor: '#11171c', border: '1px solid #202a31', borderRadius: '4px', padding: '2px' }}>
-              <button style={{ padding: '4px 6px', borderRadius: '4px', backgroundColor: '#1f2a33', color: '#fff', border: 'none' }}>
+              <button 
+                onClick={() => setViewMode('grid')}
+                style={{ padding: '4px 6px', borderRadius: '4px', backgroundColor: viewMode === 'grid' ? '#1f2a33' : 'transparent', color: viewMode === 'grid' ? '#fff' : '#8d979f', border: 'none', cursor: 'pointer' }}
+              >
                 <LayoutGrid size={14} />
               </button>
-              <button style={{ padding: '4px 6px', borderRadius: '4px', backgroundColor: 'transparent', color: '#8d979f', border: 'none' }}>
+              <button 
+                onClick={() => setViewMode('list')}
+                style={{ padding: '4px 6px', borderRadius: '4px', backgroundColor: viewMode === 'list' ? '#1f2a33' : 'transparent', color: viewMode === 'list' ? '#fff' : '#8d979f', border: 'none', cursor: 'pointer' }}
+              >
                 <List size={14} />
               </button>
             </div>
@@ -100,13 +133,23 @@ export const ProjectsDashboard: React.FC = () => {
                 <p>No projects found. Create one to get started.</p>
               </div>
             ) : (
-              projects.map(project => {
+              sortedProjects.map(project => {
                 const cutsCount = project.scene_count ?? project.sceneCount;
                 const respCount = project.total_respondents ?? project.totalRespondents;
                 const finding = project.latest_finding || project.latestFinding;
                 const status = project.status || (respCount ? 'ACTIVE' : 'DRAFT');
                 const screeningProg = project.screening_progress ?? project.screeningProgress;
                 const isReady = project.analysis_status === 'ANALYSIS READY' || finding;
+
+                const experimentId = project.project_id === 'proj_northlight_01'
+                  ? 'exp_23a'
+                  : project.project_id === 'proj_echoes_02'
+                  ? 'exp_echoes_01'
+                  : project.project_id === 'proj_below_03'
+                  ? 'exp_below_01'
+                  : `exp_${project.project_id.replace('proj_', '')}`;
+
+                const experimentUrl = `/projects/${project.project_id}/experiments/${experimentId}/finding`;
 
                 return (
                   <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '10px', overflow: 'hidden' }}>
@@ -131,7 +174,13 @@ export const ProjectsDashboard: React.FC = () => {
                               <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                                 {project.title}
                               </h2>
-                              <Star size={14} color="#8d979f" style={{ cursor: 'pointer' }} />
+                              <Star 
+                                size={14} 
+                                color={starredProjects[project.project_id] ? "#ffd700" : "#8d979f"} 
+                                fill={starredProjects[project.project_id] ? "#ffd700" : "none"}
+                                onClick={(e) => toggleStar(project.project_id, e)}
+                                style={{ cursor: 'pointer' }} 
+                              />
                             </div>
                             <span style={{
                               backgroundColor: status === 'ACTIVE' ? 'rgba(88, 201, 75, 0.15)' : 'rgba(141, 151, 159, 0.15)',
@@ -161,7 +210,7 @@ export const ProjectsDashboard: React.FC = () => {
 
                           <div>
                             <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">
-                              {respCount != null ? respCount.toLocaleString() : '—'}
+                              {respCount != null ? respCount.toLocaleString() : '0'}
                             </div>
                             <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respondents</div>
                           </div>
@@ -191,7 +240,7 @@ export const ProjectsDashboard: React.FC = () => {
                           </div>
 
                           <Link
-                            to={`/projects/${project.project_id}/experiments/exp_23a/finding`}
+                            to={experimentUrl}
                             style={{
                               backgroundColor: '#b7e33d',
                               color: '#080b0e',
@@ -205,7 +254,7 @@ export const ProjectsDashboard: React.FC = () => {
                               gap: '6px'
                             }}
                           >
-                            <span>OPEN EXPERIMENT</span>
+                            <span>{isReady ? 'OPEN EXPERIMENT' : respCount ? 'VIEW SCREENING' : 'OPEN EXPERIMENT'}</span>
                             <ChevronRight size={14} strokeWidth={2.5} />
                           </Link>
                         </div>
@@ -227,8 +276,8 @@ export const ProjectsDashboard: React.FC = () => {
                         <div style={{ width: '120px', height: '6px', backgroundColor: '#172027', borderRadius: '3px', overflow: 'hidden' }}>
                           <div style={{ width: `${screeningProg != null ? screeningProg : 0}%`, height: '100%', backgroundColor: '#8b5cf6' }} />
                         </div>
-                        <span style={{ color: '#fff', fontWeight: 600 }}>{screeningProg != null ? `${screeningProg}%` : '—'}</span>
-                        <MoreHorizontal size={14} color="#8d979f" style={{ marginLeft: '8px', cursor: 'pointer' }} />
+                        <span style={{ color: '#fff', fontWeight: 600 }}>{screeningProg != null ? `${screeningProg}%` : '0%'}</span>
+                        <MoreHorizontal size={14} color="#8d979f" style={{ marginLeft: '8px', cursor: 'pointer' }} onClick={() => navigate(experimentUrl)} />
                       </div>
                     </div>
                   </div>
@@ -249,7 +298,7 @@ export const ProjectsDashboard: React.FC = () => {
                   </h3>
                   <span style={{ backgroundColor: '#1b2630', color: '#8d979f', fontSize: '10px', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>1</span>
                 </div>
-                <ArrowRight size={14} color="#8d979f" style={{ cursor: 'pointer' }} />
+                <ArrowRight size={14} color="#8d979f" onClick={() => navigate('/projects/proj_northlight_01/experiments/exp_23a/finding')} style={{ cursor: 'pointer' }} />
               </div>
 
               {/* Experiment Card */}
@@ -316,7 +365,7 @@ export const ProjectsDashboard: React.FC = () => {
                 <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
                   RECENT AGENT RUNS
                 </h3>
-                <span style={{ fontSize: '11px', color: '#8d979f', cursor: 'pointer' }}>View all</span>
+                <span onClick={() => navigate('/projects/proj_northlight_01/experiments/exp_23a/evidence')} style={{ fontSize: '11px', color: '#8d979f', cursor: 'pointer' }}>View all</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '11px' }}>
@@ -366,6 +415,7 @@ export const ProjectsDashboard: React.FC = () => {
               </div>
 
               <button
+                onClick={() => navigate('/admin/demo')}
                 style={{
                   width: '100%',
                   backgroundColor: '#121a21',
