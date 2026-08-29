@@ -144,8 +144,14 @@ export async function fetchExperimentHypothesis(projectId: string, experimentId:
 }
 
 export async function approveHypothesis(projectId: string, experimentId: string): Promise<Hypothesis> {
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('reviewer_token') : null;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/test/approve`, {
-    method: 'POST'
+    method: 'POST',
+    headers
   });
   if (!res.ok) throw new Error('Failed to approve hypothesis');
   return await res.json();

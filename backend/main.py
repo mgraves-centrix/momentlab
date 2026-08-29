@@ -70,14 +70,6 @@ def health_check():
         res["error"] = db_health["error"]
     return res
 
-@app.get("/api/v1/config")
-def get_client_config():
-    raw_tokens = os.environ.get("REVIEWER_TOKENS", "")
-    tokens = [t.strip() for t in raw_tokens.split(",") if t.strip()]
-    return {
-        "reviewer_token": tokens[0] if tokens else ""
-    }
-
 @app.post("/api/v1/screenings/consent", response_model=ConsentRecord)
 def register_screening_consent(consent: ConsentRecord):
     """

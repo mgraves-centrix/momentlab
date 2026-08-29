@@ -19,6 +19,8 @@ export const CreateAbTestPage: React.FC = () => {
   const [selectedVariant, setSelectedVariant] = useState<'A' | 'B'>('B');
   const [allocation, setAllocation] = useState<number>(50); // 50/50
   const [consentAcknowledged, setConsentAcknowledged] = useState<boolean>(false);
+  const [reviewerToken, setReviewerToken] = useState<string>(() => sessionStorage.getItem('reviewer_token') || '');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState<boolean>(false);
   const [auditId, setAuditId] = useState<string | null>(null);
 
@@ -35,29 +37,51 @@ export const CreateAbTestPage: React.FC = () => {
     }
   }, [projectId, experimentId]);
 
+  const handleTokenChange = (val: string) => {
+    setReviewerToken(val);
+    if (val.trim()) {
+      sessionStorage.setItem('reviewer_token', val.trim());
+    } else {
+      sessionStorage.removeItem('reviewer_token');
+    }
+    if (status === 'DENIED') setStatus('PENDING');
+    setErrorMessage(null);
+  };
+
   const handleApproveAndLaunch = async () => {
-    if (!projectId || !experimentId || !consentAcknowledged) return;
+    const token = sessionStorage.getItem('reviewer_token')?.trim();
+    if (!projectId || !experimentId || !consentAcknowledged || !token) {
+      setErrorMessage("Reviewer sign-in required before launch.");
+      return;
+    }
     setIsApproving(true);
+    setErrorMessage(null);
     try {
-      const configRes = await fetch('/api/v1/config');
-      const config = await configRes.json();
       const res = await fetch(`/api/v1/projects/${projectId}/experiments/${experimentId}:approve`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${config.reviewer_token}`,
+          'Authorization': `Bearer ${sessionStorage.getItem('reviewer_token')}`,
           'Content-Type': 'application/json'
         }
       });
-      if (!res.ok) throw new Error("Approval failed");
+      if (!res.ok) {
+        let errMsg = `Approval failed (HTTP ${res.status})`;
+        try {
+          const errData = await res.json();
+          if (errData.detail) errMsg = errData.detail;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
       const data = await res.json();
       setAuditId(data.audit_id || 'audit_confirmed');
       setStatus('APPROVED');
       setTimeout(() => {
         navigate(`/projects/${projectId}/experiments/${experimentId}/results${location.search}`);
       }, 1400);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Approval error:", e);
       setStatus('DENIED');
+      setErrorMessage(e.message || "Reviewer authorization failed. Invalid token.");
     } finally {
       setIsApproving(false);
     }
@@ -251,16 +275,64 @@ export const CreateAbTestPage: React.FC = () => {
 
             {/* Human Approval Gate Box */}
             <div style={{ backgroundColor: '#0c1115', border: '1px solid rgba(183, 227, 61, 0.3)', borderRadius: '8px', padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <Lock size={16} color="var(--lime)" />
-                <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', margin: 0 }}>
-                  HUMAN AUTHORIZATION GATE
-                </h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Lock size={16} color="var(--lime)" />
+                  <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', margin: 0 }}>
+                    HUMAN AUTHORIZATION GATE
+                  </h3>
+                </div>
+                {reviewerToken.trim() ? (
+                  <span style={{ fontSize: '10px', color: '#58c94b', backgroundColor: '#111b15', border: '1px solid #1f3a28', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                    REVIEWER SIGNED IN
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '10px', color: '#ff654a', backgroundColor: '#211210', border: '1px solid #4a201c', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                    SIGN-IN REQUIRED
+                  </span>
+                )}
               </div>
               
               <p style={{ fontSize: '12px', color: '#8d979f', lineHeight: 1.5, marginBottom: '16px' }}>
                 Deploying this experiment will route live screening participants between Control Cut A and Variant Cut B according to the configured 50/50 allocation.
               </p>
+
+              {/* Reviewer Sign-In Control */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.04em' }}>
+                  Reviewer Authorization Token (Session Only)
+                </label>
+                <input
+                  type="password"
+                  placeholder="Enter reviewer secret token..."
+                  value={reviewerToken}
+                  onChange={(e) => handleTokenChange(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    backgroundColor: '#131b22',
+                    border: '1px solid ' + (errorMessage ? '#ff654a' : reviewerToken.trim() ? '#283540' : '#ff654a'),
+                    borderRadius: '6px',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    outline: 'none',
+                    fontFamily: 'monospace',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {!reviewerToken.trim() && !errorMessage && (
+                  <div style={{ marginTop: '6px', fontSize: '11px', color: '#f2b84b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <AlertCircle size={12} />
+                    <span>Reviewer sign-in required to authorize live traffic deployment.</span>
+                  </div>
+                )}
+                {errorMessage && (
+                  <div style={{ marginTop: '6px', fontSize: '11px', color: '#ff654a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <AlertCircle size={12} />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+              </div>
 
               {/* Consent Checkbox */}
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12px', color: '#f1f3f2', cursor: 'pointer', marginBottom: '20px', userSelect: 'none' }}>
@@ -276,11 +348,11 @@ export const CreateAbTestPage: React.FC = () => {
               {/* Launch CTA */}
               <button
                 onClick={handleApproveAndLaunch}
-                disabled={!consentAcknowledged || isApproving || status === 'APPROVED'}
+                disabled={!consentAcknowledged || !reviewerToken.trim() || isApproving || status === 'APPROVED'}
                 style={{
                   width: '100%',
-                  backgroundColor: consentAcknowledged && status !== 'APPROVED' ? 'var(--lime)' : '#1c2630',
-                  color: consentAcknowledged && status !== 'APPROVED' ? '#080b0e' : '#5b6670',
+                  backgroundColor: (consentAcknowledged && reviewerToken.trim() && status !== 'APPROVED') ? 'var(--lime)' : '#1c2630',
+                  color: (consentAcknowledged && reviewerToken.trim() && status !== 'APPROVED') ? '#080b0e' : '#5b6670',
                   border: 'none',
                   padding: '14px',
                   borderRadius: '6px',
@@ -290,7 +362,7 @@ export const CreateAbTestPage: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  cursor: consentAcknowledged && status !== 'APPROVED' ? 'pointer' : 'not-allowed',
+                  cursor: (consentAcknowledged && reviewerToken.trim() && status !== 'APPROVED') ? 'pointer' : 'not-allowed',
                   letterSpacing: '0.04em',
                   transition: 'all 0.2s ease'
                 }}
