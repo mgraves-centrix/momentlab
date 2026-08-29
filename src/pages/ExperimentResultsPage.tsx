@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
+import { StatePanel } from '../components/StatePanel';
+import { useMobile } from '../hooks/useMobile';
 import { 
   Download, ChevronRight, Sparkles, Calendar, Info, AlertTriangle, Play, Pause 
 } from 'lucide-react';
@@ -143,21 +146,32 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-import { useMobile } from '../hooks/useMobile';
-
 export const ExperimentResultsPage: React.FC = () => {
+  const { projectId: routeProjectId, experimentId: routeExperimentId } = useParams<{ projectId?: string; experimentId?: string }>();
+  const projectId = routeProjectId || 'proj_northlight_01';
+  const experimentId = routeExperimentId || 'exp_23a';
+  const navigate = useNavigate();
+
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
   const [activeTab, setActiveTab] = useState<'SUPPORTED' | 'REJECTED' | 'INCONCLUSIVE'>('SUPPORTED');
   const isMobile = useMobile();
 
-  const sampleVideoUrl = "/frames/northlight/scene.mp4";
+  const sampleVideoUrl = projectId === 'proj_echoes_02' 
+    ? "/frames/echoes_of_salt/scene.mp4" 
+    : "/frames/northlight/scene.mp4";
+  const posterControl = projectId === 'proj_echoes_02'
+    ? "/frames/echoes_of_salt/poster.png"
+    : "/frames/cut_a_control.png";
+  const posterVariant = projectId === 'proj_echoes_02'
+    ? "/frames/echoes_of_salt/poster.png"
+    : "/frames/cut_b_variant.png";
 
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const res = await fetch('/api/v1/projects/proj_northlight_01/experiments/exp_23a/results');
+        const res = await fetch(`/api/v1/projects/${projectId}/experiments/${experimentId}/results`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -169,7 +183,7 @@ export const ExperimentResultsPage: React.FC = () => {
       }
     };
     fetchResults();
-  }, []);
+  }, [projectId, experimentId]);
 
   const handleInfoHover = (e: React.MouseEvent, text: string) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -179,7 +193,7 @@ export const ExperimentResultsPage: React.FC = () => {
   const handleInfoLeave = () => setHoverInfo(null);
 
   const handleExportCSV = () => {
-    if (!data) return;
+    if (!data || !data.cohort_breakdown) return;
     let csv = "Cohort,Cut A,Cut B,Lift,95% CI,Confidence\n";
     data.cohort_breakdown.forEach((c: any) => {
       csv += `${c.cohort},${c.cut_a}%,${c.cut_b}%,+${c.lift}%,${c.ci},${c.confidence}%\n`;
@@ -189,21 +203,31 @@ export const ExperimentResultsPage: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'experiment_results.csv';
+    a.download = `${projectId}_${experimentId}_results.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
 
   const handleCreateFollowUp = () => {
-    alert("Follow-up Hypothesis Created! (Demo)");
+    navigate(`/projects/${projectId}/experiments/${experimentId}/finding?follow_up=1`);
   };
 
   if (loading) {
     return <AppShell><div style={{ padding: '32px', color: '#fff' }}>Loading results...</div></AppShell>;
   }
 
-  if (!data) {
-    return <AppShell><div style={{ padding: '32px', color: '#fff' }}>Failed to load results.</div></AppShell>;
+  if (!data || Object.keys(data).length === 0 || !data.hypothesis) {
+    return (
+      <AppShell>
+        <div style={{ maxWidth: '1000px', margin: '40px auto', padding: '0 24px' }}>
+          <StatePanel
+            type="no_projects"
+            message="This project has not completed an authorized A/B test run. Complete a screening to gather audience responses and launch an experiment."
+            onRetry={() => navigate(`/screen/tok_${projectId.replace('proj_', '')}`)}
+          />
+        </div>
+      </AppShell>
+    );
   }
 
   const {
@@ -211,6 +235,10 @@ export const ExperimentResultsPage: React.FC = () => {
     sample_size_control, sample_size_variant, cohort_breakdown, engagement_over_time, engagement_lift_distribution,
     key_results, metadata
   } = data;
+
+  const supportedCount = outcome === 'SUPPORTED' ? 1 : 0;
+  const rejectedCount = outcome === 'REJECTED' ? 1 : 0;
+  const inconclusiveCount = outcome === 'INCONCLUSIVE' ? 1 : 0;
 
   return (
     <AppShell>
@@ -338,13 +366,13 @@ export const ExperimentResultsPage: React.FC = () => {
         {/* Tab Row */}
         <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid #1c2630', marginBottom: '24px' }}>
           <div onClick={() => setActiveTab('SUPPORTED')} style={{ paddingBottom: '12px', borderBottom: activeTab === 'SUPPORTED' ? '2px solid #b7e33d' : 'none', color: activeTab === 'SUPPORTED' ? '#ffffff' : '#8d979f', fontSize: '11px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}>
-            SUPPORTED (1)
+            SUPPORTED ({supportedCount})
           </div>
           <div onClick={() => setActiveTab('REJECTED')} style={{ paddingBottom: '12px', borderBottom: activeTab === 'REJECTED' ? '2px solid #b7e33d' : 'none', color: activeTab === 'REJECTED' ? '#ffffff' : '#8d979f', fontSize: '11px', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.04em' }}>
-            REJECTED (0)
+            REJECTED ({rejectedCount})
           </div>
           <div onClick={() => setActiveTab('INCONCLUSIVE')} style={{ paddingBottom: '12px', borderBottom: activeTab === 'INCONCLUSIVE' ? '2px solid #b7e33d' : 'none', color: activeTab === 'INCONCLUSIVE' ? '#ffffff' : '#8d979f', fontSize: '11px', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.04em' }}>
-            INCONCLUSIVE (0)
+            INCONCLUSIVE ({inconclusiveCount})
           </div>
         </div>
 
@@ -369,19 +397,24 @@ export const ExperimentResultsPage: React.FC = () => {
                   
                   <VideoPlayerWithTimeline 
                     src={sampleVideoUrl}
-                    poster="/frames/cut_a_control.png"
+                    poster={posterControl}
                     revealTime={43}
                     simulatedDuration={138}
                   />
                 </div>
 
                 <div style={{ padding: '16px' }}>
-                  <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px', textTransform: 'uppercase' }}>CUT B (VARIANT)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase' }}>CUT B (VARIANT)</div>
+                    <span style={{ backgroundColor: 'rgba(196, 167, 255, 0.15)', color: '#c4a7ff', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '3px', border: '1px solid rgba(196, 167, 255, 0.3)' }}>
+                      SYNTHETIC PREVIEW
+                    </span>
+                  </div>
                   <div style={{ fontSize: '12px', color: '#b7e33d', marginBottom: '12px' }}>{hypothesis || "Move reveal 6s earlier"} — Reveal at 00:37</div>
                   
                   <VideoPlayerWithTimeline 
                     src={sampleVideoUrl}
-                    poster="/frames/cut_b_variant.png"
+                    poster={posterVariant}
                     revealTime={37}
                     simulatedDuration={138}
                     highlightColor="#b7e33d"
