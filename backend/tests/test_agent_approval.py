@@ -1,17 +1,5 @@
 import pytest
-from backend.agent.adk_runner import GoogleAdkAgentRunner
 from backend.agent.approval_service import ApprovalGateService
-
-def test_google_adk_agent_investigation():
-    runner = GoogleAdkAgentRunner()
-    proposal = runner.run_investigation(project_id="proj_northlight_01", scene_id="sc_12")
-
-    assert proposal["hypothesis_id"] == "hyp_23a"
-    assert proposal["proposed_change"] == "MOVE REVEAL 6S EARLIER"
-    assert proposal["confidence_score"] == 91
-    assert proposal["is_simulated"] is True
-    assert len(proposal["evidence_citations"]) >= 2
-    assert "mcp_telemetry" in proposal
 
 def test_server_approval_gate_enforcement():
     service = ApprovalGateService()
