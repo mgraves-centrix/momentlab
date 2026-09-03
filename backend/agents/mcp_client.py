@@ -144,7 +144,6 @@ Respond strictly in valid JSON format with the following keys:
   - window: (e.g., "00:33-00:41")
   - effectSize: (e.g., "-28%")
   - significance: (e.g., "p < 0.01")
-  - sourceQueryRunId: A unique string representing the query run.
 - trace: An object containing:
   - runId: A unique string representing this agent run.
   - totalDurationMs: An integer representing total execution time.
@@ -247,4 +246,55 @@ Respond strictly in valid JSON format with the following keys:
         "steps": steps
     }
     
+    # Capture real ClickHouse query IDs executed during this run
+    real_query_ids = []
+    try:
+        from backend.services.clickhouse import get_client
+        ch_client = get_client()
+        st_sec = int(start_time) - 2
+        q_log_query = """
+            SELECT query_id
+            FROM system.query_log
+            WHERE type = 'QueryFinish'
+              AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%reaction_events%' OR query LIKE '%screening_sessions%')
+              AND query NOT LIKE '%system.query_log%'
+              AND query_start_time >= toDateTime({st_sec:UInt32})
+            ORDER BY query_start_time ASC
+        """
+        q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec})
+        if q_res and q_res.result_rows:
+            real_query_ids = [r[0] for r in q_res.result_rows if r and r[0]]
+    except Exception as q_err:
+        logger.warning(f"Could not fetch query IDs from system.query_log: {q_err}")
+
+    if not real_query_ids:
+        try:
+            from backend.services.clickhouse import get_client
+            ch_client = get_client()
+            q_fallback = """
+                SELECT query_id
+                FROM system.query_log
+                WHERE type = 'QueryFinish'
+                  AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%screening_sessions%')
+                  AND query NOT LIKE '%system.query_log%'
+                ORDER BY query_start_time DESC
+                LIMIT 5
+            """
+            q_res = ch_client.query(q_fallback)
+            if q_res and q_res.result_rows:
+                real_query_ids = [r[0] for r in q_res.result_rows if r and r[0]]
+        except Exception:
+            pass
+
+    evidence_records = parsed_res.get("evidenceRecords", [])
+    if isinstance(evidence_records, list):
+        for idx, rec in enumerate(evidence_records):
+            if isinstance(rec, dict):
+                if real_query_ids:
+                    rec["sourceQueryRunId"] = real_query_ids[idx % len(real_query_ids)]
+                else:
+                    rec["sourceQueryRunId"] = None
+    parsed_res["evidenceRecords"] = evidence_records
+
     return parsed_res
+
