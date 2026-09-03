@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import sys
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -9,6 +10,11 @@ from dotenv import load_dotenv
 
 logger = logging.getLogger("momentlab.agents.mcp_client")
 logger.setLevel(logging.INFO)
+if not logger.handlers:
+    _ch = logging.StreamHandler(sys.stdout)
+    _ch.setLevel(logging.INFO)
+    _ch.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+    logger.addHandler(_ch)
 
 # Load environment variables from repo root .env
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -268,12 +274,6 @@ Respond strictly in valid JSON format with the following keys:
         from backend.services.clickhouse import get_client
         ch_client = get_client()
 
-        # Attempt to flush logs before querying
-        try:
-            ch_client.query("SYSTEM FLUSH LOGS")
-        except Exception as f_err:
-            logger.debug(f"SYSTEM FLUSH LOGS call error: {f_err}")
-
         q_log_query = """
             SELECT query_id, query, read_rows, query_duration_ms, tables, query_start_time
             FROM system.query_log
@@ -298,6 +298,12 @@ Respond strictly in valid JSON format with the following keys:
             poll_iter += 1
             curr_en_sec = max(en_sec, int(time.time()) + 2)
             curr_en_iso = datetime.fromtimestamp(curr_en_sec, tz=timezone.utc).isoformat()
+
+            # Flush query logs on every poll iteration
+            try:
+                ch_client.query("SYSTEM FLUSH LOGS")
+            except Exception as f_err:
+                logger.warning(f"[PROVENANCE_DEBUG] SYSTEM FLUSH LOGS call error: {f_err}")
 
             q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec, 'en_sec': curr_en_sec})
             found = []
