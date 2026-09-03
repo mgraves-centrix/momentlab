@@ -15,11 +15,14 @@ def setup_test_clickhouse_db():
     Guarantees default pytest run writes ZERO rows to momentlab (production).
     Fails loudly if database setup fails.
     """
-    os.environ["CLICKHOUSE_DB"] = "momentlab_test"
-    os.environ["CLICKHOUSE_DATABASE"] = "momentlab_test"
     try:
-        init_client = get_client(database="default")
+        os.environ["CLICKHOUSE_DB"] = "momentlab"
+        os.environ["CLICKHOUSE_DATABASE"] = "momentlab"
+        init_client = get_client()
         init_client.query("CREATE DATABASE IF NOT EXISTS momentlab_test")
+
+        os.environ["CLICKHOUSE_DB"] = "momentlab_test"
+        os.environ["CLICKHOUSE_DATABASE"] = "momentlab_test"
 
         client = get_client(database="momentlab_test")
         
