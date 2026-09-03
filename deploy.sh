@@ -35,12 +35,12 @@ export CLOUDSDK_CORE_ACCOUNT="${GCP_ACCOUNT}"
 
 # ClickHouse & Runtime Settings (non-secret values)
 CH_HOST="${CLICKHOUSE_REMOTE_HOST:-nk8zetjq1w.us-east1.gcp.clickhouse.cloud}"
-CH_PORT="${CLICKHOUSE_PORT:-8443}"
-CH_USER="${CLICKHOUSE_USER:-momentlab_writer}"
-CH_DB="${CLICKHOUSE_DATABASE:-${CLICKHOUSE_DB:-momentlab}}"
-CH_SECURE="${CLICKHOUSE_SECURE:-true}"
-CH_WRITER_USER="${CLICKHOUSE_WRITER_USER:-momentlab_writer}"
-CH_MCP_USER="${CLICKHOUSE_MCP_USER:-momentlab_mcp_reader}"
+CH_PORT="8443"
+CH_USER="momentlab_writer"
+CH_DB="momentlab"
+CH_SECURE="true"
+CH_WRITER_USER="momentlab_writer"
+CH_MCP_USER="momentlab_mcp_reader"
 
 echo "=== MomentLab GCP Cloud Run Deployment ==="
 echo "Project ID: ${PROJECT_ID}"
