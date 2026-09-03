@@ -198,6 +198,7 @@ async def get_recent_queries():
         client = get_client()
         query = """
             SELECT 
+                query_id,
                 query_start_time,
                 query,
                 read_rows,
@@ -213,22 +214,25 @@ async def get_recent_queries():
         queries = []
         for row in result.result_rows:
             queries.append({
-                "timestamp": row[0].isoformat() if hasattr(row[0], 'isoformat') else str(row[0]),
-                "query": " ".join(str(row[1]).split()),
-                "rows": int(row[2]),
-                "duration_ms": int(row[3])
+                "query_id": row[0],
+                "timestamp": row[1].isoformat() if hasattr(row[1], 'isoformat') else str(row[1]),
+                "query": " ".join(str(row[2]).split()),
+                "rows": int(row[3]),
+                "duration_ms": int(row[4])
             })
         
         # Cold start fallback to deterministic evidence lineage queries if query_log empty
         if not queries:
             queries = [
                 {
+                    "query_id": None,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "query": "SELECT media_time_ms, count() AS sample_size, quantile(0.5)(retention_score) * 100 AS retention_median FROM momentlab.audience_events WHERE scene_id = 'sc_12' GROUP BY media_time_ms ORDER BY media_time_ms ASC",
                     "rows": 30358,
                     "duration_ms": 7
                 },
                 {
+                    "query_id": None,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "query": "SELECT toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket, count() as total_events, avg(ae.retention_score) as avg_value FROM momentlab.audience_events ae INNER JOIN momentlab.screening_sessions ss ON ae.session_id = ss.session_id WHERE ae.project_id = 'proj_northlight_01' AND ae.experiment_id = 'exp_23a' GROUP BY time_bucket ORDER BY time_bucket",
                     "rows": 30358,
@@ -242,6 +246,43 @@ async def get_recent_queries():
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Telemetry query log unavailable: {str(e)}"
         )
+
+@router.get("/queries/{query_id}")
+async def get_query_by_id(query_id: str):
+    try:
+        from backend.services.clickhouse import get_client
+        client = get_client()
+        query = """
+            SELECT 
+                query_id,
+                query_start_time,
+                query,
+                read_rows,
+                query_duration_ms
+            FROM system.query_log
+            WHERE query_id = {query_id:String}
+            LIMIT 1
+        """
+        result = client.query(query, parameters={'query_id': query_id})
+        if result.result_rows:
+            row = result.result_rows[0]
+            return {
+                "query_id": row[0],
+                "timestamp": row[1].isoformat() if hasattr(row[1], 'isoformat') else str(row[1]),
+                "query": str(row[2]),
+                "rows": int(row[3]),
+                "duration_ms": int(row[4])
+            }
+        raise HTTPException(status_code=404, detail="Query ID not found in system log")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error fetching query by ID %s: %s", query_id, e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Telemetry query log lookup unavailable: {str(e)}"
+        )
+
 
 @router.get("/summary")
 async def get_summary(project_id: str, experiment_id: str):
