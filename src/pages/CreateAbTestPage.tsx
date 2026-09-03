@@ -152,7 +152,7 @@ export const CreateAbTestPage: React.FC = () => {
               <CutComparison
                 controlRevealMs={43000}
                 variantRevealMs={37000}
-                hypothesis={hypothesis?.proposedChange || "Move reveal 6s earlier"}
+                hypothesis={hypothesis?.proposedChange || "unavailable"}
                 onSelectVariant={(v) => setSelectedVariant(v)}
               />
             </div>
@@ -198,7 +198,7 @@ export const CreateAbTestPage: React.FC = () => {
                 <div style={{ padding: '14px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
                   <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>MINIMUM SAMPLE SIZE & POWER</div>
                   <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f3f2', marginBottom: '4px' }} className="tabular-nums">
-                    N = {((summaryData?.total_respondents || 525) * 2).toLocaleString()} (Target: Cut {selectedVariant})
+                    N = {summaryData?.total_respondents != null ? (summaryData.total_respondents * 2).toLocaleString() : 'unavailable'} (Target: Cut {selectedVariant})
                   </div>
                   <div style={{ fontSize: '11px', color: '#8d979f' }}>
                     80% statistical power at &alpha; = 0.05 for minimum detectable effect of 3.5%.
@@ -265,19 +265,19 @@ export const CreateAbTestPage: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', backgroundColor: '#131b22', borderRadius: '4px', border: '1px solid #1c2630' }}>
                   <span style={{ fontSize: '12px', color: '#8d979f' }}>Projected Engagement Lift</span>
                   <span style={{ fontSize: '14px', fontWeight: 800, color: '#58c94b' }} className="tabular-nums">
-                    {hypothesis?.forecastEngagement || "+18%"}
+                    {hypothesis?.forecastEngagement || "—"}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', backgroundColor: '#131b22', borderRadius: '4px', border: '1px solid #1c2630' }}>
                   <span style={{ fontSize: '12px', color: '#8d979f' }}>Projected Completion</span>
                   <span style={{ fontSize: '14px', fontWeight: 800, color: '#58c94b' }} className="tabular-nums">
-                    {hypothesis?.forecastCompletion || "+9%"}
+                    {hypothesis?.forecastCompletion || "—"}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', backgroundColor: '#131b22', borderRadius: '4px', border: '1px solid #1c2630' }}>
                   <span style={{ fontSize: '12px', color: '#8d979f' }}>Confusion Change</span>
                   <span style={{ fontSize: '14px', fontWeight: 800, color: '#c4a7ff' }} className="tabular-nums">
-                    {hypothesis?.forecastConfusion || "-4%"}
+                    {hypothesis?.forecastConfusion || "—"}
                   </span>
                 </div>
               </div>
