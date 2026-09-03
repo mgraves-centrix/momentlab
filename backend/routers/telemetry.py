@@ -328,10 +328,10 @@ async def get_summary(project_id: str, experiment_id: str):
         anomaly_window = None
         
         try:
-            from backend.services.db import get_db
-            db = get_db()
-            if db:
-                hyp_doc = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current').get()
+            from backend.services import db as db_svc
+            firestore_db = db_svc.get_db()
+            if firestore_db:
+                hyp_doc = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current').get()
                 if hyp_doc.exists:
                     h_data = hyp_doc.to_dict()
                     confidence = h_data.get('confidenceScore')

@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from google.cloud import storage
-from backend.services.db import get_db
+from backend.services import db
 from backend.schemas.models import Project
 from backend.auth_deps import get_current_reviewer
 
@@ -39,8 +39,8 @@ PROJECT_MEDIA = {
 @router.get("", response_model=List[Project])
 def list_projects():
     """Lists all active projects with canonical demo projects ordered first."""
-    db = get_db()
-    projects_ref = db.collection('projects')
+    client = db.get_db()
+    projects_ref = client.collection('projects')
     docs = projects_ref.stream()
     
     # Query ClickHouse for distinct respondents and scenes per project if available
@@ -96,7 +96,7 @@ def list_projects():
 @router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
 def create_project(req: CreateProjectRequest, reviewer_id: str = Depends(get_current_reviewer)):
     """Creates a new workspace project."""
-    db = get_db()
+    client = db.get_db()
     project_id = f"proj_{uuid.uuid4().hex[:8]}"
     
     project = Project(
@@ -106,14 +106,14 @@ def create_project(req: CreateProjectRequest, reviewer_id: str = Depends(get_cur
         owner_id=req.owner_id
     )
     
-    db.collection('projects').document(project_id).set(project.model_dump(mode='json'))
+    client.collection('projects').document(project_id).set(project.model_dump(mode='json'))
     return project
 
 @router.get("/{project_id}", response_model=Project)
 def get_project(project_id: str):
     """Retrieves project details by ID."""
-    db = get_db()
-    doc_ref = db.collection('projects').document(project_id)
+    client = db.get_db()
+    doc_ref = client.collection('projects').document(project_id)
     doc = doc_ref.get()
     
     if not doc.exists:
@@ -157,8 +157,8 @@ def get_project(project_id: str):
 @router.delete("/{project_id}", status_code=status.HTTP_200_OK)
 def delete_project(project_id: str, reviewer_id: str = Depends(get_current_reviewer)):
     """Deletes a workspace project."""
-    db = get_db()
-    doc_ref = db.collection('projects').document(project_id)
+    client = db.get_db()
+    doc_ref = client.collection('projects').document(project_id)
     doc = doc_ref.get()
     
     if not doc.exists:
@@ -179,8 +179,8 @@ def _get_media_bucket_name():
 @router.post("/{project_id}/media", response_model=SignedUrlResponse)
 def generate_upload_url(project_id: str, filename: str, content_type: str):
     """Generates a V4 signed URL for uploading video media to GCS."""
-    db = get_db()
-    if not db.collection('projects').document(project_id).get().exists:
+    client = db.get_db()
+    if not client.collection('projects').document(project_id).get().exists:
         raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
 
     client = _get_storage_client()
@@ -207,8 +207,8 @@ def generate_upload_url(project_id: str, filename: str, content_type: str):
 @router.get("/{project_id}/media", response_model=SignedUrlResponse)
 def generate_download_url(project_id: str, blob_name: str):
     """Generates a short-lived V4 signed URL for playing media from GCS."""
-    db = get_db()
-    if not db.collection('projects').document(project_id).get().exists:
+    client = db.get_db()
+    if not client.collection('projects').document(project_id).get().exists:
         raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
         
     client = _get_storage_client()

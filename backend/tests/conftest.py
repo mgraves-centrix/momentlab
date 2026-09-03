@@ -106,7 +106,11 @@ def isolate_firestore(monkeypatch):
     Autouse fixture that mocks Firestore get_db() for unit tests.
     Guarantees ZERO documents are written to production Firestore project during pytest.
     """
-    store: dict = {}
+    store: dict = {
+        "projects/proj_northlight_01": {"project_id": "proj_northlight_01", "title": "Project Northlight", "description": "Scene 12 Cut A audience screening test", "owner_id": "user_prod_01"},
+        "projects/proj_echoes_02": {"project_id": "proj_echoes_02", "title": "Echoes of Salt", "description": "Atmospheric drama test", "owner_id": "user_prod_01"},
+        "projects/proj_below_03": {"project_id": "proj_below_03", "title": "Below the Surface", "description": "Thriller sequence test", "owner_id": "user_prod_01"},
+    }
 
     class MockDocumentRef:
         def __init__(self, doc_path: str):
@@ -148,6 +152,9 @@ def isolate_firestore(monkeypatch):
                     mock_snap.id = k.split("/")[-1]
                     results.append(mock_snap)
             return results
+
+        def stream(self):
+            return self.get()
 
     class MockFirestoreClient:
         def collection(self, name: str):

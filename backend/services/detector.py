@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, Dict, Any
 from backend.services.clickhouse import get_client, get_db_name
-from backend.services.db import get_db
+from backend.services import db
 
 logger = logging.getLogger("momentlab.services.detector")
 
@@ -79,9 +79,9 @@ def compute_and_persist_detector(project_id: str, experiment_id: str) -> Dict[st
     """Runs the anomaly detector against ClickHouse and persists computed metrics to Firestore."""
     detector_result = run_anomaly_detector(project_id, experiment_id)
     try:
-        db = get_db()
-        if db:
-            doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+        firestore_db = db.get_db()
+        if firestore_db:
+            doc_ref = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
             doc = doc_ref.get()
             data = doc.to_dict() if doc.exists else {}
             data.update({

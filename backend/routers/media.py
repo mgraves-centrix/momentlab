@@ -5,8 +5,10 @@ import logging
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
-from backend.services.db import get_db
+from backend.services import db
 from backend.services.gcp_config import get_gcp_project_id, get_gcp_location
+
+logger = logging.getLogger("momentlab.media")
 from backend.services.veo_pipeline import (
     discover_available_veo_models,
     generate_multi_clip_veo_sequence
@@ -93,8 +95,8 @@ async def ingest_youtube_video(req: YouTubeIngestRequest):
     scene_id = f"yt_{video_id}"
     embed_url = f"https://www.youtube.com/embed/{video_id}?enablejsapi=1&origin=http://localhost:3000"
     
-    db = get_db()
-    project_ref = db.collection('projects').document(req.project_id)
+    firestore_db = db.get_db()
+    project_ref = firestore_db.collection('projects').document(req.project_id)
     if not project_ref.get().exists:
         raise HTTPException(status_code=404, detail=f"Project '{req.project_id}' not found.")
     
