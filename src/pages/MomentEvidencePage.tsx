@@ -210,7 +210,7 @@ export const MomentEvidencePage: React.FC = () => {
                     </div>
                     <div>
                       <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>HYPOTHESIS PREVIEW</div>
-                      <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f3f2', letterSpacing: '0.02em', marginBottom: '4px' }}>{hypothesisData?.proposedChange || 'MOVE REVEAL 6S EARLIER'}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f3f2', letterSpacing: '0.02em', marginBottom: '4px' }}>{hypothesisData?.proposedChange || '—'}</div>
                       <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>{hypothesisData?.rationale || 'Moving the reveal earlier maintains momentum and should increase engagement across all cohorts.'}</div>
                     </div>
                   </div>
