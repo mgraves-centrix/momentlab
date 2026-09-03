@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { McpActivityPanel } from '../components/McpActivityPanel';
+import { QueryModal } from '../components/QueryModal';
 import { Database, ShieldCheck, Cpu } from 'lucide-react';
 import { useMobile } from '../hooks/useMobile';
 import { fetchExperimentHypothesis, fetchRecentQueries, Hypothesis } from '../api/client';
@@ -14,6 +15,8 @@ export const MomentEvidencePage: React.FC = () => {
   const [queries, setQueries] = React.useState<any[]>([]);
   const [mcpStatus, setMcpStatus] = React.useState<'CONNECTED' | 'CONNECTING' | 'DISCONNECTED'>('CONNECTING');
   const [isLoading, setIsLoading] = React.useState(true);
+  const [selectedQueryId, setSelectedQueryId] = React.useState<string | null>(null);
+
   
   React.useEffect(() => {
     if (projectId && experimentId) {
@@ -399,6 +402,11 @@ export const MomentEvidencePage: React.FC = () => {
 
                 {isLoading ? (
                   <div style={{ color: '#8d979f', padding: '16px' }}>Generating hypothesis via MCP...</div>
+                ) : !hypothesisData?.evidenceRecords || hypothesisData.evidenceRecords.length === 0 ? (
+                  <div style={{ padding: '24px', backgroundColor: 'var(--surface-1)', borderRadius: '8px', border: '1px solid var(--border)', textAlign: 'center', color: '#8d979f', fontSize: '12px' }}>
+                    <div style={{ fontWeight: 700, color: '#f1f3f2', marginBottom: '4px' }}>No Provenance Records Available</div>
+                    <div>No query-level evidence records have been recorded for this experiment.</div>
+                  </div>
                 ) : (
                   <div style={{ overflowX: 'auto', backgroundColor: 'var(--surface-1)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left', color: 'var(--muted)' }}>
@@ -424,7 +432,27 @@ export const MomentEvidencePage: React.FC = () => {
                             <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>{ev.window}</td>
                             <td style={{ padding: '8px 12px', color: 'var(--error)' }}>{ev.effectSize}</td>
                             <td style={{ padding: '8px 12px' }}>{ev.significance}</td>
-                            <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: 'var(--success)' }}>{ev.sourceQueryRunId}</td>
+                            <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>
+                              {ev.sourceQueryRunId ? (
+                                <button
+                                  onClick={() => setSelectedQueryId(ev.sourceQueryRunId)}
+                                  style={{
+                                    backgroundColor: 'rgba(88, 201, 75, 0.12)',
+                                    border: '1px solid rgba(88, 201, 75, 0.3)',
+                                    color: '#58c94b',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    fontFamily: 'monospace',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {ev.sourceQueryRunId}
+                                </button>
+                              ) : (
+                                <span style={{ color: '#8d979f' }}>provenance unavailable</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -453,7 +481,9 @@ export const MomentEvidencePage: React.FC = () => {
             </div>
           </>
         )}
+        <QueryModal queryId={selectedQueryId} onClose={() => setSelectedQueryId(null)} />
       </div>
     </AppShell>
   );
 };
+
