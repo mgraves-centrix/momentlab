@@ -464,7 +464,8 @@ export const MomentEvidencePage: React.FC = () => {
                               )}
                             </td>
                           </tr>
-                        ))}
+                        );
+                      })}
                       </tbody>
                     </table>
                   </div>
