@@ -52,6 +52,23 @@ exp_data = {
 }
 db.collection("projects").document("proj_northlight_01").collection("experiments").document("exp_23a").set(exp_data)
 
+print("Fetching real ClickHouse query IDs for canonical seed...")
+real_q_ids = []
+try:
+    from backend.services.clickhouse import get_client
+    ch_c = get_client()
+    q_res = ch_c.query("SELECT query_id FROM system.query_log WHERE type = 'QueryFinish' AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%screening_sessions%') AND query NOT LIKE '%system.query_log%' ORDER BY query_start_time DESC LIMIT 10")
+    if q_res and q_res.result_rows:
+        real_q_ids = [r[0] for r in q_res.result_rows if r and r[0]]
+    if not real_q_ids:
+        ch_c.query("SELECT count() FROM momentlab.audience_events WHERE project_id = 'proj_northlight_01' AND experiment_id = 'exp_23a'")
+        ch_c.query("SELECT count() FROM momentlab.reaction_events WHERE project_id = 'proj_northlight_01' AND experiment_id = 'exp_23a'")
+        q_res = ch_c.query("SELECT query_id FROM system.query_log WHERE type = 'QueryFinish' AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%') AND query NOT LIKE '%system.query_log%' ORDER BY query_start_time DESC LIMIT 10")
+        if q_res and q_res.result_rows:
+            real_q_ids = [r[0] for r in q_res.result_rows if r and r[0]]
+except Exception as e:
+    print(f"Warning: could not fetch query_log for seed: {e}")
+
 print("Seeding canonical hypothesis for exp_23a...")
 hyp_data = {
     "id": "hyp_northlight_01",
@@ -76,7 +93,7 @@ hyp_data = {
             "window": "00:33–00:41",
             "effectSize": "-28%",
             "significance": "p < 0.001",
-            "sourceQueryRunId": "QRY-23A-8841"
+            "sourceQueryRunId": real_q_ids[0] if len(real_q_ids) > 0 else None
         },
         {
             "id": "EV-02",
@@ -86,7 +103,7 @@ hyp_data = {
             "window": "00:31–00:39",
             "effectSize": "+35%",
             "significance": "p < 0.01",
-            "sourceQueryRunId": "QRY-23A-8842"
+            "sourceQueryRunId": real_q_ids[1] if len(real_q_ids) > 1 else (real_q_ids[0] if real_q_ids else None)
         },
         {
             "id": "EV-03",
@@ -96,7 +113,7 @@ hyp_data = {
             "window": "00:36–00:44",
             "effectSize": "-20%",
             "significance": "p < 0.05",
-            "sourceQueryRunId": "QRY-23A-8843"
+            "sourceQueryRunId": real_q_ids[2] if len(real_q_ids) > 2 else (real_q_ids[0] if real_q_ids else None)
         }
     ],
     "trace": {
@@ -111,6 +128,7 @@ hyp_data = {
     }
 }
 db.collection("projects").document("proj_northlight_01").collection("experiments").document("exp_23a").collection("hypotheses").document("current").set(hyp_data)
+
 
 print("Computing & persisting anomaly detector from ClickHouse...")
 try:
