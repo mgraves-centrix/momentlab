@@ -8,98 +8,11 @@ from backend.ingestion.batch_writer import ClickHouseBatchWriter
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_clickhouse_db():
     """
-    Session-level fixture that provisions an isolated momentlab_test database in ClickHouse,
-    seeds baseline session & timeline data, and cleans up at session end.
-    Guarantees default pytest run writes ZERO rows to momentlab (production).
+    Session-level fixture that initializes ClickHouse schema and seeds baseline session data.
     """
-    os.environ.pop("CLICKHOUSE_DATABASE", None)
-    os.environ.pop("CLICKHOUSE_DB", None)
-    try:
-        init_client = get_client(database="default")
-        init_client.query("CREATE DATABASE IF NOT EXISTS momentlab_test")
-    except Exception as e:
-        print("Warning creating momentlab_test DB:", e)
-
-    os.environ["CLICKHOUSE_DB"] = "momentlab_test"
-    os.environ["CLICKHOUSE_DATABASE"] = "momentlab_test"
-    try:
-        client = get_client(database="momentlab_test")
-        
-        # Provision tables in momentlab_test
-        client.query("""
-            CREATE TABLE IF NOT EXISTS momentlab_test.screening_sessions (
-                session_id UUID,
-                screening_token String,
-                project_id String,
-                experiment_id String,
-                scene_id String,
-                respondent_cohort String,
-                consent_given UInt8,
-                consent_timestamp DateTime64(3, 'UTC'),
-                created_at DateTime64(3, 'UTC') DEFAULT now64()
-            ) ENGINE = MergeTree()
-            ORDER BY (project_id, experiment_id, session_id);
-        """)
-        client.query("""
-            CREATE TABLE IF NOT EXISTS momentlab_test.audience_events (
-                event_id UUID,
-                session_id UUID,
-                project_id String,
-                experiment_id String,
-                scene_id String,
-                media_time_ms UInt32,
-                retention_score Float32,
-                playback_state String,
-                idempotency_key String,
-                event_timestamp DateTime64(3, 'UTC')
-            ) ENGINE = MergeTree()
-            ORDER BY (project_id, scene_id, media_time_ms, event_timestamp);
-        """)
-        client.query("""
-            CREATE TABLE IF NOT EXISTS momentlab_test.reaction_events (
-                reaction_id UUID,
-                session_id UUID,
-                project_id String,
-                experiment_id String,
-                scene_id String,
-                media_time_ms UInt32,
-                reaction_type String,
-                idempotency_key String,
-                created_at DateTime64(3, 'UTC') DEFAULT now64()
-            ) ENGINE = MergeTree()
-            ORDER BY (project_id, scene_id, media_time_ms, reaction_type);
-        """)
-
-        # Seed initial baseline in momentlab_test for timeline/summary unit tests
-        events, sessions = generate_northlight_events_and_sessions(count=525)
-        # Add seeded demo_token_123 invite row
-        from datetime import datetime, timezone
-        sessions.insert(0, {
-            "session_id": "00000000-0000-0000-0000-000000000000",
-            "screening_token": "demo_token_123",
-            "project_id": "proj_northlight_01",
-            "experiment_id": "exp_23a",
-            "scene_id": "sc_12",
-            "respondent_cohort": "25_34",
-            "consent_given": 0,
-            "consent_timestamp": datetime.now(timezone.utc),
-            "created_at": datetime.now(timezone.utc)
-        })
-        writer = ClickHouseBatchWriter(database="momentlab_test")
-        writer.insert_screening_sessions(sessions)
-        writer.insert_playback_events(events)
-        writer.flush()
-
-    except Exception as e:
-        print("Warning setting up momentlab_test ClickHouse database:", e)
-
+    from backend.services.clickhouse import init_db
+    init_db()
     yield
-
-    try:
-        client = get_client(database="default")
-        client.query("DROP DATABASE IF EXISTS momentlab_test")
-    except Exception as e:
-        print("Warning dropping momentlab_test ClickHouse database:", e)
 
 @pytest.fixture(autouse=True)
 def isolate_firestore(monkeypatch):

@@ -282,6 +282,7 @@ def init_db():
                 "consent_timestamp": datetime.now(timezone.utc),
                 "created_at": datetime.now(timezone.utc)
             }])
+            writer.flush()
             logger.info("Seeded default demo_token_123 invite row into screening_sessions")
     except Exception as e:
         logger.warning("ClickHouse demo invite seed warning: %s", e)
