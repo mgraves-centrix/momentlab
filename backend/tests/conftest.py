@@ -85,8 +85,7 @@ def setup_test_clickhouse_db():
             "consent_timestamp": datetime.now(timezone.utc),
             "created_at": datetime.now(timezone.utc)
         })
-        writer = ClickHouseBatchWriter()
-        writer.database = "momentlab_test"
+        writer = ClickHouseBatchWriter(database="momentlab_test")
         writer.insert_screening_sessions(sessions)
         writer.insert_playback_events(events)
         writer.flush()
