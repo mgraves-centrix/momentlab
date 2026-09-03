@@ -20,6 +20,7 @@ def setup_test_clickhouse_db():
     except Exception as e:
         print("Warning creating momentlab_test DB:", e)
 
+    os.environ["CLICKHOUSE_DB"] = "momentlab_test"
     os.environ["CLICKHOUSE_DATABASE"] = "momentlab_test"
     try:
         client = get_client(database="momentlab_test")
