@@ -267,7 +267,7 @@ def init_db():
     logger.info("ClickHouse initialized with %s", type(client).__name__)
     try:
         db = get_db_name()
-        res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = 'demo_token_123'")
+        res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = 'demo_token_123' AND consent_given = 0")
         if not res or not res.result_rows or res.result_rows[0][0] == 0:
             from backend.ingestion.batch_writer import ClickHouseBatchWriter
             writer = ClickHouseBatchWriter()
@@ -325,7 +325,7 @@ def is_valid_screening_token(token: str) -> bool:
     try:
         client = get_client()
         db = get_db_name()
-        res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = {{tok:String}}", parameters={"tok": clean})
+        res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = {{tok:String}} AND consent_given = 0", parameters={"tok": clean})
         if res and res.result_rows and res.result_rows[0][0] > 0:
             return True
     except Exception as e:
