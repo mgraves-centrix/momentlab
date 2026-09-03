@@ -264,6 +264,9 @@ export const ResponseTimelinePage: React.FC = () => {
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--coral)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
                   {retentionDrop}
                 </div>
+                <div style={{ fontSize: '9px', color: 'var(--muted)', marginTop: '2px' }}>
+                  vs 00:00–00:10 baseline
+                </div>
               </div>
 
               <div>

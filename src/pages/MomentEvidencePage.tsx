@@ -42,12 +42,28 @@ export const MomentEvidencePage: React.FC = () => {
 
   const isMobile = useMobile();
 
+  const datasetLabel = React.useMemo(() => {
+    if (!queries || queries.length === 0) return 'momentlab.audience_events, momentlab.reaction_events';
+    const tableMatches = new Set<string>();
+    queries.forEach(q => {
+      const text = `${q.queryPurpose || ''} ${q.query || ''}`;
+      const matches = text.match(/momentlab\.[a-z_]+/g);
+      if (matches) {
+        matches.forEach(m => tableMatches.add(m));
+      }
+    });
+    if (tableMatches.size === 0) {
+      return 'momentlab.audience_events, momentlab.reaction_events';
+    }
+    return Array.from(tableMatches).sort().join(', ');
+  }, [queries]);
+
   return (
     <AppShell>
       <div style={{ padding: isMobile ? '0' : '28px 32px', maxWidth: '1440px', margin: '0 auto', backgroundColor: isMobile ? '#050a0e' : 'transparent', minHeight: isMobile ? '100vh' : 'auto' }}>
         
         {isMobile ? (
-          /* --- MOBILE LAYOUT (10-mobile-evidence.png) --- */
+          /* --- MOBILE LAYOUT --- */
           <div style={{ display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px' }}>
             
             {/* Mobile Subheader */}
@@ -56,7 +72,8 @@ export const MomentEvidencePage: React.FC = () => {
               <span style={{ color: '#5b6670' }}>/</span>
               <span>MOMENT EVIDENCE</span>
             </div>
-
+            <div style={{ fontSize: '10px', color: '#8d979f' }}>Dataset: {datasetLabel}</div>
+            
             {/* Moment Timeline Section */}
             <div>
               <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
@@ -256,7 +273,7 @@ export const MomentEvidencePage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ backgroundColor: '#131b22', border: '1px solid #1c2630', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', color: '#8d979f', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Database size={14} color="#8b5cf6" />
-                  <span>Dataset: <strong>momentlab.playback_events</strong></span>
+                  <span>Dataset: <strong>{datasetLabel}</strong></span>
                 </div>
                 <div style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', border: '1px solid rgba(88, 201, 75, 0.3)', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', color: '#58c94b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ShieldCheck size={14} />
