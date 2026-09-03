@@ -271,7 +271,11 @@ Respond strictly in valid JSON format with the following keys:
             FROM system.query_log
             WHERE type = 'QueryFinish'
               AND user = 'momentlab_mcp_reader'
-              AND hasAny(tables, ['momentlab.audience_events', 'momentlab.reaction_events'])
+              AND (
+                hasAny(tables, ['momentlab.audience_events', 'momentlab.reaction_events'])
+                OR query LIKE '%audience_events%'
+                OR query LIKE '%reaction_events%'
+              )
               AND query NOT LIKE '%system.query_log%'
               AND query_start_time >= toDateTime({st_sec:UInt32})
               AND query_start_time <= toDateTime({en_sec:UInt32})
