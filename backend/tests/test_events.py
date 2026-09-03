@@ -10,6 +10,7 @@ def test_health_check():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "HEALTHY"
+    assert "git_sha" in data
     assert data["database_connected"] is True
     assert data["database_host"] is not None
     assert data["server_version"] is not None

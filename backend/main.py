@@ -60,6 +60,7 @@ def health_check():
     is_connected = db_health["connected"]
     res: Dict[str, Any] = {
         "status": "HEALTHY" if is_connected else "UNHEALTHY",
+        "git_sha": os.environ.get("GIT_SHA", "unknown"),
         "database_connected": is_connected,
         "database_host": db_health["host"],
         "database_version": db_health["version"],

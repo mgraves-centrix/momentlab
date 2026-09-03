@@ -10,6 +10,9 @@ RUN npm ci && npm run build
 FROM python:3.14-slim
 WORKDIR /app
 
+ARG GIT_SHA="unknown"
+ENV GIT_SHA=${GIT_SHA}
+
 # Install system dependencies and copy official uv/uvx binaries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
