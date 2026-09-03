@@ -1,3 +1,4 @@
+ARG BUILD_TIMESTAMP="20260903_v999"
 # Stage 1: Build Frontend React SPA
 FROM node:20-alpine AS build-frontend
 WORKDIR /app
