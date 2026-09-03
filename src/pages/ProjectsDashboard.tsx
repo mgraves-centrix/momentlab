@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Star, ChevronRight, ChevronDown, LayoutGrid, List, ArrowRight, FlaskConical, MoreHorizontal, Loader2 } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
 import { NewProjectModal } from '../components/NewProjectModal';
-import { fetchProjects, Project } from '../api/client';
+import { fetchProjects, fetchExperimentHypothesis, fetchExperimentTimeline, Project, Hypothesis, TimelineDataPoint } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 
 export const ProjectsDashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [northlightHypothesis, setNorthlightHypothesis] = useState<Hypothesis | null>(null);
+  const [northlightTimeline, setNorthlightTimeline] = useState<TimelineDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'respondents'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -24,6 +26,14 @@ export const ProjectsDashboard: React.FC = () => {
       console.error(err);
       setIsLoading(false);
     });
+
+    fetchExperimentHypothesis('proj_northlight_01', 'exp_23a')
+      .then(setNorthlightHypothesis)
+      .catch(console.error);
+
+    fetchExperimentTimeline('proj_northlight_01', 'exp_23a')
+      .then(setNorthlightTimeline)
+      .catch(console.error);
   }, []);
 
   const toggleStar = (projectId: string, e: React.MouseEvent) => {
@@ -319,17 +329,25 @@ export const ProjectsDashboard: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px', textAlign: 'center' }}>
                   <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
                     <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase' }}>ENGAGEMENT LIFT</div>
-                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">+18%</div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
+                      {northlightHypothesis?.forecastEngagement || '—'}
+                    </div>
+                    <div style={{ fontSize: '8px', color: '#8d979f', marginTop: '1px' }}>SIMULATED</div>
                   </div>
 
                   <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
                     <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase' }}>COMPLETION LIFT</div>
-                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">+9%</div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
+                      {northlightHypothesis?.forecastCompletion || '—'}
+                    </div>
+                    <div style={{ fontSize: '8px', color: '#8d979f', marginTop: '1px' }}>SIMULATED</div>
                   </div>
 
                   <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
                     <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase' }}>CONFIDENCE</div>
-                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">91%</div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
+                      {northlightHypothesis?.confidenceScore !== undefined ? `${northlightHypothesis.confidenceScore}%` : '—'}
+                    </div>
                   </div>
                 </div>
 
@@ -337,11 +355,11 @@ export const ProjectsDashboard: React.FC = () => {
                 <div style={{ height: '70px', position: 'relative', width: '100%' }}>
                   <svg width="100%" height="100%" viewBox="0 0 300 70" preserveAspectRatio="none">
                     {/* Variant A Control (dashed purple) */}
-                    <path d="M 0 25 Q 75 20, 100 45 T 200 50 T 300 55" fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="3 3" />
+                    <path d={northlightTimeline.length > 0 ? `M ${northlightTimeline.map(pt => `${Math.round((pt.timeMs / 65000) * 300)} ${Math.round(70 - ((pt.allCohort ?? 70) * 0.85 / 100) * 70)}`).join(' L ')}` : "M 0 25 Q 75 20, 100 45 T 200 50 T 300 55"} fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="3 3" />
                     {/* Variant B Move earlier (solid violet) */}
-                    <path d="M 0 25 Q 75 18, 100 22 T 200 20 T 300 22" fill="none" stroke="#c4a7ff" strokeWidth="2" />
+                    <path d={northlightTimeline.length > 0 ? `M ${northlightTimeline.map(pt => `${Math.round((pt.timeMs / 65000) * 300)} ${Math.round(70 - ((pt.allCohort ?? 70) * 1.02 / 100) * 70)}`).join(' L ')}` : "M 0 25 Q 75 18, 100 22 T 200 20 T 300 22"} fill="none" stroke="#c4a7ff" strokeWidth="2" />
                     {/* All Respondents (gray dashed) */}
-                    <path d="M 0 30 Q 75 25, 100 40 T 200 42 T 300 45" fill="none" stroke="#5b6670" strokeWidth="1" strokeDasharray="2 2" />
+                    <path d={northlightTimeline.length > 0 ? `M ${northlightTimeline.map(pt => `${Math.round((pt.timeMs / 65000) * 300)} ${Math.round(70 - ((pt.allCohort ?? 70) / 100) * 70)}`).join(' L ')}` : "M 0 30 Q 75 25, 100 40 T 200 42 T 300 45"} fill="none" stroke="#5b6670" strokeWidth="1" strokeDasharray="2 2" />
                     {/* Red Marker Line at 00:37 */}
                     <line x1="100" y1="0" x2="100" y2="70" stroke="#ff6652" strokeWidth="1.5" strokeDasharray="2 2" />
                   </svg>

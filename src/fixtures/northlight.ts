@@ -108,7 +108,7 @@ export const NORTHLIGHT_HYPOTHESIS: Hypothesis = {
   experimentId: "exp_23a",
   proposedChange: "MOVE REVEAL 6S EARLIER",
   rationale: "Aligning the shadow reveal keyframe to 00:37 eliminates narrative confusion and restores viewer engagement momentum.",
-  confidenceScore: 91,
+  confidenceScore: 92,
   forecastEngagement: "+18%",
   forecastCompletion: "+9%",
   forecastConfusion: "-4%",

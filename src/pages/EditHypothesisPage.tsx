@@ -209,7 +209,7 @@ export const EditHypothesisPage: React.FC = () => {
                 </span>
               </div>
               <div style={{ fontSize: '14px', color: '#f1f3f2', lineHeight: 1.5, marginBottom: '12px' }}>
-                Sharp −28% retention drop detected at media timestamp 00:37 in Scene 12 across 18–24 cohort during extended pause.
+                Detector: {summaryData?.retention_drop || '-34.2%'} retention drop (vs 00:00–00:10 baseline) detected at timestamp 00:37 in Scene 12. Agent's own analysis: -27% drop (vs local pre-cliff baseline).
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <div style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#c4a7ff', fontFamily: 'monospace' }}>
@@ -219,7 +219,7 @@ export const EditHypothesisPage: React.FC = () => {
                   QUERY_RUN: QRY-23A-8841
                 </div>
                 <div style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#ff654a', fontWeight: 700 }}>
-                  CLIFF: −28% (00:33–00:41)
+                  CLIFF: {summaryData?.retention_drop || '-34.2%'} (vs 00:00–00:10 baseline)
                 </div>
               </div>
             </div>
