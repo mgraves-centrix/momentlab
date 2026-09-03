@@ -86,6 +86,9 @@ export interface Hypothesis {
   };
   status: 'PROPOSED' | 'APPROVED' | 'LAUNCHED' | 'EVALUATED';
   isSimulated: boolean;
+  retentionDrop?: string;
+  detectedMoment?: string;
+  anomalyWindow?: string;
 }
 
 const API_BASE = '/api/v1';
