@@ -314,7 +314,7 @@ export const ResponseTimelinePage: React.FC = () => {
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Experiment Info</div>
                   <div style={{ fontSize: '12px', color: 'var(--text)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <span style={{ color: 'var(--muted)' }}>Experiment ID:</span><span>{experimentId?.toUpperCase() || 'EXP_23A'}</span>
+                    <span style={{ color: 'var(--muted)' }}>Experiment ID:</span><span>{experimentId?.toUpperCase() || '—'}</span>
                     <span style={{ color: 'var(--muted)' }}>Scene:</span><span>12</span>
                     <span style={{ color: 'var(--muted)' }}>Cut:</span><span>Original (Cut A)</span>
                     <span style={{ color: 'var(--muted)' }}>Status:</span><span style={{ color: 'var(--lime)' }}>Active</span>
