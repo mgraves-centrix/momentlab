@@ -1,8 +1,29 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { ShieldCheck, Lock, AlertCircle, CheckCircle, Flame, HelpCircle, Frown, Film, ChevronDown, PlayCircle, Smile, MessageSquare, Activity, Shield, Users, Trash2, Info, Ban } from 'lucide-react';
 import { MediaPlayer } from '../components/MediaPlayer';
 import { useMobile } from '../hooks/useMobile';
+
+function generateUUIDv4(): string {
+  if (typeof crypto !== 'undefined') {
+    if (typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    if (typeof crypto.getRandomValues === 'function') {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export const ScreeningConsentPage: React.FC = () => {
   const { screeningToken } = useParams<{ screeningToken?: string }>();
@@ -14,7 +35,7 @@ export const ScreeningConsentPage: React.FC = () => {
   const [lastReaction, setLastReaction] = useState<{ type: string; timestamp: string } | null>(null);
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({ CONFUSED: 0, ENGAGING: 0, BORED: 0, ENGAGED: 0, FUNNY: 0, 'TOO SLOW': 0 });
   const [noteText, setNoteText] = useState('');
-  const [sessionId] = useState(() => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'a' + Math.random().toString(16).substring(2, 10) + '-0000-4000-8000-' + Math.random().toString(16).substring(2, 14)));
+  const [sessionId] = useState(generateUUIDv4);
   const [eventSaveStatus, setEventSaveStatus] = useState<'SAVED' | 'SAVING' | 'ERROR'>('SAVED');
   
   // Desktop consent state
@@ -24,31 +45,73 @@ export const ScreeningConsentPage: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useMobile();
   const sentPlaybackKeys = useRef<Set<string>>(new Set());
+  const lastEmittedSecRef = useRef<number>(-1);
 
-  const handleTimeUpdate = useCallback((timeMs: number) => {
-    setCurrentTimeMs(timeMs);
+  const sendPlaybackBatch = useCallback((timeMs: number, state: string = 'PLAYING', useBeacon: boolean = false) => {
     const sec = Math.floor(timeMs / 1000);
     const idempKey = `${sessionId}:${sec}`;
 
     if (sentPlaybackKeys.current.has(idempKey)) return;
     sentPlaybackKeys.current.add(idempKey);
 
+    const payload = {
+      session_id: sessionId,
+      project_id: 'proj_northlight_01',
+      experiment_id: 'exp_23a',
+      scene_id: 'sc_12',
+      media_time_ms: sec * 1000,
+      playback_state: state,
+      idempotency_key: idempKey
+    };
+
+    if (useBeacon && typeof navigator !== 'undefined' && navigator.sendBeacon) {
+      try {
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        if (navigator.sendBeacon('/api/v1/events/playback', blob)) {
+          return;
+        }
+      } catch (err) {
+        // Fall back to fetch below
+      }
+    }
+
     fetch('/api/v1/events/playback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: sessionId,
-        project_id: 'proj_northlight_01',
-        experiment_id: 'exp_23a',
-        scene_id: 'sc_12',
-        media_time_ms: timeMs,
-        playback_state: 'PLAYING',
-        idempotency_key: idempKey
-      })
+      body: JSON.stringify(payload)
     }).catch((err) => {
-      console.error('Playback telemetry dispatch failed:', err);
+      console.error('Playback telemetry batch dispatch failed:', err);
     });
   }, [sessionId]);
+
+  const handleTimeUpdate = useCallback((timeMs: number) => {
+    setCurrentTimeMs(timeMs);
+    const sec = Math.floor(timeMs / 1000);
+
+    if (sec !== lastEmittedSecRef.current) {
+      lastEmittedSecRef.current = sec;
+      sendPlaybackBatch(timeMs, 'PLAYING');
+    }
+  }, [sendPlaybackBatch]);
+
+  const flushPlaybackOnStateChange = useCallback((state: string = 'PAUSED') => {
+    sendPlaybackBatch(currentTimeMs, state);
+  }, [currentTimeMs, sendPlaybackBatch]);
+
+  useEffect(() => {
+    const handleUnload = () => {
+      if (currentTimeMs > 0) {
+        flushPlaybackOnStateChange('PAUSED');
+        sendPlaybackBatch(currentTimeMs, 'PAUSED', true);
+      }
+    };
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('beforeunload', handleUnload);
+    return () => {
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, [currentTimeMs, sendPlaybackBatch, flushPlaybackOnStateChange]);
 
   const handleRegisterConsent = async (cohortVal: string) => {
     setConsentError(null);
