@@ -57,7 +57,7 @@ export const ProjectsDashboard: React.FC = () => {
   });
 
   const northlightProject = projects.find(p => p.project_id === 'proj_northlight_01');
-  const northlightRespondents = northlightProject?.total_respondents ?? northlightProject?.totalRespondents ?? 527;
+  const northlightRespondents = northlightProject?.total_respondents ?? northlightProject?.totalRespondents ?? null;
 
   return (
     <AppShell>
@@ -320,8 +320,8 @@ export const ProjectsDashboard: React.FC = () => {
                       <span style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff' }}>NORTHLIGHT A/B TEST</span>
                       <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>ACTIVE</span>
                     </div>
-                    <div style={{ fontSize: '11px', color: '#c4a7ff', marginTop: '2px' }}>Move reveal 6s earlier</div>
-                    <div style={{ fontSize: '10px', color: '#8d979f', marginTop: '2px' }}>Started May 19, 2025 · 2 Variants · {northlightRespondents.toLocaleString()} Respondents</div>
+                    <div style={{ fontSize: '11px', color: '#c4a7ff', marginTop: '2px' }}>{northlightHypothesis?.proposedChange || '—'}</div>
+                    <div style={{ fontSize: '10px', color: '#8d979f', marginTop: '2px' }}>Started May 19, 2025 · 2 Variants · {northlightRespondents != null ? `${northlightRespondents.toLocaleString()} Respondents` : '—'}</div>
                   </div>
                 </div>
 
