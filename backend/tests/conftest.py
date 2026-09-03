@@ -96,10 +96,13 @@ def setup_test_clickhouse_db():
     yield
 
     try:
-        client = get_client(database="default")
+        client = get_client()
         client.query("DROP DATABASE IF EXISTS momentlab_test")
     except Exception as e:
         print("Warning dropping momentlab_test ClickHouse database:", e)
+    finally:
+        os.environ.pop("CLICKHOUSE_DATABASE", None)
+        os.environ.pop("CLICKHOUSE_DB", None)
 
 @pytest.fixture(autouse=True)
 def isolate_firestore(monkeypatch):
