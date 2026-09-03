@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 logger = logging.getLogger("momentlab.agents.mcp_client")
+logger.setLevel(logging.INFO)
 
 # Load environment variables from repo root .env
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -87,6 +88,7 @@ def _extract_text_from_event(event) -> str:
 
 async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
     """Uses Google ADK and ClickHouse MCP to analyze data and generate a hypothesis."""
+    start_time = time.time()
     
     clickhouse_host = os.environ.get("CLICKHOUSE_HOST", "localhost").strip()
     clickhouse_port = os.environ.get("CLICKHOUSE_PORT", "8443").strip()
@@ -171,7 +173,6 @@ Respond strictly in valid JSON format with the following keys:
     
     res = ""
     run_id = f"run_{uuid.uuid4().hex[:8]}"
-    start_time = time.time()
     steps = []
     
     step_start_time = time.time()
@@ -250,7 +251,7 @@ Respond strictly in valid JSON format with the following keys:
     # Capture real ClickHouse query IDs executed by momentlab_mcp_reader during this run window
     run_started_at = start_time
     run_finished_at = time.time()
-    st_sec = int(run_started_at) - 1
+    st_sec = int(run_started_at) - 5
     en_sec = int(run_finished_at) + 2
 
     run_queries = []
@@ -291,7 +292,7 @@ Respond strictly in valid JSON format with the following keys:
 
         poll_iter = 0
         st_iso = datetime.fromtimestamp(st_sec, tz=timezone.utc).isoformat()
-        logger.info(f"[PROVENANCE_DEBUG] Start poll. run_started_at={st_iso} ({st_sec}), run_finished_at={datetime.fromtimestamp(run_finished_at, tz=timezone.utc).isoformat()} ({en_sec})")
+        logger.warning(f"[PROVENANCE_DEBUG] Start poll. run_started_at={st_iso} ({st_sec}), run_finished_at={datetime.fromtimestamp(run_finished_at, tz=timezone.utc).isoformat()} ({en_sec})")
 
         while time.time() - poll_start < max_poll_seconds:
             poll_iter += 1
@@ -312,14 +313,14 @@ Respond strictly in valid JSON format with the following keys:
                             "query_start_time": str(r[5]) if len(r) > 5 else ""
                         })
             
-            logger.info(f"[PROVENANCE_DEBUG] Poll iter {poll_iter}: window [{st_iso} .. {curr_en_iso}], returned {len(found)} rows")
+            logger.warning(f"[PROVENANCE_DEBUG] Poll iter {poll_iter}: window [{st_iso} .. {curr_en_iso}], returned {len(found)} rows")
             for row in found:
-                logger.info(f"[PROVENANCE_DEBUG]   q_row: id={row['query_id']} start={row['query_start_time']} tables={row['tables']} sql={row['query'][:80]!r}")
+                logger.warning(f"[PROVENANCE_DEBUG]   q_row: id={row['query_id']} start={row['query_start_time']} tables={row['tables']} sql={row['query'][:80]!r}")
 
             if found:
                 run_queries = found
                 has_data_query = any(_is_data_query(q) for q in found)
-                logger.info(f"[PROVENANCE_DEBUG] Poll iter {poll_iter}: has_data_query={has_data_query}")
+                logger.warning(f"[PROVENANCE_DEBUG] Poll iter {poll_iter}: has_data_query={has_data_query}")
                 if has_data_query:
                     logger.info(f"Found {len(run_queries)} agent query log(s) including data query after {time.time() - poll_start:.2f}s")
                     break
@@ -339,7 +340,7 @@ Respond strictly in valid JSON format with the following keys:
 
     def _match_record_to_query(rec: dict, queries: list) -> dict:
         if not queries:
-            logger.info("[PROVENANCE_DEBUG] _match_record_to_query: queries is empty -> None")
+            logger.warning("[PROVENANCE_DEBUG] _match_record_to_query: queries is empty -> None")
             return None
         
         metric = (rec.get("metric") or "").lower()
@@ -350,7 +351,7 @@ Respond strictly in valid JSON format with the following keys:
         is_audience = any(k in metric for k in ["retention", "cliff", "response", "drop"])
         family = "reaction" if is_reaction else ("audience" if is_audience else "other")
 
-        logger.info(f"[PROVENANCE_DEBUG] Matching record rec_id={rec.get('id')} metric='{metric}' family={family}")
+        logger.warning(f"[PROVENANCE_DEBUG] Matching record rec_id={rec.get('id')} metric='{metric}' family={family}")
         
         candidates = []
         for q in queries:
@@ -359,16 +360,16 @@ Respond strictly in valid JSON format with the following keys:
             
             # Reject system introspection queries
             if any(t.startswith("system.") for t in q_tables):
-                logger.info(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} REJECTED: system tables {q_tables}")
+                logger.warning(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} REJECTED: system tables {q_tables}")
                 continue
 
             if is_reaction:
                 if not any("reaction_events" in t for t in q_tables):
-                    logger.info(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} REJECTED: reaction metric but tables {q_tables} does not contain reaction_events")
+                    logger.warning(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} REJECTED: reaction metric but tables {q_tables} does not contain reaction_events")
                     continue
             elif is_audience:
                 if not any("audience_events" in t for t in q_tables):
-                    logger.info(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} REJECTED: audience metric but tables {q_tables} does not contain audience_events")
+                    logger.warning(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} REJECTED: audience metric but tables {q_tables} does not contain audience_events")
                     continue
             
             score = 1
@@ -387,17 +388,18 @@ Respond strictly in valid JSON format with the following keys:
                     if str(ms_val) in q_text or str(sec_val) in q_text:
                         score += 1
 
-            logger.info(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} ACCEPTED score={score} tables={q_tables}")
+            logger.warning(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} ACCEPTED score={score} tables={q_tables}")
             candidates.append((score, q))
             
         if not candidates:
-            logger.info(f"[PROVENANCE_DEBUG] rec_id={rec.get('id')}: no valid candidates after filtering -> None")
+            logger.warning(f"[PROVENANCE_DEBUG] rec_id={rec.get('id')}: no valid candidates after filtering -> None")
             return None
             
         candidates.sort(key=lambda x: x[0], reverse=True)
         winner = candidates[0][1]
-        logger.info(f"[PROVENANCE_DEBUG] rec_id={rec.get('id')} WINNER q_id={winner['query_id']} score={candidates[0][0]}")
+        logger.warning(f"[PROVENANCE_DEBUG] rec_id={rec.get('id')} WINNER q_id={winner['query_id']} score={candidates[0][0]}")
         return winner
+
 
     evidence_records = parsed_res.get("evidenceRecords", [])
     if isinstance(evidence_records, list):
