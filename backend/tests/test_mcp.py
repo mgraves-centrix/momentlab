@@ -1,3 +1,5 @@
+import os
+import shutil
 import pytest
 from backend.services.clickhouse import check_connection
 
@@ -25,8 +27,8 @@ async def test_mcp_agent_fails_when_password_unset(monkeypatch):
     with pytest.raises(ValueError, match="CLICKHOUSE_MCP_PASSWORD"):
         await generate_hypothesis("proj_northlight_01", "exp_23a")
 
-@pytest.mark.anyio
-async def test_mcp_unapproved_tool_rejection():
+def test_mcp_unapproved_tool_rejection_unit():
+    """Unit test for MCP tool allowlist invariant without spawning subprocesses."""
     from backend.agents.mcp_client import ALLOWED_MCP_TOOLS
     from google.adk.tools.mcp_tool.mcp_toolset import McpToolset, StdioConnectionParams
     from mcp.client.stdio import StdioServerParameters
@@ -42,6 +44,40 @@ async def test_mcp_unapproved_tool_rejection():
         tool_filter=ALLOWED_MCP_TOOLS,
         connection_params=StdioConnectionParams(
             server_params=StdioServerParameters(command="uvx", args=["mcp-clickhouse"])
+        )
+    )
+    assert toolset.tool_filter == ALLOWED_MCP_TOOLS
+
+
+@pytest.mark.integration
+@pytest.mark.anyio
+@pytest.mark.skipif(
+    not shutil.which("uvx") or not os.environ.get("CLICKHOUSE_MCP_USER") or not os.environ.get("CLICKHOUSE_MCP_PASSWORD"),
+    reason="Requires uvx and CLICKHOUSE_MCP_* environment variables for live subprocess testing"
+)
+async def test_mcp_unapproved_tool_rejection_integration():
+    """Integration test verifying real subprocess tool filtering when environment is present."""
+    from backend.agents.mcp_client import ALLOWED_MCP_TOOLS
+    from google.adk.tools.mcp_tool.mcp_toolset import McpToolset, StdioConnectionParams
+    from mcp.client.stdio import StdioServerParameters
+
+    toolset = McpToolset(
+        tool_name_prefix="clickhouse",
+        tool_filter=ALLOWED_MCP_TOOLS,
+        connection_params=StdioConnectionParams(
+            server_params=StdioServerParameters(
+                command="uvx",
+                args=["mcp-clickhouse"],
+                env={
+                    "CLICKHOUSE_HOST": os.environ.get("CLICKHOUSE_HOST", "localhost"),
+                    "CLICKHOUSE_PORT": os.environ.get("CLICKHOUSE_PORT", "8443"),
+                    "CLICKHOUSE_USER": os.environ.get("CLICKHOUSE_MCP_USER", ""),
+                    "CLICKHOUSE_PASSWORD": os.environ.get("CLICKHOUSE_MCP_PASSWORD", ""),
+                    "CLICKHOUSE_SECURE": os.environ.get("CLICKHOUSE_SECURE", "true"),
+                    "CLICKHOUSE_DATABASE": os.environ.get("CLICKHOUSE_DATABASE", "momentlab"),
+                    "PATH": os.environ.get("PATH", "")
+                }
+            )
         )
     )
     tools = await toolset.get_tools()
