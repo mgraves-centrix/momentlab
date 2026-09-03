@@ -6,7 +6,7 @@ import { useMobile } from '../hooks/useMobile';
 
 export const ScreeningConsentPage: React.FC = () => {
   const { screeningToken } = useParams<{ screeningToken?: string }>();
-  const effectiveToken = screeningToken || 'demo_token_123';
+  const effectiveToken = screeningToken?.trim();
 
   const [hasConsented, setHasConsented] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
@@ -110,6 +110,25 @@ export const ScreeningConsentPage: React.FC = () => {
       setEventSaveStatus('ERROR');
     }
   };
+
+  if (!effectiveToken) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#090a0c', color: '#f1f3f2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ maxWidth: '480px', width: '100%', backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '12px', padding: '32px', textAlign: 'center' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', margin: '0 auto 16px' }}>
+            <AlertCircle size={24} />
+          </div>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: '#fff' }}>Invalid or Missing Screening Link</h2>
+          <p style={{ fontSize: '14px', color: '#8d979f', lineHeight: 1.5, marginBottom: '24px' }}>
+            A valid screening token is required in the URL to participate in this audience response test.
+          </p>
+          <button onClick={() => navigate('/projects')} style={{ padding: '12px 24px', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+            Return to Projects
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#090a0c', color: '#f1f3f2', display: 'flex', flexDirection: 'column' }}>
