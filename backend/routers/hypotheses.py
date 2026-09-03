@@ -37,6 +37,15 @@ async def create_hypothesis(project_id: str, experiment_id: str):
         doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
         doc_ref.set(hypothesis_data)
         
+        try:
+            from backend.services.detector import compute_and_persist_detector
+            compute_and_persist_detector(project_id, experiment_id)
+            doc = doc_ref.get()
+            if doc.exists:
+                hypothesis_data = doc.to_dict()
+        except Exception as e:
+            logger.warning(f"Could not compute detector for {project_id}/{experiment_id}: {e}")
+        
         return {
             "status": "success",
             "hypothesis": hypothesis_data
