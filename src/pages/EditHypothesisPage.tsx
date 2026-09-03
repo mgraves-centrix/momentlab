@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { CutComparison } from '../components/CutComparison';
 import { ConfidenceMeter } from '../components/ConfidenceMeter';
+import { QueryModal } from '../components/QueryModal';
 import { 
   fetchExperimentHypothesis, 
   fetchExperimentSummary, 
@@ -33,6 +34,7 @@ export const EditHypothesisPage: React.FC = () => {
   const [summaryData, setSummaryData] = useState<ExperimentSummary | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [selectedQueryId, setSelectedQueryId] = useState<string | null>(null);
   const isMobile = useMobile();
 
   useEffect(() => {
@@ -212,12 +214,23 @@ export const EditHypothesisPage: React.FC = () => {
                 Detector: {summaryData?.retention_drop || 'unavailable'} retention drop (vs 00:00–00:10 baseline) detected at timestamp {summaryData?.detected_moment || 'unavailable'} in Scene 12. Agent's own analysis: {(hypothesis as any)?.retentionDrop || (hypothesis as any)?.evidenceRecords?.[0]?.effectSize || 'unavailable'} drop (vs local pre-cliff baseline).
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <div style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#c4a7ff', fontFamily: 'monospace' }}>
-                  CH_EVIDENCE: EV-01
-                </div>
-                <div style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#8d979f', fontFamily: 'monospace' }}>
-                  QUERY_RUN: QRY-23A-8841
-                </div>
+                {hypothesis.evidenceRecords?.[0]?.id && (
+                  <div style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#c4a7ff', fontFamily: 'monospace' }}>
+                    EVIDENCE: {hypothesis.evidenceRecords[0].id}
+                  </div>
+                )}
+                {hypothesis.evidenceRecords?.[0]?.sourceQueryRunId ? (
+                  <div
+                    onClick={() => setSelectedQueryId(hypothesis.evidenceRecords![0].sourceQueryRunId)}
+                    style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#58c94b', fontFamily: 'monospace', cursor: 'pointer' }}
+                  >
+                    QUERY_RUN: {hypothesis.evidenceRecords[0].sourceQueryRunId}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#8d979f', fontFamily: 'monospace' }}>
+                    provenance unavailable
+                  </div>
+                )}
                 <div style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#ff654a', fontWeight: 700 }}>
                   CLIFF: {summaryData?.retention_drop || 'unavailable'} (vs 00:00–00:10 baseline)
                 </div>
@@ -361,32 +374,46 @@ export const EditHypothesisPage: React.FC = () => {
                 Inspected by Google ADK runtime over official ClickHouse MCP socket.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {(hypothesis.evidenceRecords || [
-                  { id: "EV-01", timestamp: "00:37", metric: "Response cliff", segment: "ALL", sourceQueryRunId: "QRY-23A-8841" },
-                  { id: "EV-02", timestamp: "00:35", metric: "Confusion spike", segment: "18–24", sourceQueryRunId: "QRY-23A-8842" },
-                  { id: "EV-03", timestamp: "00:40", metric: "Boredom exit", segment: "25–34", sourceQueryRunId: "QRY-23A-8843" }
-                ]).map((ev, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => navigate(`/projects/${projectId}/experiments/${experimentId}/evidence${location.search}`)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      backgroundColor: '#131b22',
-                      borderRadius: '4px',
-                      border: '1px solid #1c2630',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#c4a7ff', fontWeight: 700 }}>{ev.id} · {ev.metric}</div>
-                      <div style={{ fontSize: '10px', color: '#8d979f' }}>Time: {ev.timestamp} | {ev.sourceQueryRunId}</div>
+                {hypothesis.evidenceRecords && hypothesis.evidenceRecords.length > 0 ? (
+                  hypothesis.evidenceRecords.map((ev, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        if (ev.sourceQueryRunId) {
+                          setSelectedQueryId(ev.sourceQueryRunId);
+                        } else {
+                          navigate(`/projects/${projectId}/experiments/${experimentId}/evidence${location.search}`);
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        backgroundColor: '#131b22',
+                        borderRadius: '4px',
+                        border: '1px solid #1c2630',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#c4a7ff', fontWeight: 700 }}>{ev.id} · {ev.metric}</div>
+                        <div style={{ fontSize: '10px', color: '#8d979f' }}>
+                          Time: {ev.timestamp} | {ev.sourceQueryRunId ? (
+                            <span style={{ color: '#58c94b', fontFamily: 'monospace' }}>{ev.sourceQueryRunId}</span>
+                          ) : (
+                            'provenance unavailable'
+                          )}
+                        </div>
+                      </div>
+                      <ExternalLink size={12} color="#8d979f" />
                     </div>
-                    <ExternalLink size={12} color="#8d979f" />
+                  ))
+                ) : (
+                  <div style={{ fontSize: '11px', color: '#8d979f', padding: '8px 0' }}>
+                    No evidence records recorded for this hypothesis.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -406,7 +433,9 @@ export const EditHypothesisPage: React.FC = () => {
           </div>
 
         </div>
+        <QueryModal queryId={selectedQueryId} onClose={() => setSelectedQueryId(null)} />
       </div>
     </AppShell>
   );
 };
+
