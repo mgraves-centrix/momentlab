@@ -96,7 +96,7 @@ gcloud auth configure-docker "${REGION}-docker.pkg.dev" --account="${GCP_ACCOUNT
 
 # 5. Build and Push Container Image using local Docker
 echo "[5/6] Building and pushing Docker container image locally..."
-docker build --platform linux/amd64 --build-arg GIT_SHA="${GIT_SHA}" -t "${IMAGE_SHA}" -t "${IMAGE_LATEST}" .
+docker build --no-cache --platform linux/amd64 --build-arg GIT_SHA="${GIT_SHA}" -t "${IMAGE_SHA}" -t "${IMAGE_LATEST}" .
 docker push "${IMAGE_SHA}"
 docker push "${IMAGE_LATEST}"
 
