@@ -147,9 +147,7 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
 };
 
 export const ExperimentResultsPage: React.FC = () => {
-  const { projectId: routeProjectId, experimentId: routeExperimentId } = useParams<{ projectId?: string; experimentId?: string }>();
-  const projectId = routeProjectId || 'proj_northlight_01';
-  const experimentId = routeExperimentId || 'exp_23a';
+  const { projectId, experimentId } = useParams<{ projectId?: string; experimentId?: string }>();
   const navigate = useNavigate();
 
   const [data, setData] = useState<any>(null);
@@ -157,6 +155,17 @@ export const ExperimentResultsPage: React.FC = () => {
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
   const [activeTab, setActiveTab] = useState<'SUPPORTED' | 'REJECTED' | 'INCONCLUSIVE'>('SUPPORTED');
   const isMobile = useMobile();
+
+  if (!projectId || !experimentId) {
+    return (
+      <AppShell>
+        <div style={{ padding: '40px', textAlign: 'center', color: '#8d979f' }}>
+          <h2>No experiment selected</h2>
+          <p>Please select a valid project and experiment to view results.</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   const sampleVideoUrl = projectId === 'proj_echoes_02' 
     ? "/frames/echoes_of_salt/scene.mp4" 
@@ -410,7 +419,7 @@ export const ExperimentResultsPage: React.FC = () => {
                       SYNTHETIC PREVIEW
                     </span>
                   </div>
-                  <div style={{ fontSize: '12px', color: '#b7e33d', marginBottom: '12px' }}>{hypothesis || "Move reveal 6s earlier"} — Reveal at 00:37</div>
+                  <div style={{ fontSize: '12px', color: '#b7e33d', marginBottom: '12px' }}>{hypothesis || "unavailable"}</div>
                   
                   <VideoPlayerWithTimeline 
                     src={sampleVideoUrl}
