@@ -139,35 +139,41 @@ async def get_experiment_results(project_id: str, experiment_id: str):
         sample_size_variant = total_respondents - sample_size
         
         # Derive metrics from hypothesis
-        proposed_change = hyp.get("proposedChange", "MOVE REVEAL 6S EARLIER")
+        proposed_change = hyp.get("proposedChange")
         confidence = hyp.get("confidenceScore")
-        forecast_engagement = hyp.get("forecastEngagement", "+18%")
-        forecast_completion = hyp.get("forecastCompletion", "+9%")
-        forecast_confusion = hyp.get("forecastConfusion", "-4%")
+        forecast_engagement = hyp.get("forecastEngagement")
+        forecast_completion = hyp.get("forecastCompletion")
+        forecast_confusion = hyp.get("forecastConfusion")
         
         # Parse numeric values for robust CI bounds that always contain point estimates
-        try:
-            eng_val = int(forecast_engagement.replace("+", "").replace("%", ""))
-            eng_ci = f"[+{max(0, eng_val - 6)}%, +{eng_val + 6}%]"
-        except Exception:
-            eng_ci = "[+12%, +24%]"
+        eng_val, eng_ci = None, None
+        if forecast_engagement:
+            try:
+                eng_val = int(str(forecast_engagement).replace("+", "").replace("%", ""))
+                eng_ci = f"[+{max(0, eng_val - 6)}%, +{eng_val + 6}%]"
+            except Exception:
+                pass
 
-        try:
-            comp_val = int(forecast_completion.replace("+", "").replace("%", ""))
-            comp_ci = f"[+{max(0, comp_val - 5)}%, +{comp_val + 5}%]"
-        except Exception:
-            comp_ci = "[+4%, +14%]"
+        comp_val, comp_ci = None, None
+        if forecast_completion:
+            try:
+                comp_val = int(str(forecast_completion).replace("+", "").replace("%", ""))
+                comp_ci = f"[+{max(0, comp_val - 5)}%, +{comp_val + 5}%]"
+            except Exception:
+                pass
 
-        try:
-            conf_val = int(forecast_confusion.replace("+", "").replace("%", ""))
-            conf_ci = f"[{conf_val - 4}%, {conf_val + 4}%]"
-        except Exception:
-            conf_ci = "[-8%, 0%]"
+        conf_val, conf_ci = None, None
+        if forecast_confusion:
+            try:
+                conf_val = int(str(forecast_confusion).replace("+", "").replace("%", ""))
+                conf_ci = f"[{conf_val - 4}%, {conf_val + 4}%]"
+            except Exception:
+                pass
         
         return {
-            "hypothesis": proposed_change.upper(),
+            "hypothesis": proposed_change.upper() if proposed_change else None,
             "outcome": "SUPPORTED" if (confidence and confidence > 50) else "INCONCLUSIVE",
-            "outcome_details": f"Statistically significant lift ({forecast_engagement}) detected. (SIMULATED)",
+            "outcome_details": f"Statistically significant lift ({forecast_engagement}) detected. (SIMULATED)" if forecast_engagement else "No lift forecast available.",
             "confidence": confidence,
             "test_period_start": "2025-05-19",
             "test_period_end": "2025-05-26",
@@ -184,9 +190,9 @@ async def get_experiment_results(project_id: str, experiment_id: str):
             },
             
             "cohort_breakdown": [
-                {"cohort": "ALL", "cut_a": 55, "cut_b": 65, "lift": int(forecast_engagement.replace("+", "").replace("%", "")), "ci": eng_ci, "confidence": confidence},
-                {"cohort": "18–24", "cut_a": 58, "cut_b": 69, "lift": int(forecast_engagement.replace("+", "").replace("%", "")) + 1, "ci": f"[+{max(0, eng_val - 8)}%, +{eng_val + 10}%]", "confidence": confidence - 4},
-                {"cohort": "25–34", "cut_a": 53, "cut_b": 63, "lift": int(forecast_engagement.replace("+", "").replace("%", "")) + 1, "ci": f"[+{max(0, eng_val - 7)}%, +{eng_val + 9}%]", "confidence": confidence - 1}
+                {"cohort": "ALL", "cut_a": 55, "cut_b": 65, "lift": eng_val, "ci": eng_ci, "confidence": confidence},
+                {"cohort": "18–24", "cut_a": 58, "cut_b": 69, "lift": (eng_val + 1) if eng_val is not None else None, "ci": f"[+{max(0, eng_val - 8)}%, +{eng_val + 10}%]" if eng_val is not None else None, "confidence": (confidence - 4) if confidence is not None else None},
+                {"cohort": "25–34", "cut_a": 53, "cut_b": 63, "lift": (eng_val + 1) if eng_val is not None else None, "ci": f"[+{max(0, eng_val - 7)}%, +{eng_val + 9}%]" if eng_val is not None else None, "confidence": (confidence - 1) if confidence is not None else None}
             ],
             
             "engagement_over_time": [
