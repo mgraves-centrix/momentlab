@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TimelineDataPoint } from '../fixtures/northlight';
+import { TimelineDataPoint } from '../types/northlight';
 import { AlertTriangle, Database } from 'lucide-react';
 
 interface ResponseTimelineProps {

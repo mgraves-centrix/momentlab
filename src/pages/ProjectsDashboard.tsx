@@ -365,7 +365,9 @@ export const ProjectsDashboard: React.FC = () => {
                   const pathA = `M ${validPts.map(pt => `${Math.round((pt.timeMs / maxTime) * 300)} ${Math.round(70 - (pt.allCohort! * 0.85 / 100) * 70)}`).join(' L ')}`;
                   const pathB = `M ${validPts.map(pt => `${Math.round((pt.timeMs / maxTime) * 300)} ${Math.round(70 - (pt.allCohort! * 1.02 / 100) * 70)}`).join(' L ')}`;
                   const pathAll = `M ${validPts.map(pt => `${Math.round((pt.timeMs / maxTime) * 300)} ${Math.round(70 - (pt.allCohort! / 100) * 70)}`).join(' L ')}`;
-                  const markerX = summaryData?.detected_moment_ms != null ? Math.round((summaryData.detected_moment_ms / maxTime) * 300) : 100;
+                  const detMomentMs = (northlightHypothesis as any)?.detectedMomentMs ?? (northlightHypothesis as any)?.detected_moment_ms;
+                  const detMoment = (northlightHypothesis as any)?.detectedMoment ?? (northlightHypothesis as any)?.detected_moment;
+                  const markerX = detMomentMs != null ? Math.round((detMomentMs / maxTime) * 300) : 100;
                   
                   return (
                     <div style={{ height: '70px', position: 'relative', width: '100%' }}>
@@ -377,11 +379,13 @@ export const ProjectsDashboard: React.FC = () => {
                         {/* All Respondents (gray dashed) */}
                         <path d={pathAll} fill="none" stroke="#5b6670" strokeWidth="1" strokeDasharray="2 2" />
                         {/* Red Marker Line */}
-                        <line x1={markerX} y1="0" x2={markerX} y2="70" stroke="#ff6652" strokeWidth="1.5" strokeDasharray="2 2" />
+                        {detMomentMs != null && (
+                          <line x1={markerX} y1="0" x2={markerX} y2="70" stroke="#ff6652" strokeWidth="1.5" strokeDasharray="2 2" />
+                        )}
                       </svg>
-                      {summaryData?.detected_moment && (
+                      {detMoment && detMomentMs != null && (
                         <span style={{ position: 'absolute', top: '2px', left: `${markerX + 4}px`, backgroundColor: '#ff6652', color: '#fff', fontSize: '8px', fontWeight: 700, padding: '1px 3px', borderRadius: '2px' }}>
-                          {summaryData.detected_moment}
+                          {detMoment}
                         </span>
                       )}
                     </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Activity, CheckCircle, Clock } from 'lucide-react';
-import { McpActivity } from '../fixtures/northlight';
+import { McpActivity } from '../types/northlight';
 
 interface McpActivityPanelProps {
   activities: McpActivity[];

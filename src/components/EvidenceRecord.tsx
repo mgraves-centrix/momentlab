@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Database, ChevronDown, ChevronUp, Code } from 'lucide-react';
-import { EvidenceRecord as EvidenceType } from '../fixtures/northlight';
+import { EvidenceRecord as EvidenceType } from '../types/northlight';
 
 interface EvidenceRecordProps {
   record: EvidenceType;
