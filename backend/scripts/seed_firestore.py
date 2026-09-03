@@ -112,4 +112,11 @@ hyp_data = {
 }
 db.collection("projects").document("proj_northlight_01").collection("experiments").document("exp_23a").collection("hypotheses").document("current").set(hyp_data)
 
+print("Computing & persisting anomaly detector from ClickHouse...")
+try:
+    from backend.services.detector import compute_and_persist_detector
+    compute_and_persist_detector("proj_northlight_01", "exp_23a")
+except Exception as e:
+    print(f"Warning: could not compute detector during seed: {e}")
+
 print("Firestore seeding complete.")

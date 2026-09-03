@@ -322,11 +322,11 @@ async def get_summary(project_id: str, experiment_id: str):
         return {
             "status": "ANALYSIS_READY",
             "total_respondents": total_respondents,
-            "detected_moment": detected_moment or "00:37",
-            "detected_moment_ms": detected_moment_ms or 37000,
-            "retention_drop": retention_drop or "-34.2%",
-            "retention_drop_baseline": "vs 00:00–00:10 baseline",
-            "anomaly_window": anomaly_window or "00:33–00:41",
+            "detected_moment": detected_moment,
+            "detected_moment_ms": detected_moment_ms,
+            "retention_drop": retention_drop,
+            "retention_drop_baseline": "vs 00:00–00:10 baseline" if retention_drop else None,
+            "anomaly_window": anomaly_window,
             "confidence": confidence
         }
     except Exception as e:
