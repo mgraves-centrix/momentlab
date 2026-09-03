@@ -1,6 +1,6 @@
 import logging
 from typing import Optional, Dict, Any
-from backend.services.clickhouse import get_client
+from backend.services.clickhouse import get_client, get_db_name
 from backend.services.db import get_db
 
 logger = logging.getLogger("momentlab.services.detector")
@@ -9,11 +9,12 @@ def run_anomaly_detector(project_id: str, experiment_id: str) -> Dict[str, Any]:
     """Computes anomaly metrics server-side from ClickHouse audience_events."""
     try:
         client = get_client()
+        db_name = get_db_name()
         
-        query_respondents = """
+        query_respondents = f"""
             SELECT count(DISTINCT session_id) 
-            FROM momentlab.audience_events 
-            WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}
+            FROM {db_name}.audience_events 
+            WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
         """
         res = client.query(query_respondents, parameters={'project_id': project_id, 'experiment_id': experiment_id})
         total_respondents = int(res.result_rows[0][0]) if (res.result_rows and res.result_rows[0][0] > 0) else 0
@@ -27,10 +28,10 @@ def run_anomaly_detector(project_id: str, experiment_id: str) -> Dict[str, Any]:
                 "anomalyWindow": None,
             }
 
-        q_timeline = """
+        q_timeline = f"""
             SELECT toFloat32(toInt32(media_time_ms / 1000) * 1000) as time_bucket, avg(retention_score) as avg_val
-            FROM momentlab.audience_events
-            WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}
+            FROM {db_name}.audience_events
+            WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
             GROUP BY time_bucket
             ORDER BY time_bucket
         """

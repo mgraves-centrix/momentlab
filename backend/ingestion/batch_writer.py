@@ -22,13 +22,16 @@ class ClickHouseBatchWriter:
         self.port = int(str(os.getenv("CLICKHOUSE_PORT", "8123")).strip())
         self.user = (os.getenv("CLICKHOUSE_USER") or os.getenv("CLICKHOUSE_WRITER_USER", "momentlab_writer")).strip()
         self.password = (os.getenv("CLICKHOUSE_PASSWORD") or os.getenv("CLICKHOUSE_WRITER_PASSWORD", "")).strip()
-        self.database = (os.getenv("CLICKHOUSE_DATABASE") or os.getenv("CLICKHOUSE_DB", "momentlab")).strip()
         
         self.client = None
         self._memory_events: List[Dict[str, Any]] = []
         self._processed_idempotency_keys: set = set()
         
         self._connect()
+
+    @property
+    def database(self) -> str:
+        return (os.getenv("CLICKHOUSE_DATABASE") or os.getenv("CLICKHOUSE_DB") or "momentlab").strip()
 
     def _connect(self):
         try:
@@ -59,7 +62,7 @@ class ClickHouseBatchWriter:
             try:
                 candidate_keys = [str(ev["idempotency_key"]) for ev in new_events if ev.get("idempotency_key")]
                 if candidate_keys:
-                    existing_query = "SELECT idempotency_key FROM momentlab.audience_events WHERE idempotency_key IN {keys:Array(String)}"
+                    existing_query = f"SELECT idempotency_key FROM {self.database}.audience_events WHERE idempotency_key IN {{keys:Array(String)}}"
                     res = self.client.query(existing_query, parameters={"keys": candidate_keys})
                     existing_keys = {str(row[0]) for row in res.result_rows}
                     if existing_keys:
@@ -93,7 +96,8 @@ class ClickHouseBatchWriter:
                         "event_id", "session_id", "project_id", "experiment_id",
                         "scene_id", "media_time_ms", "retention_score",
                         "playback_state", "idempotency_key", "event_timestamp"
-                    ]
+                    ],
+                    database=self.database
                 )
                 return {"status": "SUCCESS", "inserted_count": len(new_events)}
             except Exception as e:
@@ -134,7 +138,8 @@ class ClickHouseBatchWriter:
                         "session_id", "screening_token", "project_id", "experiment_id",
                         "scene_id", "respondent_cohort", "consent_given",
                         "consent_timestamp", "created_at"
-                    ]
+                    ],
+                    database=self.database
                 )
                 return {"status": "SUCCESS", "inserted_count": len(sessions)}
             except Exception as e:
@@ -163,7 +168,7 @@ class ClickHouseBatchWriter:
             try:
                 candidate_keys = [str(r["idempotency_key"]) for r in new_reactions if r.get("idempotency_key")]
                 if candidate_keys:
-                    existing_query = "SELECT idempotency_key FROM momentlab.reaction_events WHERE idempotency_key IN {keys:Array(String)}"
+                    existing_query = f"SELECT idempotency_key FROM {self.database}.reaction_events WHERE idempotency_key IN {{keys:Array(String)}}"
                     res = self.client.query(existing_query, parameters={"keys": candidate_keys})
                     existing_keys = {str(row[0]) for row in res.result_rows}
                     if existing_keys:
@@ -196,7 +201,8 @@ class ClickHouseBatchWriter:
                         "reaction_id", "session_id", "project_id", "experiment_id",
                         "scene_id", "media_time_ms", "reaction_type",
                         "idempotency_key", "created_at"
-                    ]
+                    ],
+                    database=self.database
                 )
                 return {"status": "SUCCESS", "inserted_count": len(new_reactions)}
             except Exception as e:

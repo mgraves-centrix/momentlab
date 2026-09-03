@@ -42,7 +42,8 @@ async def record_telemetry_events(payload: Union[ReactionEventPayload, List[Reac
     if not events_list:
         return {"status": "EMPTY", "inserted_count": 0}
 
-    # Validate UUID session_id for every event
+    # Validate UUID session_id and consent for every event
+    from backend.services.clickhouse import is_session_consented
     for ev in events_list:
         sid = ev.get("session_id")
         if not sid:
@@ -51,6 +52,11 @@ async def record_telemetry_events(payload: Union[ReactionEventPayload, List[Reac
             uuid.UUID(str(sid))
         except (ValueError, TypeError, AttributeError):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Invalid session_id UUID: '{sid}'")
+        if not is_session_consented(str(sid)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Screening consent required before reaction ingestion for session '{sid}'"
+            )
 
     writer = ClickHouseBatchWriter()
     res = writer.insert_reaction_events(events_list)
@@ -90,8 +96,9 @@ logger = logging.getLogger("momentlab.telemetry")
 @router.get("/timeline")
 async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str] = "all", window: Optional[str] = None):
     try:
-        from backend.services.clickhouse import get_client
+        from backend.services.clickhouse import get_client, get_db_name
         client = get_client()
+        db_name = get_db_name()
         
         cohort_clean = (cohort or "all").strip().lower()
         if cohort_clean in ["18-24", "18_24"]:
@@ -105,7 +112,7 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
         else:
             cohort_val = "all"
 
-        query = """
+        query = f"""
             SELECT 
                 toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket,
                 count() as total_events,
@@ -114,9 +121,9 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                 avg(CASE WHEN ss.respondent_cohort = '25_34' THEN ae.retention_score ELSE NULL END) as avg_25_34,
                 avg(CASE WHEN ss.respondent_cohort = '35_44' THEN ae.retention_score ELSE NULL END) as avg_35_44,
                 avg(ae.retention_score * ae.retention_score) as avg_sq
-            FROM momentlab.audience_events ae
-            LEFT JOIN momentlab.screening_sessions ss ON ae.session_id = ss.session_id
-            WHERE ae.project_id = {project_id:String} AND ae.experiment_id = {experiment_id:String}
+            FROM {db_name}.audience_events ae
+            LEFT JOIN {db_name}.screening_sessions ss ON ae.session_id = ss.session_id
+            WHERE ae.project_id = {{project_id:String}} AND ae.experiment_id = {{experiment_id:String}}
             GROUP BY time_bucket
             ORDER BY time_bucket
         """
@@ -287,14 +294,15 @@ async def get_query_by_id(query_id: str):
 @router.get("/summary")
 async def get_summary(project_id: str, experiment_id: str):
     try:
-        from backend.services.clickhouse import get_client
+        from backend.services.clickhouse import get_client, get_db_name
         client = get_client()
+        db_name = get_db_name()
         
         # 1. Total distinct respondents
-        query_respondents = """
+        query_respondents = f"""
             SELECT count(DISTINCT session_id) 
-            FROM momentlab.audience_events 
-            WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}
+            FROM {db_name}.audience_events 
+            WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
         """
         res = client.query(query_respondents, parameters={'project_id': project_id, 'experiment_id': experiment_id})
         total_respondents = int(res.result_rows[0][0]) if (res.result_rows and res.result_rows[0][0] > 0) else 0
@@ -336,10 +344,10 @@ async def get_summary(project_id: str, experiment_id: str):
 
         # If metadata was not in Firestore, detect dynamically from ClickHouse
         if not detected_moment or not retention_drop:
-            q_timeline = """
+            q_timeline = f"""
                 SELECT toFloat32(toInt32(media_time_ms / 1000) * 1000) as time_bucket, avg(retention_score) as avg_val
-                FROM momentlab.audience_events
-                WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}
+                FROM {db_name}.audience_events
+                WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
                 GROUP BY time_bucket
                 ORDER BY time_bucket
             """
@@ -387,15 +395,16 @@ async def reset_telemetry(req: Optional[TelemetryResetRequest] = None, reviewer_
     experiment_id = req.experiment_id if req else "exp_23a"
     sample_size = req.sample_size if req else 525
     
-    from backend.services.clickhouse import get_client
+    from backend.services.clickhouse import get_client, get_db_name
     from backend.simulator.fixtures import generate_northlight_events_and_sessions
     from backend.ingestion.batch_writer import ClickHouseBatchWriter
     
     client = get_client()
+    db_name = get_db_name()
     # 1. Clear previous events and sessions for target experiment
     try:
-        client.query("DELETE FROM momentlab.audience_events WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}", parameters={'project_id': project_id, 'experiment_id': experiment_id})
-        client.query("DELETE FROM momentlab.screening_sessions WHERE project_id = {project_id:String} AND experiment_id = {experiment_id:String}", parameters={'project_id': project_id, 'experiment_id': experiment_id})
+        client.query(f"DELETE FROM {db_name}.audience_events WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}", parameters={'project_id': project_id, 'experiment_id': experiment_id})
+        client.query(f"DELETE FROM {db_name}.screening_sessions WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}", parameters={'project_id': project_id, 'experiment_id': experiment_id})
     except Exception as e:
         print(f"Error clearing ClickHouse tables: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to reset telemetry: {str(e)}")

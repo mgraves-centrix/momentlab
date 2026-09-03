@@ -3,6 +3,7 @@ from typing import Optional, Literal
 from datetime import datetime, timezone
 
 class ConsentRecord(BaseModel):
+    session_id: str
     screening_token: str
     project_id: str = "proj_northlight_01"
     experiment_id: str = "exp_23a"
@@ -17,7 +18,7 @@ class PlaybackEvent(BaseModel):
     experiment_id: str = "exp_23a"
     scene_id: str = "sc_12"
     media_time_ms: int = Field(ge=0, description="Canonical media timecode position in milliseconds")
-    retention_score: float = Field(ge=0.0, le=100.0)
+    retention_score: Optional[float] = Field(default=None, ge=0.0, le=100.0)
     playback_state: Literal["PLAYING", "PAUSED", "SEEKING"] = "PLAYING"
     idempotency_key: str
 

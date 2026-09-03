@@ -232,7 +232,7 @@ export const ExperimentResultsPage: React.FC = () => {
           <StatePanel
             type="no_projects"
             message="This project has not completed an authorized A/B test run. Complete a screening to gather audience responses and launch an experiment."
-            onRetry={() => navigate(`/screen/tok_${projectId.replace('proj_', '')}`)}
+            onRetry={() => navigate('/screen/demo_token_123')}
           />
         </div>
       </AppShell>
