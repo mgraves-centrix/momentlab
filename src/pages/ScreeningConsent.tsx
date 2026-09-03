@@ -487,58 +487,6 @@ export const ScreeningConsentPage: React.FC = () => {
                   <div style={{ backgroundColor: '#0d1318', borderRadius: '8px', border: '1px solid #1c262e', overflow: 'hidden' }}>
                     <MediaPlayer initialTimecodeMs={currentTimeMs} onTimeUpdate={handleTimeUpdate} />
                   </div>
-
-            <div style={{ padding: '20px 16px', borderTop: '1px solid #1c262e', backgroundColor: '#0c1115' }}>
-              <div style={{ fontSize: '11px', color: '#8d979f', textAlign: 'center', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Tap only when the feeling changes
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                <button onClick={() => handleSendReaction('CONFUSED')} style={{ backgroundColor: '#121a21', border: '1px solid #202b35', color: '#f1f3f2', padding: '14px', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.04em' }}>
-                  <HelpCircle size={20} color="#8b5cf6" />
-                  <span>CONFUSING ({reactionCounts.CONFUSED})</span>
-                </button>
-                <button onClick={() => handleSendReaction('ENGAGING')} style={{ backgroundColor: 'rgba(183, 227, 61, 0.15)', border: '1px solid #b7e33d', color: '#b7e33d', padding: '14px', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.04em' }}>
-                  <Flame size={20} />
-                  <span>ENGAGING ({reactionCounts.ENGAGING})</span>
-                </button>
-                <button onClick={() => handleSendReaction('BORED')} style={{ backgroundColor: '#121a21', border: '1px solid #202b35', color: '#f1f3f2', padding: '14px', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.04em' }}>
-                  <Frown size={20} color="#8d979f" />
-                  <span>BORED ({reactionCounts.BORED})</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* --- DESKTOP PLAYER (Screen 03) --- */
-          <>
-            <header style={{ height: '60px', backgroundColor: '#090a0c', borderBottom: '1px solid #1c262e', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <Link to="/projects" style={{ textDecoration: 'none' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '18px', letterSpacing: '0.04em', color: '#fff', cursor: 'pointer' }}>
-                    MOMENT<span style={{ color: '#8b5cf6' }}>LAB</span> <span style={{ color: '#8d979f', fontSize: '14px', fontWeight: 500 }}>SCREENING</span>
-                  </span>
-                </Link>
-                
-                <span style={{ fontSize: '12px', color: '#f1f3f2', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  PROJECT NORTHLIGHT <span style={{ color: '#455564', margin: '0 8px' }}>|</span> CUT A · ORIGINAL
-                </span>
-                <ShieldCheck size={16} color="#8d979f" />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b7e33d' }} />
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#b7e33d', letterSpacing: '0.04em' }}>CONNECTION ONLINE</span>
-              </div>
-            </header>
-
-            <main style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
-              <div style={{ display: 'flex', gap: '24px', flex: 1 }}>
-                
-                {/* Left: Player and Buttons */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  <div style={{ backgroundColor: '#0d1318', borderRadius: '8px', border: '1px solid #1c262e', overflow: 'hidden' }}>
-                    <MediaPlayer initialTimecodeMs={currentTimeMs} onTimeUpdate={setCurrentTimeMs} />
-                  </div>
                   
                   <div>
                     <div style={{ fontSize: '11px', color: '#8d979f', textAlign: 'center', marginBottom: '16px', letterSpacing: '0.04em' }}>Tap only when the feeling changes.</div>
