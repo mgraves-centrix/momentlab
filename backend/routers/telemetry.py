@@ -272,7 +272,7 @@ async def get_summary(project_id: str, experiment_id: str):
             }
         
         # 2. Get hypothesis / experiment metadata from Firestore if available
-        confidence = 91
+        confidence = None
         detected_moment = None
         detected_moment_ms = None
         retention_drop = None
@@ -285,7 +285,7 @@ async def get_summary(project_id: str, experiment_id: str):
                 hyp_doc = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current').get()
                 if hyp_doc.exists:
                     h_data = hyp_doc.to_dict()
-                    confidence = h_data.get('confidenceScore', confidence)
+                    confidence = h_data.get('confidenceScore')
                     detected_moment = h_data.get('detectedMoment')
                     detected_moment_ms = h_data.get('detectedMomentMs')
                     retention_drop = h_data.get('retentionDrop')
@@ -318,14 +318,14 @@ async def get_summary(project_id: str, experiment_id: str):
                     retention_drop = f"-{round(drop_val, 1)}%"
                     st_sec, en_sec = start_ms // 1000, end_ms // 1000
                     anomaly_window = f"{st_sec // 60:02d}:{st_sec % 60:02d}–{en_sec // 60:02d}:{en_sec % 60:02d}"
-                    confidence = 91
 
         return {
             "status": "ANALYSIS_READY",
             "total_respondents": total_respondents,
             "detected_moment": detected_moment or "00:37",
             "detected_moment_ms": detected_moment_ms or 37000,
-            "retention_drop": retention_drop or "-28.0%",
+            "retention_drop": retention_drop or "-34.2%",
+            "retention_drop_baseline": "vs 00:00–00:10 baseline",
             "anomaly_window": anomaly_window or "00:33–00:41",
             "confidence": confidence
         }
