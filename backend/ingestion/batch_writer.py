@@ -17,7 +17,8 @@ class ClickHouseBatchWriter:
     High-throughput batch writer for audience events.
     Uses clickhouse-connect or the local ClickHouse adapter.
     """
-    def __init__(self):
+    def __init__(self, database: str | None = None):
+        self._database = database
         self.host = (os.getenv("CLICKHOUSE_HOST", "localhost")).strip()
         self.port = int(str(os.getenv("CLICKHOUSE_PORT", "8123")).strip())
         self.user = (os.getenv("CLICKHOUSE_USER") or os.getenv("CLICKHOUSE_WRITER_USER", "momentlab_writer")).strip()
@@ -31,7 +32,16 @@ class ClickHouseBatchWriter:
 
     @property
     def database(self) -> str:
+        if self._database:
+            return self._database
         return (os.getenv("CLICKHOUSE_DATABASE") or os.getenv("CLICKHOUSE_DB") or "momentlab").strip()
+
+    def flush(self) -> Dict[str, Any]:
+        if not self._memory_events or not self.client:
+            return {"status": "EMPTY", "inserted_count": 0}
+        events_to_flush = list(self._memory_events)
+        self._memory_events.clear()
+        return self.insert_playback_events(events_to_flush)
 
     def _connect(self):
         try:
@@ -46,6 +56,9 @@ class ClickHouseBatchWriter:
         Inserts second-by-second playback events into audience_events.
         Enforces idempotency deduplication.
         """
+        if not self.client:
+            self._connect()
+
         new_events = []
         for ev in events:
             key = ev.get("idempotency_key")
@@ -112,6 +125,9 @@ class ClickHouseBatchWriter:
         """
         Inserts session records into screening_sessions.
         """
+        if not self.client:
+            self._connect()
+
         if not sessions:
             return {"status": "EMPTY", "inserted_count": 0}
 
@@ -149,6 +165,9 @@ class ClickHouseBatchWriter:
         Inserts reaction events (CONFUSED, ENGAGING, BORED, etc.) into reaction_events.
         Enforces idempotency deduplication.
         """
+        if not self.client:
+            self._connect()
+
         new_reactions = []
         for r in reactions:
             session_id = str(r.get("session_id") or "")
