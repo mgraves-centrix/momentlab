@@ -9,7 +9,26 @@ REGION="${GCP_REGION:-us-central1}"
 GCP_ACCOUNT="${GCP_ACCOUNT:-guarded.ops@gmail.com}"
 SERVICE_NAME="momentlab-web"
 REPO_NAME="momentlab-repo"
-IMAGE_NAME="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest"
+ALLOW_DIRTY=false
+for arg in "$@"; do
+    if [ "$arg" = "--allow-dirty" ]; then
+        ALLOW_DIRTY=true
+    fi
+done
+
+DIRTY_COUNT=$(git status --porcelain | wc -l | tr -d ' ')
+if [ "${DIRTY_COUNT}" -ne 0 ]; then
+    if [ "${ALLOW_DIRTY}" != "true" ]; then
+        echo "ERROR: Working tree is dirty (${DIRTY_COUNT} uncommitted changes). Refusing to deploy unless --allow-dirty is passed." >&2
+        exit 1
+    else
+        echo "WARNING: Building from dirty working tree (--allow-dirty flag present)."
+    fi
+fi
+
+GIT_SHA="$(git rev-parse --short HEAD)"
+IMAGE_SHA="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:${GIT_SHA}"
+IMAGE_LATEST="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest"
 
 export CLOUDSDK_CORE_PROJECT="${PROJECT_ID}"
 export CLOUDSDK_CORE_ACCOUNT="${GCP_ACCOUNT}"
@@ -28,7 +47,9 @@ echo "Project ID: ${PROJECT_ID}"
 echo "Account:    ${GCP_ACCOUNT}"
 echo "Region:     ${REGION}"
 echo "Service:    ${SERVICE_NAME}"
-echo "Image:      ${IMAGE_NAME}"
+echo "Git SHA:    ${GIT_SHA}"
+echo "Image SHA:  ${IMAGE_SHA}"
+echo "Image Latest: ${IMAGE_LATEST}"
 echo "ClickHouse: ${CH_HOST}:${CH_PORT}"
 echo "=========================================="
 
@@ -75,13 +96,14 @@ gcloud auth configure-docker "${REGION}-docker.pkg.dev" --account="${GCP_ACCOUNT
 
 # 5. Build and Push Container Image using local Docker
 echo "[5/6] Building and pushing Docker container image locally..."
-docker build --platform linux/amd64 -t "${IMAGE_NAME}" .
-docker push "${IMAGE_NAME}"
+docker build --platform linux/amd64 --build-arg GIT_SHA="${GIT_SHA}" -t "${IMAGE_SHA}" -t "${IMAGE_LATEST}" .
+docker push "${IMAGE_SHA}"
+docker push "${IMAGE_LATEST}"
 
 # 6. Deploy to Cloud Run
 echo "[6/6] Deploying image to Cloud Run with Secret Manager references..."
 gcloud run deploy "${SERVICE_NAME}" \
-    --image="${IMAGE_NAME}" \
+    --image="${IMAGE_SHA}" \
     --platform=managed \
     --region="${REGION}" \
     --account="${GCP_ACCOUNT}" \
