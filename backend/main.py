@@ -1,11 +1,23 @@
 import os
+import sys
 import uuid
+import logging
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from typing import List, Dict, Any
 from datetime import datetime, timezone
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stdout,
+    force=True
+)
+root_logger = logging.getLogger("momentlab")
+root_logger.setLevel(logging.INFO)
+
 from backend.schemas.events import ConsentRecord, PlaybackEvent, ReactionEvent, IngestionResponse
 from backend.ingestion.batch_writer import ClickHouseBatchWriter
 from backend.routers import projects, analytics, export, telemetry
