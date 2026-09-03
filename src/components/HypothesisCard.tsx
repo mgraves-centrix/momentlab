@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { Hypothesis } from '../fixtures/northlight';
+import { Hypothesis } from '../types/northlight';
 
 interface HypothesisCardProps {
   hypothesis: Hypothesis;

@@ -209,7 +209,7 @@ export const EditHypothesisPage: React.FC = () => {
                 </span>
               </div>
               <div style={{ fontSize: '14px', color: '#f1f3f2', lineHeight: 1.5, marginBottom: '12px' }}>
-                Detector: {summaryData?.retention_drop || 'unavailable'} retention drop (vs 00:00–00:10 baseline) detected at timestamp {summaryData?.detected_moment || 'unavailable'} in Scene 12. Agent's own analysis: {hypothesis?.retentionDrop || hypothesis?.evidenceRecords?.[0]?.effectSize || 'unavailable'} drop (vs local pre-cliff baseline).
+                Detector: {summaryData?.retention_drop || 'unavailable'} retention drop (vs 00:00–00:10 baseline) detected at timestamp {summaryData?.detected_moment || 'unavailable'} in Scene 12. Agent's own analysis: {(hypothesis as any)?.retentionDrop || (hypothesis as any)?.evidenceRecords?.[0]?.effectSize || 'unavailable'} drop (vs local pre-cliff baseline).
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <div style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#c4a7ff', fontFamily: 'monospace' }}>
