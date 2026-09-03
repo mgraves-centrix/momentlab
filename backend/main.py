@@ -5,10 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from typing import List, Dict, Any
+from datetime import datetime, timezone
 from backend.schemas.events import ConsentRecord, PlaybackEvent, ReactionEvent, IngestionResponse
 from backend.ingestion.batch_writer import ClickHouseBatchWriter
 from backend.routers import projects, analytics, export, telemetry
-from backend.services.clickhouse import init_db, check_connection
+from backend.services.clickhouse import init_db, check_connection, is_session_consented, record_session_consent_cache, is_valid_screening_token
 
 app = FastAPI(
     title="MomentLab API Engine",
@@ -76,19 +77,46 @@ def register_screening_consent(consent: ConsentRecord):
     """
     Registers screening consent. Required before playback events are accepted.
     Enforces ZERO biometric / emotion tracking policy.
+    Persists session metadata to screening_sessions table upon consent.
     """
     if not consent.consent_given:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Consent is required before audience screening playback can initiate."
         )
+
+    if not is_valid_screening_token(consent.screening_token):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unknown or expired screening token: '{consent.screening_token}'"
+        )
+
+    writer.insert_screening_sessions([{
+        "session_id": consent.session_id,
+        "screening_token": consent.screening_token,
+        "project_id": consent.project_id,
+        "experiment_id": consent.experiment_id,
+        "scene_id": consent.scene_id,
+        "respondent_cohort": consent.respondent_cohort,
+        "consent_given": 1,
+        "consent_timestamp": consent.consent_timestamp,
+        "created_at": datetime.now(timezone.utc)
+    }])
+    record_session_consent_cache(consent.session_id)
     return consent
 
 @app.post("/api/v1/events/playback", response_model=IngestionResponse)
 def ingest_playback_event(event: PlaybackEvent):
     """
     Ingests second-by-second audience playback event into ClickHouse pipeline.
+    Requires prior valid consent registration for event.session_id.
     """
+    if not is_session_consented(event.session_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Screening consent required before playback telemetry ingestion for session '{event.session_id}'"
+        )
+
     res = writer.insert_playback_events([{
         "event_id": str(uuid.uuid4()),
         "session_id": event.session_id,
@@ -96,7 +124,7 @@ def ingest_playback_event(event: PlaybackEvent):
         "experiment_id": event.experiment_id,
         "scene_id": event.scene_id,
         "media_time_ms": event.media_time_ms,
-        "retention_score": event.retention_score,
+        "retention_score": 0.0,
         "playback_state": event.playback_state,
         "idempotency_key": event.idempotency_key
     }])

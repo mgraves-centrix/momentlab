@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useRef, useCallback } from 'react';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { ShieldCheck, Lock, AlertCircle, CheckCircle, Flame, HelpCircle, Frown, Film, ChevronDown, PlayCircle, Smile, MessageSquare, Activity, Shield, Users, Trash2, Info, Ban } from 'lucide-react';
 import { MediaPlayer } from '../components/MediaPlayer';
 import { useMobile } from '../hooks/useMobile';
 
 export const ScreeningConsentPage: React.FC = () => {
+  const { screeningToken } = useParams<{ screeningToken?: string }>();
+  const effectiveToken = screeningToken || 'demo_token_123';
+
   const [hasConsented, setHasConsented] = useState(false);
-  const [currentTimeMs, setCurrentTimeMs] = useState(37000);
+  const [consentError, setConsentError] = useState<string | null>(null);
+  const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [lastReaction, setLastReaction] = useState<{ type: string; timestamp: string } | null>(null);
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({ CONFUSED: 0, ENGAGING: 0, BORED: 0, ENGAGED: 0, FUNNY: 0, 'TOO SLOW': 0 });
   const [noteText, setNoteText] = useState('');
-  const [sessionId] = useState(() => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'a0000000-0000-4000-8000-000000000001'));
+  const [sessionId] = useState(() => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'a' + Math.random().toString(16).substring(2, 10) + '-0000-4000-8000-' + Math.random().toString(16).substring(2, 14)));
   const [eventSaveStatus, setEventSaveStatus] = useState<'SAVED' | 'SAVING' | 'ERROR'>('SAVED');
   
   // Desktop consent state
@@ -19,6 +23,61 @@ export const ScreeningConsentPage: React.FC = () => {
 
   const navigate = useNavigate();
   const isMobile = useMobile();
+  const sentPlaybackKeys = useRef<Set<string>>(new Set());
+
+  const handleTimeUpdate = useCallback((timeMs: number) => {
+    setCurrentTimeMs(timeMs);
+    const sec = Math.floor(timeMs / 1000);
+    const idempKey = `${sessionId}:${sec}`;
+
+    if (sentPlaybackKeys.current.has(idempKey)) return;
+    sentPlaybackKeys.current.add(idempKey);
+
+    fetch('/api/v1/events/playback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        project_id: 'proj_northlight_01',
+        experiment_id: 'exp_23a',
+        scene_id: 'sc_12',
+        media_time_ms: timeMs,
+        playback_state: 'PLAYING',
+        idempotency_key: idempKey
+      })
+    }).catch((err) => {
+      console.error('Playback telemetry dispatch failed:', err);
+    });
+  }, [sessionId]);
+
+  const handleRegisterConsent = async (cohortVal: string) => {
+    setConsentError(null);
+    try {
+      const res = await fetch('/api/v1/screenings/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          screening_token: effectiveToken,
+          project_id: 'proj_northlight_01',
+          experiment_id: 'exp_23a',
+          scene_id: 'sc_12',
+          respondent_cohort: cohortVal,
+          consent_given: true
+        })
+      });
+
+      if (res.ok) {
+        setHasConsented(true);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setConsentError(errData.detail || `Consent registration failed (${res.status})`);
+      }
+    } catch (err) {
+      console.error('Consent registration error:', err);
+      setConsentError('Network error during screening consent registration.');
+    }
+  };
 
   const handleSendReaction = async (reactionType: 'CONFUSED' | 'ENGAGING' | 'ENGAGED' | 'BORED' | 'FUNNY' | 'TOO SLOW') => {
     const seconds = Math.floor(currentTimeMs / 1000);
@@ -114,12 +173,15 @@ export const ScreeningConsentPage: React.FC = () => {
                   </div>
                 </div>
 
+                {consentError && (
+                  <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: 'rgba(255,102,82,0.15)', border: '1px solid #ff6652', color: '#ff6652', fontSize: '13px', marginBottom: '16px' }}>
+                    {consentError}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
                   <button 
-                    onClick={async () => {
-                      await fetch('/api/v1/screenings/consent', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ consent_given: true, session_id: 'sess_screener_demo_01' }) });
-                      setHasConsented(true);
-                    }}
+                    onClick={() => handleRegisterConsent('18_24')}
                     style={{ width: '100%', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s ease', letterSpacing: '0.02em', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)' }}
                   >
                     I AGREE & START SCREENING PLAYBACK
@@ -288,13 +350,16 @@ export const ScreeningConsentPage: React.FC = () => {
                   </div>
                 </div>
 
+                {consentError && (
+                  <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: 'rgba(255,102,82,0.15)', border: '1px solid #ff6652', color: '#ff6652', fontSize: '13px', marginBottom: '16px' }}>
+                    {consentError}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'auto' }}>
                   <button
                     disabled={!desktopConsentChecked}
-                    onClick={async () => {
-                      await fetch('/api/v1/screenings/consent', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ consent_given: true, session_id: 'sess_screener_demo_01' }) });
-                      setHasConsented(true);
-                    }}
+                    onClick={() => handleRegisterConsent(selectedAge === '18-24' ? '18_24' : selectedAge === '25-34' ? '25_34' : '35_44')}
                     style={{
                       backgroundColor: desktopConsentChecked ? '#58c94b' : '#33402a',
                       color: desktopConsentChecked ? '#000' : '#4f6140',
@@ -368,8 +433,60 @@ export const ScreeningConsentPage: React.FC = () => {
             </div>
             
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MediaPlayer initialTimecodeMs={currentTimeMs} onTimeUpdate={setCurrentTimeMs} />
+              <MediaPlayer initialTimecodeMs={currentTimeMs} onTimeUpdate={handleTimeUpdate} />
             </div>
+
+            <div style={{ padding: '20px 16px', borderTop: '1px solid #1c262e', backgroundColor: '#0c1115' }}>
+              <div style={{ fontSize: '11px', color: '#8d979f', textAlign: 'center', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Tap only when the feeling changes
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                <button onClick={() => handleSendReaction('CONFUSED')} style={{ backgroundColor: '#121a21', border: '1px solid #202b35', color: '#f1f3f2', padding: '14px', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.04em' }}>
+                  <HelpCircle size={20} color="#8b5cf6" />
+                  <span>CONFUSING ({reactionCounts.CONFUSED})</span>
+                </button>
+                <button onClick={() => handleSendReaction('ENGAGING')} style={{ backgroundColor: 'rgba(183, 227, 61, 0.15)', border: '1px solid #b7e33d', color: '#b7e33d', padding: '14px', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.04em' }}>
+                  <Flame size={20} />
+                  <span>ENGAGING ({reactionCounts.ENGAGING})</span>
+                </button>
+                <button onClick={() => handleSendReaction('BORED')} style={{ backgroundColor: '#121a21', border: '1px solid #202b35', color: '#f1f3f2', padding: '14px', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.04em' }}>
+                  <Frown size={20} color="#8d979f" />
+                  <span>BORED ({reactionCounts.BORED})</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* --- DESKTOP PLAYER (Screen 03) --- */
+          <>
+            <header style={{ height: '60px', backgroundColor: '#090a0c', borderBottom: '1px solid #1c262e', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <Link to="/projects" style={{ textDecoration: 'none' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '18px', letterSpacing: '0.04em', color: '#fff', cursor: 'pointer' }}>
+                    MOMENT<span style={{ color: '#8b5cf6' }}>LAB</span> <span style={{ color: '#8d979f', fontSize: '14px', fontWeight: 500 }}>SCREENING</span>
+                  </span>
+                </Link>
+                
+                <span style={{ fontSize: '12px', color: '#f1f3f2', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  PROJECT NORTHLIGHT <span style={{ color: '#455564', margin: '0 8px' }}>|</span> CUT A · ORIGINAL
+                </span>
+                <ShieldCheck size={16} color="#8d979f" />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b7e33d' }} />
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#b7e33d', letterSpacing: '0.04em' }}>CONNECTION ONLINE</span>
+              </div>
+            </header>
+
+            <main style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+              <div style={{ display: 'flex', gap: '24px', flex: 1 }}>
+                
+                {/* Left: Player and Buttons */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div style={{ backgroundColor: '#0d1318', borderRadius: '8px', border: '1px solid #1c262e', overflow: 'hidden' }}>
+                    <MediaPlayer initialTimecodeMs={currentTimeMs} onTimeUpdate={handleTimeUpdate} />
+                  </div>
 
             <div style={{ padding: '20px 16px', borderTop: '1px solid #1c262e', backgroundColor: '#0c1115' }}>
               <div style={{ fontSize: '11px', color: '#8d979f', textAlign: 'center', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>

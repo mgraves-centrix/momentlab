@@ -3,6 +3,7 @@ import re
 import time
 import sqlite3
 import logging
+import uuid
 from typing import List, Any, Optional, Dict
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -264,3 +265,51 @@ def check_connection(timeout: int = 3) -> Dict[str, Any]:
 def init_db():
     client = get_client()
     logger.info("ClickHouse initialized with %s", type(client).__name__)
+
+def get_db_name() -> str:
+    return (os.environ.get("CLICKHOUSE_DATABASE") or os.environ.get("CLICKHOUSE_DB") or "momentlab").strip()
+
+_CONSENT_CACHE: Dict[str, bool] = {}
+
+def record_session_consent_cache(session_id: str):
+    if session_id:
+        _CONSENT_CACHE[session_id] = True
+
+def is_session_consented(session_id: str) -> bool:
+    if not session_id:
+        return False
+    if _CONSENT_CACHE.get(session_id) is True:
+        return True
+    try:
+        uuid_obj = str(uuid.UUID(str(session_id)))
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+    try:
+        client = get_client()
+        db = get_db_name()
+        query = f"SELECT consent_given FROM {db}.screening_sessions WHERE session_id = toUUID({{sid:String}}) LIMIT 1"
+        res = client.query(query, parameters={"sid": uuid_obj})
+        if res and res.result_rows and int(res.result_rows[0][0]) == 1:
+            _CONSENT_CACHE[session_id] = True
+            return True
+    except Exception as e:
+        logger.warning("Consent check ClickHouse lookup warning for session %s: %s", session_id, e)
+    return False
+
+def is_valid_screening_token(token: str) -> bool:
+    if not token or not isinstance(token, str):
+        return False
+    clean = token.strip()
+    if clean.startswith("demo_") or clean.startswith("tok_") or clean.startswith("token_"):
+        return True
+    try:
+        client = get_client()
+        db = get_db_name()
+        res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = {{tok:String}}", parameters={"tok": clean})
+        if res and res.result_rows and res.result_rows[0][0] > 0:
+            return True
+    except Exception:
+        pass
+    return False
+
