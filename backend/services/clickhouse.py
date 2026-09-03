@@ -265,6 +265,26 @@ def check_connection(timeout: int = 3) -> Dict[str, Any]:
 def init_db():
     client = get_client()
     logger.info("ClickHouse initialized with %s", type(client).__name__)
+    try:
+        db = get_db_name()
+        res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = 'demo_token_123'")
+        if not res or not res.result_rows or res.result_rows[0][0] == 0:
+            from backend.ingestion.batch_writer import ClickHouseBatchWriter
+            writer = ClickHouseBatchWriter()
+            writer.insert_screening_sessions([{
+                "session_id": "00000000-0000-0000-0000-000000000000",
+                "screening_token": "demo_token_123",
+                "project_id": "proj_northlight_01",
+                "experiment_id": "exp_23a",
+                "scene_id": "sc_12",
+                "respondent_cohort": "25_34",
+                "consent_given": 0,
+                "consent_timestamp": datetime.now(timezone.utc),
+                "created_at": datetime.now(timezone.utc)
+            }])
+            logger.info("Seeded default demo_token_123 invite row into screening_sessions")
+    except Exception as e:
+        logger.warning("ClickHouse demo invite seed warning: %s", e)
 
 def get_db_name() -> str:
     return (os.environ.get("CLICKHOUSE_DATABASE") or os.environ.get("CLICKHOUSE_DB") or "momentlab").strip()
@@ -301,15 +321,14 @@ def is_valid_screening_token(token: str) -> bool:
     if not token or not isinstance(token, str):
         return False
     clean = token.strip()
-    if clean.startswith("demo_") or clean.startswith("tok_") or clean.startswith("token_"):
-        return True
     try:
         client = get_client()
         db = get_db_name()
         res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = {{tok:String}}", parameters={"tok": clean})
         if res and res.result_rows and res.result_rows[0][0] > 0:
             return True
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Token validation ClickHouse lookup warning for token %s: %s", token, e)
     return False
+
 

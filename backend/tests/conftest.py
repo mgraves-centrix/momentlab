@@ -71,6 +71,19 @@ def setup_test_clickhouse_db():
 
         # Seed initial baseline in momentlab_test for timeline/summary unit tests
         events, sessions = generate_northlight_events_and_sessions(count=525)
+        # Add seeded demo_token_123 invite row
+        from datetime import datetime, timezone
+        sessions.insert(0, {
+            "session_id": "00000000-0000-0000-0000-000000000000",
+            "screening_token": "demo_token_123",
+            "project_id": "proj_northlight_01",
+            "experiment_id": "exp_23a",
+            "scene_id": "sc_12",
+            "respondent_cohort": "25_34",
+            "consent_given": 0,
+            "consent_timestamp": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc)
+        })
         writer = ClickHouseBatchWriter()
         writer.database = "momentlab_test"
         writer.insert_screening_sessions(sessions)
