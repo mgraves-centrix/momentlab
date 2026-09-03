@@ -140,7 +140,7 @@ async def get_experiment_results(project_id: str, experiment_id: str):
         
         # Derive metrics from hypothesis
         proposed_change = hyp.get("proposedChange", "MOVE REVEAL 6S EARLIER")
-        confidence = hyp.get("confidenceScore", 91)
+        confidence = hyp.get("confidenceScore")
         forecast_engagement = hyp.get("forecastEngagement", "+18%")
         forecast_completion = hyp.get("forecastCompletion", "+9%")
         forecast_confusion = hyp.get("forecastConfusion", "-4%")
@@ -166,7 +166,7 @@ async def get_experiment_results(project_id: str, experiment_id: str):
         
         return {
             "hypothesis": proposed_change.upper(),
-            "outcome": "SUPPORTED" if confidence > 50 else "INCONCLUSIVE",
+            "outcome": "SUPPORTED" if (confidence and confidence > 50) else "INCONCLUSIVE",
             "outcome_details": f"Statistically significant lift ({forecast_engagement}) detected. (SIMULATED)",
             "confidence": confidence,
             "test_period_start": "2025-05-19",
