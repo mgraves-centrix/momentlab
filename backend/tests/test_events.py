@@ -31,7 +31,7 @@ def test_screening_consent_registration():
     sid = str(uuid.uuid4())
     consent_payload = {
         "session_id": sid,
-        "screening_token": "token_demo_999",
+        "screening_token": "demo_token_123",
         "project_id": "proj_northlight_01",
         "experiment_id": "exp_23a",
         "scene_id": "sc_12",
@@ -52,7 +52,7 @@ def test_consent_persists_session():
     sid = str(uuid.uuid4())
     res = client.post("/api/v1/screenings/consent", json={
         "session_id": sid,
-        "screening_token": "tok_p11",
+        "screening_token": "demo_token_123",
         "project_id": "proj_northlight_01",
         "experiment_id": "exp_23a",
         "scene_id": "sc_12",
@@ -79,6 +79,33 @@ def test_unknown_screening_token_rejected():
         "consent_given": True
     })
     assert res.status_code == 404
+
+def test_prefix_tokens_rejected():
+    for token in ["tok_garbage_xyz", "demo_garbage_xyz", "token_garbage", "not_a_real_token"]:
+        sid = str(uuid.uuid4())
+        res = client.post("/api/v1/screenings/consent", json={
+            "session_id": sid,
+            "screening_token": token,
+            "project_id": "proj_northlight_01",
+            "experiment_id": "exp_23a",
+            "scene_id": "sc_12",
+            "respondent_cohort": "25_34",
+            "consent_given": True
+        })
+        assert res.status_code == 404, f"Token {token} should be rejected with 404"
+
+def test_seeded_invite_accepted():
+    sid = str(uuid.uuid4())
+    res = client.post("/api/v1/screenings/consent", json={
+        "session_id": sid,
+        "screening_token": "demo_token_123",
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
+        "respondent_cohort": "25_34",
+        "consent_given": True
+    })
+    assert res.status_code == 200
 
 def test_unconsented_playback_rejected():
     bad_sid = str(uuid.uuid4())

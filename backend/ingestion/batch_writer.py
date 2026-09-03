@@ -35,7 +35,7 @@ class ClickHouseBatchWriter:
 
     def _connect(self):
         try:
-            self.client = get_client()
+            self.client = get_client(database=self.database)
             logger.info("Batch writer connected with client %s", type(self.client).__name__)
         except Exception as e:
             logger.warning("ClickHouse connection error (%s). Activating memory buffer.", str(e))

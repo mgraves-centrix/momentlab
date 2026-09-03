@@ -71,7 +71,7 @@ def generate_northlight_events_and_sessions(count: int = 525) -> Tuple[List[Dict
 
         sessions.append({
             "session_id": session_id,
-            "screening_token": f"tok_{session_id[:8]}",
+            "screening_token": "demo_token_123" if i == 0 else f"tok_{session_id[:8]}",
             "project_id": "proj_northlight_01",
             "experiment_id": "exp_23a",
             "scene_id": "sc_12",
