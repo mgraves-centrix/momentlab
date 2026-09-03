@@ -417,20 +417,30 @@ export const MomentEvidencePage: React.FC = () => {
                           <th style={{ padding: '8px 12px', fontWeight: 600 }}>METRIC</th>
                           <th style={{ padding: '8px 12px', fontWeight: 600 }}>SEGMENT</th>
                           <th style={{ padding: '8px 12px', fontWeight: 600 }}>WINDOW</th>
-                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>EFFECT SIZE</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 600 }}>AGENT-MEASURED EFFECT</th>
                           <th style={{ padding: '8px 12px', fontWeight: 600 }}>SIGNIFICANCE</th>
                           <th style={{ padding: '8px 12px', fontWeight: 600 }}>SOURCE QUERY ID</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {hypothesisData?.evidenceRecords?.map((ev: any, idx: number) => (
+                        {hypothesisData?.evidenceRecords?.map((ev: any, idx: number) => {
+                          const isRetention = /retention|cliff|response/i.test(ev.metric || '');
+                          const detectorDrop = hypothesisData?.retentionDrop;
+                          return (
                           <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '8px 12px', color: 'var(--violet)' }}>{ev.id}</td>
                             <td style={{ padding: '8px 12px' }}>{ev.timestamp}</td>
                             <td style={{ padding: '8px 12px', color: 'var(--text)' }}>{ev.metric}</td>
                             <td style={{ padding: '8px 12px' }}>{ev.segment}</td>
                             <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>{ev.window}</td>
-                            <td style={{ padding: '8px 12px', color: 'var(--error)' }}>{ev.effectSize}</td>
+                            <td style={{ padding: '8px 12px', color: 'var(--error)' }}>
+                              {ev.effectSize ? `${ev.effectSize} (agent)` : '—'}
+                              {isRetention && detectorDrop && (
+                                <span style={{ color: '#8d979f', marginLeft: '6px', fontSize: '10px' }}>
+                                  | detector {detectorDrop}
+                                </span>
+                              )}
+                            </td>
                             <td style={{ padding: '8px 12px' }}>{ev.significance}</td>
                             <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>
                               {ev.sourceQueryRunId ? (
