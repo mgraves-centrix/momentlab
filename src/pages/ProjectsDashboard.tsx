@@ -352,21 +352,41 @@ export const ProjectsDashboard: React.FC = () => {
                 </div>
 
                 {/* Mini Retention Curves Graph */}
-                <div style={{ height: '70px', position: 'relative', width: '100%' }}>
-                  <svg width="100%" height="100%" viewBox="0 0 300 70" preserveAspectRatio="none">
-                    {/* Variant A Control (dashed purple) */}
-                    <path d={northlightTimeline.length > 0 ? `M ${northlightTimeline.map(pt => `${Math.round((pt.timeMs / 65000) * 300)} ${Math.round(70 - ((pt.allCohort ?? 70) * 0.85 / 100) * 70)}`).join(' L ')}` : "M 0 25 Q 75 20, 100 45 T 200 50 T 300 55"} fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="3 3" />
-                    {/* Variant B Move earlier (solid violet) */}
-                    <path d={northlightTimeline.length > 0 ? `M ${northlightTimeline.map(pt => `${Math.round((pt.timeMs / 65000) * 300)} ${Math.round(70 - ((pt.allCohort ?? 70) * 1.02 / 100) * 70)}`).join(' L ')}` : "M 0 25 Q 75 18, 100 22 T 200 20 T 300 22"} fill="none" stroke="#c4a7ff" strokeWidth="2" />
-                    {/* All Respondents (gray dashed) */}
-                    <path d={northlightTimeline.length > 0 ? `M ${northlightTimeline.map(pt => `${Math.round((pt.timeMs / 65000) * 300)} ${Math.round(70 - ((pt.allCohort ?? 70) / 100) * 70)}`).join(' L ')}` : "M 0 30 Q 75 25, 100 40 T 200 42 T 300 45"} fill="none" stroke="#5b6670" strokeWidth="1" strokeDasharray="2 2" />
-                    {/* Red Marker Line at 00:37 */}
-                    <line x1="100" y1="0" x2="100" y2="70" stroke="#ff6652" strokeWidth="1.5" strokeDasharray="2 2" />
-                  </svg>
-                  <span style={{ position: 'absolute', top: '2px', left: '104px', backgroundColor: '#ff6652', color: '#fff', fontSize: '8px', fontWeight: 700, padding: '1px 3px', borderRadius: '2px' }}>
-                    00:37
-                  </span>
-                </div>
+                {(() => {
+                  const validPts = northlightTimeline.filter(pt => pt.allCohort != null);
+                  if (validPts.length === 0) {
+                    return (
+                      <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#090e12', borderRadius: '4px', border: '1px solid #1c2630', fontSize: '11px', color: '#8d979f' }}>
+                        No timeline data available
+                      </div>
+                    );
+                  }
+                  const maxTime = Math.max(...validPts.map(p => p.timeMs), 65000);
+                  const pathA = `M ${validPts.map(pt => `${Math.round((pt.timeMs / maxTime) * 300)} ${Math.round(70 - (pt.allCohort! * 0.85 / 100) * 70)}`).join(' L ')}`;
+                  const pathB = `M ${validPts.map(pt => `${Math.round((pt.timeMs / maxTime) * 300)} ${Math.round(70 - (pt.allCohort! * 1.02 / 100) * 70)}`).join(' L ')}`;
+                  const pathAll = `M ${validPts.map(pt => `${Math.round((pt.timeMs / maxTime) * 300)} ${Math.round(70 - (pt.allCohort! / 100) * 70)}`).join(' L ')}`;
+                  const markerX = summaryData?.detected_moment_ms != null ? Math.round((summaryData.detected_moment_ms / maxTime) * 300) : 100;
+                  
+                  return (
+                    <div style={{ height: '70px', position: 'relative', width: '100%' }}>
+                      <svg width="100%" height="100%" viewBox="0 0 300 70" preserveAspectRatio="none">
+                        {/* Variant A Control (dashed purple) */}
+                        <path d={pathA} fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="3 3" />
+                        {/* Variant B Move earlier (solid violet) */}
+                        <path d={pathB} fill="none" stroke="#c4a7ff" strokeWidth="2" />
+                        {/* All Respondents (gray dashed) */}
+                        <path d={pathAll} fill="none" stroke="#5b6670" strokeWidth="1" strokeDasharray="2 2" />
+                        {/* Red Marker Line */}
+                        <line x1={markerX} y1="0" x2={markerX} y2="70" stroke="#ff6652" strokeWidth="1.5" strokeDasharray="2 2" />
+                      </svg>
+                      {summaryData?.detected_moment && (
+                        <span style={{ position: 'absolute', top: '2px', left: `${markerX + 4}px`, backgroundColor: '#ff6652', color: '#fff', fontSize: '8px', fontWeight: 700, padding: '1px 3px', borderRadius: '2px' }}>
+                          {summaryData.detected_moment}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Graph Legend */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#8d979f', marginTop: '8px' }}>
