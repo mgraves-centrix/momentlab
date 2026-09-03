@@ -246,54 +246,103 @@ Respond strictly in valid JSON format with the following keys:
         "steps": steps
     }
     
-    # Capture real ClickHouse query IDs executed during this run
-    real_query_ids = []
+    # Capture real ClickHouse query IDs executed by momentlab_mcp_reader during this run window
+    run_started_at = start_time
+    run_finished_at = time.time()
+    st_sec = int(run_started_at) - 1
+    en_sec = int(run_finished_at) + 2
+
+    run_queries = []
     try:
         from backend.services.clickhouse import get_client
         ch_client = get_client()
-        st_sec = int(start_time) - 2
         q_log_query = """
-            SELECT query_id
+            SELECT query_id, query, read_rows, query_duration_ms, tables
             FROM system.query_log
             WHERE type = 'QueryFinish'
-              AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%reaction_events%' OR query LIKE '%screening_sessions%')
+              AND user = 'momentlab_mcp_reader'
+              AND hasAny(tables, ['momentlab.audience_events', 'momentlab.reaction_events'])
               AND query NOT LIKE '%system.query_log%'
               AND query_start_time >= toDateTime({st_sec:UInt32})
+              AND query_start_time <= toDateTime({en_sec:UInt32})
             ORDER BY query_start_time ASC
         """
-        q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec})
+        q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec, 'en_sec': en_sec})
         if q_res and q_res.result_rows:
-            real_query_ids = [r[0] for r in q_res.result_rows if r and r[0]]
+            for r in q_res.result_rows:
+                if r and r[0]:
+                    run_queries.append({
+                        "query_id": str(r[0]),
+                        "query": str(r[1]),
+                        "read_rows": int(r[2]),
+                        "query_duration_ms": int(r[3]),
+                        "tables": list(r[4]) if isinstance(r[4], (list, tuple)) else [str(r[4])]
+                    })
     except Exception as q_err:
         logger.warning(f"Could not fetch query IDs from system.query_log: {q_err}")
 
-    if not real_query_ids:
-        try:
-            from backend.services.clickhouse import get_client
-            ch_client = get_client()
-            q_fallback = """
-                SELECT query_id
-                FROM system.query_log
-                WHERE type = 'QueryFinish'
-                  AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%screening_sessions%')
-                  AND query NOT LIKE '%system.query_log%'
-                ORDER BY query_start_time DESC
-                LIMIT 5
-            """
-            q_res = ch_client.query(q_fallback)
-            if q_res and q_res.result_rows:
-                real_query_ids = [r[0] for r in q_res.result_rows if r and r[0]]
-        except Exception:
-            pass
+    parsed_res["agentQueryRunIds"] = [q["query_id"] for q in run_queries]
+
+    def _match_record_to_query(rec: dict, queries: list) -> dict:
+        if not queries:
+            return None
+        
+        metric = (rec.get("metric") or "").lower()
+        segment = (rec.get("segment") or "").lower()
+        window = (rec.get("window") or "").lower()
+        
+        is_reaction = any(k in metric for k in ["reaction", "confusion", "boredom", "exit", "spike"])
+        is_audience = any(k in metric for k in ["retention", "cliff", "response", "drop"])
+        
+        candidates = []
+        for q in queries:
+            q_tables = [t.lower() for t in q.get("tables", [])]
+            q_text = (q.get("query") or "").lower()
+            
+            if is_reaction:
+                if not any("reaction_events" in t for t in q_tables) and "reaction_events" not in q_text:
+                    continue
+            elif is_audience:
+                if not any("audience_events" in t for t in q_tables) and "audience_events" not in q_text:
+                    continue
+            
+            score = 1
+            if ("18" in segment or "24" in segment) and ("18_24" in q_text or "18-24" in q_text):
+                score += 2
+            elif ("25" in segment or "34" in segment) and ("25_34" in q_text or "25-34" in q_text):
+                score += 2
+            elif ("35" in segment or "44" in segment) and ("35_44" in q_text or "35-44" in q_text):
+                score += 2
+
+            nums = re.findall(r'\d+', window)
+            for n in nums:
+                if len(n) == 2:
+                    sec_val = int(n)
+                    ms_val = sec_val * 1000
+                    if str(ms_val) in q_text or str(sec_val) in q_text:
+                        score += 1
+
+            candidates.append((score, q))
+            
+        if not candidates:
+            return None
+            
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        return candidates[0][1]
 
     evidence_records = parsed_res.get("evidenceRecords", [])
     if isinstance(evidence_records, list):
-        for idx, rec in enumerate(evidence_records):
+        for rec in evidence_records:
             if isinstance(rec, dict):
-                if real_query_ids:
-                    rec["sourceQueryRunId"] = real_query_ids[idx % len(real_query_ids)]
+                matched = _match_record_to_query(rec, run_queries)
+                if matched:
+                    rec["sourceQueryRunId"] = matched["query_id"]
+                    rec["readRows"] = matched["read_rows"]
+                    rec["queryDurationMs"] = matched["query_duration_ms"]
                 else:
                     rec["sourceQueryRunId"] = None
+                    rec["readRows"] = None
+                    rec["queryDurationMs"] = None
     parsed_res["evidenceRecords"] = evidence_records
 
     return parsed_res
