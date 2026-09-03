@@ -127,7 +127,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
           </div>
 
           <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--violet)', marginBottom: '8px' }}>
-            {hypothesis || `Move reveal 6s earlier to ${formatMs(variantRevealMs)}`}
+            {hypothesis || 'unavailable'}
           </div>
 
           {/* Real Keyframe Thumbnail Frame */}
