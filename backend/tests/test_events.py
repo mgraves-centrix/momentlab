@@ -1,3 +1,4 @@
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
@@ -27,8 +28,9 @@ def test_health_check_failure(monkeypatch):
     assert "password" not in str(data).lower()
 
 def test_screening_consent_registration():
-    # Test valid consent
+    sid = str(uuid.uuid4())
     consent_payload = {
+        "session_id": sid,
         "screening_token": "token_demo_999",
         "project_id": "proj_northlight_01",
         "experiment_id": "exp_23a",
@@ -39,21 +41,103 @@ def test_screening_consent_registration():
     res = client.post("/api/v1/screenings/consent", json=consent_payload)
     assert res.status_code == 200
     assert res.json()["consent_given"] is True
+    assert res.json()["session_id"] == sid
 
     # Test consent denial
-    denied_payload = {**consent_payload, "consent_given": False}
+    denied_payload = {**consent_payload, "session_id": str(uuid.uuid4()), "consent_given": False}
     res_denied = client.post("/api/v1/screenings/consent", json=denied_payload)
     assert res_denied.status_code == 400
 
+def test_consent_persists_session():
+    sid = str(uuid.uuid4())
+    res = client.post("/api/v1/screenings/consent", json={
+        "session_id": sid,
+        "screening_token": "tok_p11",
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
+        "respondent_cohort": "25_34",
+        "consent_given": True
+    })
+    assert res.status_code == 200
+
+    from backend.services.clickhouse import get_client, get_db_name
+    ch = get_client()
+    db = get_db_name()
+    q_res = ch.query(f"SELECT count() FROM {db}.screening_sessions WHERE session_id=toUUID('{sid}')")
+    assert q_res.result_rows[0][0] == 1
+
+def test_unknown_screening_token_rejected():
+    sid = str(uuid.uuid4())
+    res = client.post("/api/v1/screenings/consent", json={
+        "session_id": sid,
+        "screening_token": "not_a_real_token",
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
+        "respondent_cohort": "25_34",
+        "consent_given": True
+    })
+    assert res.status_code == 404
+
+def test_unconsented_playback_rejected():
+    bad_sid = str(uuid.uuid4())
+    res = client.post("/api/v1/events/playback", json={
+        "session_id": bad_sid,
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
+        "media_time_ms": 1000,
+        "playback_state": "PLAYING",
+        "idempotency_key": f"{bad_sid}:1"
+    })
+    assert res.status_code == 403
+
+def test_consented_playback_accepted():
+    sid = str(uuid.uuid4())
+    client.post("/api/v1/screenings/consent", json={
+        "session_id": sid,
+        "screening_token": "demo_token_123",
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
+        "respondent_cohort": "18_24",
+        "consent_given": True
+    })
+
+    res = client.post("/api/v1/events/playback", json={
+        "session_id": sid,
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
+        "media_time_ms": 1000,
+        "playback_state": "PLAYING",
+        "idempotency_key": f"{sid}:1"
+    })
+    assert res.status_code == 200
+    assert res.json()["status"] == "SUCCESS"
+    assert res.json()["inserted_count"] == 1
+
+def test_retention_not_client_supplied():
+    from backend.schemas.events import PlaybackEvent
+    fields = PlaybackEvent.model_fields
+    assert fields["retention_score"].is_required() is False
+
 def test_playback_event_ingestion_and_idempotency():
     sess_id = str(uuid.uuid4())
+    client.post("/api/v1/screenings/consent", json={
+        "session_id": sess_id,
+        "screening_token": "demo_token_123",
+        "respondent_cohort": "18_24",
+        "consent_given": True
+    })
+
     event_payload = {
         "session_id": sess_id,
         "project_id": "proj_northlight_01",
         "experiment_id": "exp_23a",
         "scene_id": "sc_12",
         "media_time_ms": 37000,
-        "retention_score": 50.0,
         "playback_state": "PLAYING",
         "idempotency_key": f"idemp_test_{sess_id[:8]}_37000"
     }
@@ -72,20 +156,20 @@ def test_playback_event_ingestion_and_idempotency():
 
 def test_northlight_simulated_timeline_alignment():
     events = generate_northlight_simulated_events(count=10)
-    assert len(events) >= 500  # 10 respondents across 61 timepoints with realistic dropouts
+    assert len(events) >= 500
     
-    # Check 00:37 cliff alignment
     cliff_events = [e for e in events if e["media_time_ms"] == 37000]
     assert len(cliff_events) >= 7
-    for e in cliff_events:
-        # Retention drops around ~50%
-        assert 40.0 <= e["retention_score"] <= 60.0
-
-import uuid
 
 def test_telemetry_reaction_events_ingestion():
-    # Single event with omitted idempotency_key
     sid1 = str(uuid.uuid4())
+    client.post("/api/v1/screenings/consent", json={
+        "session_id": sid1,
+        "screening_token": "demo_token_123",
+        "respondent_cohort": "18_24",
+        "consent_given": True
+    })
+
     single_ev = {
         "session_id": sid1,
         "project_id": "proj_northlight_01",
@@ -100,8 +184,14 @@ def test_telemetry_reaction_events_ingestion():
     assert res.json()["status"] == "SUCCESS"
     assert res.json()["inserted_count"] == 1
 
-    # List of events
     sid2 = str(uuid.uuid4())
+    client.post("/api/v1/screenings/consent", json={
+        "session_id": sid2,
+        "screening_token": "demo_token_123",
+        "respondent_cohort": "25_34",
+        "consent_given": True
+    })
+
     batch_ev = [
         {
             "session_id": sid2,
@@ -119,7 +209,6 @@ def test_telemetry_reaction_events_ingestion():
     assert res_batch.json()["inserted_count"] == 1
 
 def test_telemetry_reaction_events_invalid_payload_honesty():
-    # Invalid session_id must produce non-2xx status and not report SUCCESS
     bad_payload = {
         "session_id": "not-a-uuid",
         "project_id": "proj_northlight_01",
@@ -134,9 +223,17 @@ def test_telemetry_reaction_events_invalid_payload_honesty():
     assert "SUCCESS" not in str(res.json().get("status", ""))
 
 def test_reaction_idempotent_across_requests():
-    from backend.services.clickhouse import get_client
+    from backend.services.clickhouse import get_client, get_db_name
     ch = get_client()
+    db = get_db_name()
     sid = str(uuid.uuid4())
+    client.post("/api/v1/screenings/consent", json={
+        "session_id": sid,
+        "screening_token": "demo_token_123",
+        "respondent_cohort": "18_24",
+        "consent_given": True
+    })
+
     body = {
         "session_id": sid,
         "project_id": "proj_northlight_01",
@@ -146,19 +243,16 @@ def test_reaction_idempotent_across_requests():
         "reaction_type": "confused"
     }
 
-    # First POST
     res1 = client.post("/api/v1/telemetry/events", json=body)
     assert res1.status_code == 201
     assert res1.json()["status"] == "SUCCESS"
     assert res1.json()["inserted_count"] == 1
 
-    # Second POST with identical body (processed in a new writer instance)
     res2 = client.post("/api/v1/telemetry/events", json=body)
     assert res2.status_code == 201
     assert res2.json()["inserted_count"] == 0
 
-    # Query ClickHouse and verify row count is exactly 1
-    q_res = ch.query(f"SELECT count() FROM momentlab.reaction_events WHERE session_id=toUUID('{sid}')")
+    q_res = ch.query(f"SELECT count() FROM {db}.reaction_events WHERE session_id=toUUID('{sid}')")
     assert q_res.result_rows[0][0] == 1
 
 
