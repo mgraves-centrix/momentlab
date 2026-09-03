@@ -253,9 +253,19 @@ Respond strictly in valid JSON format with the following keys:
     en_sec = int(run_finished_at) + 2
 
     run_queries = []
+    max_poll_seconds = 15
+    poll_start = time.time()
+
     try:
         from backend.services.clickhouse import get_client
         ch_client = get_client()
+
+        # Attempt to flush logs before querying
+        try:
+            ch_client.query("SYSTEM FLUSH LOGS")
+        except Exception as f_err:
+            logger.debug(f"SYSTEM FLUSH LOGS call error: {f_err}")
+
         q_log_query = """
             SELECT query_id, query, read_rows, query_duration_ms, tables
             FROM system.query_log
@@ -267,17 +277,33 @@ Respond strictly in valid JSON format with the following keys:
               AND query_start_time <= toDateTime({en_sec:UInt32})
             ORDER BY query_start_time ASC
         """
-        q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec, 'en_sec': en_sec})
-        if q_res and q_res.result_rows:
-            for r in q_res.result_rows:
-                if r and r[0]:
-                    run_queries.append({
-                        "query_id": str(r[0]),
-                        "query": str(r[1]),
-                        "read_rows": int(r[2]),
-                        "query_duration_ms": int(r[3]),
-                        "tables": list(r[4]) if isinstance(r[4], (list, tuple)) else [str(r[4])]
-                    })
+
+        while time.time() - poll_start < max_poll_seconds:
+            curr_en_sec = max(en_sec, int(time.time()) + 2)
+            q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec, 'en_sec': curr_en_sec})
+            found = []
+            if q_res and q_res.result_rows:
+                for r in q_res.result_rows:
+                    if r and r[0]:
+                        found.append({
+                            "query_id": str(r[0]),
+                            "query": str(r[1]),
+                            "read_rows": int(r[2]),
+                            "query_duration_ms": int(r[3]),
+                            "tables": list(r[4]) if isinstance(r[4], (list, tuple)) else [str(r[4])]
+                        })
+            
+            if found:
+                run_queries = found
+                logger.info(f"Found {len(run_queries)} agent query log(s) after {time.time() - poll_start:.2f}s")
+                break
+
+            time.sleep(1.0)
+            try:
+                ch_client.query("SYSTEM FLUSH LOGS")
+            except Exception:
+                pass
+
     except Exception as q_err:
         logger.warning(f"Could not fetch query IDs from system.query_log: {q_err}")
 
