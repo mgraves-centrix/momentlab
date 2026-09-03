@@ -109,7 +109,7 @@ export const StatePanel: React.FC<StatePanelProps> = ({
       case 'investigating':
         return 'Google ADK agent is running analytical queries against ClickHouse retention stream.';
       case 'hypothesis_ready':
-        return 'Gemini on Vertex AI has generated a falsifiable edit recommendation: "MOVE REVEAL 6S EARLIER".';
+        return 'Gemini on Vertex AI has generated a falsifiable edit recommendation.';
       case 'awaiting_approval':
         return 'Launch blocked pending explicit reviewer sign-off and cryptographic approval signature.';
       case 'test_running':
