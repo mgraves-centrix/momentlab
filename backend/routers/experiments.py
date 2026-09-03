@@ -4,7 +4,7 @@ import datetime
 import uuid
 from fastapi import APIRouter, HTTPException, Request, Depends
 # pyrefly: ignore [missing-import]
-from backend.services.db import get_db
+from backend.services import db
 from backend.auth_deps import get_current_reviewer
 
 router = APIRouter()
@@ -29,11 +29,11 @@ async def approve_experiment(
     reviewer_id: str = Depends(get_current_reviewer)
 ):
     """Approves an A/B test and logs an immutable audit record idempotently with configured test parameters."""
-    db = get_db()
-    if not db:
+    firestore_db = db.get_db()
+    if not firestore_db:
         raise HTTPException(status_code=500, detail="Firestore not initialized")
         
-    exp_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id)
+    exp_ref = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id)
     doc = exp_ref.get()
     
     timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -58,7 +58,7 @@ async def approve_experiment(
         }
         
     # Write immutable audit log
-    audit_ref = db.collection('consent_audits').document(audit_id)
+    audit_ref = firestore_db.collection('consent_audits').document(audit_id)
     audit_data = {
         'audit_id': audit_id,
         'project_id': project_id,
@@ -105,15 +105,15 @@ async def approve_experiment(
 @router.get("/projects/{project_id}/experiments/{experiment_id}/results")
 async def get_experiment_results(project_id: str, experiment_id: str):
     """Returns the results of an experiment."""
-    db = get_db()
+    firestore_db = db.get_db()
     
     # Try to fetch from firestore, fallback to seeded data if it fails
     try:
-        exp_doc = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).get()
+        exp_doc = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).get()
         exp_data = exp_doc.to_dict() if exp_doc.exists else {}
         ab_config = exp_data.get('ab_configuration', {})
 
-        doc = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current').get()
+        doc = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current').get()
         if not doc.exists:
             # Check if ClickHouse has telemetry
             from backend.services.clickhouse import get_client

@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from typing import Optional
 from backend.agents.mcp_client import generate_hypothesis
-from backend.services.db import get_db
+from backend.services import db
 from backend.auth_deps import get_current_reviewer
 
 logger = logging.getLogger("momentlab.hypotheses")
@@ -15,8 +15,8 @@ class RevisionRequest(BaseModel):
 
 @router.get("/projects/{project_id}/experiments/{experiment_id}/hypothesis")
 async def get_hypothesis(project_id: str, experiment_id: str):
-    db = get_db()
-    doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+    firestore_db = db.get_db()
+    doc_ref = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
     doc = doc_ref.get()
     
     if not doc.exists:
@@ -33,8 +33,8 @@ async def create_hypothesis(project_id: str, experiment_id: str):
         hypothesis_data = await generate_hypothesis(project_id, experiment_id)
         
         # Save to Firestore
-        db = get_db()
-        doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+        firestore_db = db.get_db()
+        doc_ref = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
         doc_ref.set(hypothesis_data)
         
         try:
@@ -58,8 +58,8 @@ async def create_hypothesis(project_id: str, experiment_id: str):
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}/hypothesis/request-revision")
 async def request_hypothesis_revision(project_id: str, experiment_id: str, req: Optional[RevisionRequest] = None):
-    db = get_db()
-    doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+    firestore_db = db.get_db()
+    doc_ref = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
     doc = doc_ref.get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Hypothesis not found")
@@ -83,8 +83,8 @@ async def request_hypothesis_revision(project_id: str, experiment_id: str, req: 
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}/hypothesis/discard")
 async def discard_hypothesis(project_id: str, experiment_id: str):
-    db = get_db()
-    doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+    firestore_db = db.get_db()
+    doc_ref = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
     doc = doc_ref.get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Hypothesis not found")
@@ -101,8 +101,8 @@ async def discard_hypothesis(project_id: str, experiment_id: str):
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}/test/approve")
 async def approve_test(project_id: str, experiment_id: str, reviewer_id: str = Depends(get_current_reviewer)):
-    db = get_db()
-    doc_ref = db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+    firestore_db = db.get_db()
+    doc_ref = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
     doc = doc_ref.get()
     
     if not doc.exists:
