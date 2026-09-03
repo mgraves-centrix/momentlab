@@ -88,3 +88,25 @@ async def test_mcp_unapproved_tool_rejection_integration():
     assert "list_databases" not in tool_names
     assert "unapproved_system_exec" not in tool_names
     assert "drop_database" not in tool_names
+
+
+def test_mcp_query_correlation_invariants():
+    """Verifies P10 query log correlation invariants in source code."""
+    with open("backend/agents/mcp_client.py", "r") as f:
+        content = f.read()
+
+    # Must contain user filter for momentlab_mcp_reader
+    assert "user = 'momentlab_mcp_reader'" in content
+    # Must contain table filtering for audience_events and reaction_events
+    assert "hasAny(tables, ['momentlab.audience_events', 'momentlab.reaction_events'])" in content
+    # Must NOT contain fallback unwindowed query or round-robin indexing
+    assert "ORDER BY query_start_time DESC LIMIT 5" not in content
+    assert "idx % len(real_query_ids)" not in content
+
+    with open("backend/scripts/seed_firestore.py", "r") as f:
+        seed_content = f.read()
+
+    # Seed must not contain hand-written evidence records
+    assert "real_q_ids[" not in seed_content
+    assert '"effectSize": "' not in seed_content
+
