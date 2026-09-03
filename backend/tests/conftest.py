@@ -18,7 +18,7 @@ def setup_test_clickhouse_db():
     try:
         os.environ["CLICKHOUSE_DB"] = "momentlab"
         os.environ["CLICKHOUSE_DATABASE"] = "momentlab"
-        init_client = get_client()
+        init_client = get_client(username="default")
         init_client.query("CREATE DATABASE IF NOT EXISTS momentlab_test")
 
         os.environ["CLICKHOUSE_DB"] = "momentlab_test"
@@ -96,7 +96,7 @@ def setup_test_clickhouse_db():
     yield
 
     try:
-        client = get_client()
+        client = get_client(username="default")
         client.query("DROP DATABASE IF EXISTS momentlab_test")
     except Exception as e:
         print("Warning dropping momentlab_test ClickHouse database:", e)
