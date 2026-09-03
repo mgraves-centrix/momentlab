@@ -4,7 +4,7 @@
 > Built for the **Agentic Cinema: The Blockbuster Hackathon (ClickHouse Track)**.
 
 🔗 **Live Hosted App**: [https://momentlab-web-qa24oxtrrq-uc.a.run.app](https://momentlab-web-qa24oxtrrq-uc.a.run.app)  
-🎥 **Demo Video**: [3-Minute Demo Video (Placeholder)](https://momentlab-web-qa24oxtrrq-uc.a.run.app) | [Demo Script & Storyboard](docs/demo-script.md)
+🎥 **Demo Video**: Demo video: to be added before submission (YouTube, 3 min) | [Demo Script & Storyboard](docs/demo-script.md)
 
 ![Desktop Built](docs/images/momentlab-built.png)
 
@@ -12,7 +12,7 @@
 
 ## 💡 What MomentLab Is
 
-MomentLab is an autonomous AI agent system for film editors and studio executives. It captures second-by-second consented audience telemetry across screening cuts, ingests telemetry streams into ClickHouse Cloud, detects engagement cliffs, and uses an autonomous Google ADK agent with Gemini 2.5 Pro to query ClickHouse via the official `ClickHouse/mcp-clickhouse` server protocol.
+MomentLab is an autonomous AI agent system for film editors and studio executives. It captures second-by-second consented audience telemetry across screening cuts, registers valid screening sessions into ClickHouse Cloud, ingests telemetry streams, detects engagement cliffs, and uses an autonomous Google ADK agent with Gemini 2.5 Pro to query ClickHouse via the official `ClickHouse/mcp-clickhouse` server protocol.
 
 The agent investigates raw audience events, formulates evidence-backed edit hypotheses (e.g. *"MOVE REVEAL 6S EARLIER"*), attaches verifiable ClickHouse query provenance records, and gates A/B testing behind an authenticated human approval mechanism.
 
@@ -21,14 +21,14 @@ The agent investigates raw audience events, formulates evidence-backed edit hypo
 ## 🎬 Master Loop
 
 ```text
-detect → investigate with ClickHouse MCP → explain → propose → approve → test → evaluate
+consent → stream telemetry → detect → investigate with ClickHouse MCP → explain → propose → approve → test → evaluate
 ```
 
-1. **Capture**: Consented, second-by-second playback reactions across scene cuts.
-2. **Ingest & Store**: High-throughput stream into ClickHouse Cloud database via Python FastAPI backend.
+1. **Consent & Screening**: Screener enters valid token (e.g., `/screen/demo_token_123`), consent is registered and stored to ClickHouse (`screening_sessions`).
+2. **Ingest & Store**: High-throughput playback stream (`/api/v1/events/playback`) validates prior session consent before storing events to ClickHouse Cloud (`audience_events`). Retention curves are server-derived.
 3. **Detect & Investigate**: Server-side detector identifies retention cliffs; Google ADK agent queries ClickHouse Cloud via official `ClickHouse/mcp-clickhouse` MCP server.
 4. **Hypothesize**: Gemini 2.5 Pro (via Vertex AI) explains evidence and proposes a falsifiable edit hypothesis (`MOVE REVEAL 6S EARLIER`).
-5. **Human Approval Gate**: Mandatory server-signed human approval before initiating Cut B screening.
+5. **Human Approval Gate**: Mandatory server-signed human approval (authenticated via `REVIEWER_TOKENS`) before initiating Cut B screening.
 6. **Evaluate**: Statistical evaluation of Variant B vs Control A (+18.2% engagement lift).
 
 ---
@@ -40,7 +40,7 @@ MomentLab executes real analytical queries against ClickHouse Cloud at runtime u
 * **Google Agent Development Kit (`google-adk`)**: Autonomous agent orchestration engine driving tool usage and multi-step investigation loops.
 * **Vertex AI / Gemini 2.5 Pro (`gemini-2.5-pro`)**: Native model inference evaluating audience events and generating structured hypothesis specifications.
 * **Official ClickHouse MCP Server (`ClickHouse/mcp-clickhouse`)**: Stdio-based Model Context Protocol transport executing real SQL queries against ClickHouse Cloud.
-* **ClickHouse Cloud Database**: High-performance analytical column store hosting `momentlab.audience_events`, `momentlab.reaction_events`, and `system.query_log`.
+* **ClickHouse Cloud Database**: High-performance analytical column store hosting `momentlab.screening_sessions`, `momentlab.audience_events`, `momentlab.reaction_events`, and `system.query_log`.
 * **GCP Cloud Run**: Containerized deployment hosting the FastAPI backend and React Vite single-page application.
 
 ---
@@ -106,9 +106,31 @@ CLICKHOUSE_WRITER_PASSWORD=<YOUR_CLICKHOUSE_WRITER_PASSWORD>
 
 CLICKHOUSE_MCP_USER=momentlab_mcp_reader
 CLICKHOUSE_MCP_PASSWORD=<YOUR_CLICKHOUSE_MCP_PASSWORD>
+
+# Reviewer authentication bearer tokens (comma-separated list for gating approval/reset APIs)
+# Can be generated locally via `openssl rand -hex 16`
+REVIEWER_TOKENS=rev_demo_token_123,rev_p11_token_456
 ```
 
-### 3. Run Locally
+#### Note on `REVIEWER_TOKENS`
+The backend enforces Bearer token authentication on approval and reset endpoints (`POST /api/v1/projects/{pid}/experiments/{eid}/hypotheses/{hid}/approve` and `POST /api/v1/telemetry/reset`). Set `REVIEWER_TOKENS` as a comma-separated string in local `.env` or in GCP Secret Manager / Cloud Run environment variables.
+
+### 3. Deployment & Seeding Sequence
+
+When deploying or seeding a new environment, execute commands in the following required order:
+
+```bash
+# 1. Build and deploy container image to GCP Cloud Run
+./deploy.sh
+
+# 2. Seed ClickHouse tables with baseline schema and screening sessions
+python backend/simulator/seed_clickhouse.py
+
+# 3. Seed Firestore database with baseline experiment and hypothesis documents
+python backend/simulator/seed_firestore.py
+```
+
+### 4. Run Locally
 
 ```bash
 # Start local demo environment (Backend FastAPI on port 8000 + Frontend Vite on port 5173)
