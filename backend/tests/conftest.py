@@ -88,6 +88,7 @@ def setup_test_clickhouse_db():
         writer.database = "momentlab_test"
         writer.insert_screening_sessions(sessions)
         writer.insert_playback_events(events)
+        writer.flush()
 
     except Exception as e:
         print("Warning setting up momentlab_test ClickHouse database:", e)
