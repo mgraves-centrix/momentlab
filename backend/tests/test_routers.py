@@ -68,7 +68,18 @@ def test_generate_hypothesis_success_returns_hypothesis():
         "forecastCompletion": "+9%",
         "forecastConfusion": "-4%",
         "evidenceIds": ["ev_01"],
-        "evidenceRecords": [],
+        "evidenceRecords": [
+            {
+                "id": "ev_01",
+                "timestamp": "00:37",
+                "metric": "Response cliff",
+                "segment": "ALL",
+                "window": "00:33-00:41",
+                "effectSize": "-28%",
+                "significance": "p < 0.01",
+                "sourceQueryRunId": "sample_query_run_01"
+            }
+        ],
         "trace": {"runId": "trace_01", "totalDurationMs": 120, "steps": []},
         "status": "PROPOSED",
         "isSimulated": True
@@ -80,6 +91,8 @@ def test_generate_hypothesis_success_returns_hypothesis():
         assert data["status"] == "success"
         assert data["hypothesis"]["confidenceScore"] == 92
         assert data["hypothesis"]["proposedChange"] == "Move reveal earlier"
+        assert len(data["hypothesis"]["evidenceRecords"]) == 1
+
 
 def test_telemetry_timeline_database_outage_returns_503():
     from unittest.mock import patch
