@@ -331,21 +331,16 @@ export const EditHypothesisPage: React.FC = () => {
                   </span>
                 </div>
                 <span style={{ fontSize: '11px', color: '#c4a7ff', fontFamily: 'monospace', backgroundColor: '#2d1b54', padding: '2px 6px', borderRadius: '3px' }}>
-                  RUN: {hypothesis.trace?.runId || 'adk_run_9a12c4'}
+                  RUN: {hypothesis.trace?.runId || 'unavailable'}
                 </span>
               </div>
 
               <div style={{ fontSize: '11px', color: '#8d979f', marginBottom: '12px' }}>
-                Total duration: <strong style={{ color: '#f1f3f2' }}>{hypothesis.trace?.totalDurationMs || 1420}ms</strong> across 4 agent tools.
+                Total duration: <strong style={{ color: '#f1f3f2' }}>{hypothesis.trace?.totalDurationMs != null ? `${hypothesis.trace.totalDurationMs}ms` : 'unavailable'}</strong> across {hypothesis.trace?.steps ? hypothesis.trace.steps.length : 0} agent tools.
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {(hypothesis.trace?.steps || [
-                  { name: "Deterministic Detector", status: "success", durationMs: 310 },
-                  { name: "ClickHouse MCP Cohort Query", status: "success", durationMs: 480 },
-                  { name: "Scene Context Retrieval", status: "success", durationMs: 290 },
-                  { name: "Hypothesis Validation", status: "success", durationMs: 340 }
-                ]).map((step, idx) => (
+                {(hypothesis.trace?.steps || []).map((step, idx) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', padding: '8px 10px', backgroundColor: '#131b22', borderRadius: '4px', border: '1px solid #1c2630' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: step.status === 'success' ? '#58c94b' : '#ff654a' }} />
