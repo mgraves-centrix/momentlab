@@ -337,7 +337,8 @@ Respond strictly in valid JSON format with the following keys:
             "read_rows": None,
             "query_duration_ms": None,
             "tables": tables,
-            "query_start_time": datetime.fromtimestamp(start_time, tz=timezone.utc).isoformat()
+            "query_start_time": datetime.fromtimestamp(start_time, tz=timezone.utc).isoformat(),
+            "origin": "mcp_capture"
         })
 
     # 2. Correlate with ClickHouse system.query_log (expanded window to handle clock drift)
@@ -397,7 +398,8 @@ Respond strictly in valid JSON format with the following keys:
                             "query_duration_ms": int(r[3]),
                             "tables": list(r[4]) if isinstance(r[4], (list, tuple)) else [str(r[4])],
                             "query_start_time": str(r[5]) if len(r) > 5 else "",
-                            "type": row_type
+                            "type": row_type,
+                            "origin": "query_log"
                         }
                         # Prefer QueryFinish over QueryStart if available
                         if qid not in found_by_id or row_type == "QueryFinish":
@@ -468,6 +470,11 @@ Respond strictly in valid JSON format with the following keys:
         
         candidates = []
         for q in queries:
+            # Provenance requirement: consider ONLY entries whose origin is 'query_log'
+            if q.get("origin") != "query_log":
+                logger.debug(f"  cand q_id={q.get('query_id')} REJECTED: origin={q.get('origin')} is not query_log")
+                continue
+
             q_tables = [t.lower() for t in q.get("tables", [])]
             q_text = (q.get("query") or "").lower()
             

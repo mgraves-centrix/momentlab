@@ -243,3 +243,74 @@ def test_captured_mcp_tool_call_grounding_fallback(api_client):
         assert len(hypothesis.get("agentQueryRunIds")) == 1
         assert hypothesis.get("agentQueryRunIds")[0].startswith("q_mcp_")
 
+
+def test_captured_mcp_tool_call_never_sets_synthetic_source_query_run_id(api_client):
+    """Verifies that captured mcp_capture origin queries are counted for grounding but NEVER assigned as sourceQueryRunId on evidence records."""
+    mock_event = MagicMock()
+    mock_event.author = "agent"
+    mock_event.id = "ev_03"
+    mock_part = MagicMock()
+    mock_part.text = '''{
+        "id": "hyp_gen_03",
+        "proposedChange": "Adjust pacing",
+        "rationale": "Audience drop off detected in telemetry",
+        "confidenceScore": 88,
+        "forecastEngagement": "+10%",
+        "forecastCompletion": "+4%",
+        "forecastConfusion": "-3%",
+        "evidenceIds": ["ev_rec_01"],
+        "evidenceRecords": [
+            {
+                "id": "ev_rec_01",
+                "timestamp": "00:15",
+                "metric": "Audience retention",
+                "segment": "18-24",
+                "window": "00:10-00:20"
+            }
+        ],
+        "status": "PROPOSED",
+        "isSimulated": true
+    }'''
+    mock_event.content = MagicMock(parts=[mock_part])
+
+    mock_func_call = MagicMock()
+    mock_func_call.name = "clickhouse_run_query"
+    mock_func_call.args = {"query": "SELECT avg(retention_score) FROM momentlab.audience_events WHERE project_id='proj_northlight_01'"}
+    
+    mock_event.get_function_calls.return_value = [mock_func_call]
+    mock_event.get_function_responses.return_value = []
+
+    async def mock_run_async(*args, **kwargs):
+        yield mock_event
+
+    mock_ch_client = MagicMock()
+    mock_query_res = MagicMock()
+    mock_query_res.result_rows = []
+    mock_ch_client.query.return_value = mock_query_res
+
+    mock_mcp_toolset = MagicMock()
+    mock_mcp_toolset.__aenter__ = AsyncMock(return_value=mock_mcp_toolset)
+    mock_mcp_toolset.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("backend.agents.mcp_client.McpToolset", return_value=mock_mcp_toolset), \
+         patch("google.adk.Runner.run_async", side_effect=mock_run_async), \
+         patch("backend.services.clickhouse.get_client", return_value=mock_ch_client), \
+         patch("backend.agents.mcp_client.MAX_POLL_SECONDS", 0.01), \
+         patch("backend.agents.mcp_client.time.sleep", return_value=None):
+        response = api_client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+        assert response.status_code == 200
+        data = response.json()
+        hypothesis = data["hypothesis"]
+        
+        # Grounding count includes captured call
+        assert hypothesis.get("grounded") is True
+        assert hypothesis.get("successfulDataQueryCount") == 1
+        
+        # Provenance sourceQueryRunId MUST NOT be set to synthetic q_mcp_ ID
+        recs = hypothesis.get("evidenceRecords") or []
+        assert len(recs) == 1
+        for rec in recs:
+            sqid = rec.get("sourceQueryRunId")
+            assert sqid is None, f"Expected sourceQueryRunId to be None for capture-origin query, got {sqid}"
+
+
