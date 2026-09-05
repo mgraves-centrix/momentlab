@@ -130,6 +130,10 @@ class LocalClickHouseClient:
         translated_sql = re.sub(r'system\.query_log', 'query_log', translated_sql)
         translated_sql = re.sub(r'toUUID\(([^)]+)\)', r'\1', translated_sql)
         translated_sql = re.sub(r'toFloat32\(toInt32\(([a-zA-Z0-9_\.]+)\s*/\s*1000\)\s*\*\s*1000\)', r'CAST(CAST(\1 / 1000 AS INT) * 1000 AS FLOAT)', translated_sql)
+        translated_sql = re.sub(r'avgMerge\(retention_avg\)', r'avg(retention_score)', translated_sql)
+        translated_sql = re.sub(r'quantileMerge\([0-9\.]+\)\(retention_median\)', r'avg(retention_score)', translated_sql)
+        translated_sql = re.sub(r'retention_by_second_aggregated', r'audience_events', translated_sql)
+        translated_sql = re.sub(r'reaction_anomalies_aggregated', r'reaction_events', translated_sql)
         translated_sql = re.sub(r'quantile\([0-9\.]+\)\(([a-zA-Z0-9_]+)\)', r'avg(\1)', translated_sql)
         translated_sql = re.sub(r'count\(\)', 'count(*)', translated_sql)
 

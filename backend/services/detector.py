@@ -29,8 +29,8 @@ def run_anomaly_detector(project_id: str, experiment_id: str) -> Dict[str, Any]:
             }
 
         q_timeline = f"""
-            SELECT toFloat32(toInt32(media_time_ms / 1000) * 1000) as time_bucket, avg(retention_score) as avg_val
-            FROM {db_name}.audience_events
+            SELECT media_time_ms as time_bucket, avgMerge(retention_avg) as avg_val
+            FROM {db_name}.retention_by_second_aggregated
             WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
             GROUP BY time_bucket
             ORDER BY time_bucket

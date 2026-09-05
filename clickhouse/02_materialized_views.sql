@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS retention_by_second_aggregated (
     respondent_cohort String,
     media_time_ms UInt32,
     sample_size SimpleAggregateFunction(sum, UInt64),
+    retention_avg AggregateFunction(avg, Float32),
     retention_median AggregateFunction(quantile(0.5), Float32),
     retention_p10 AggregateFunction(quantile(0.1), Float32),
     retention_p90 AggregateFunction(quantile(0.9), Float32)
@@ -25,6 +26,7 @@ SELECT
     'ALL' AS respondent_cohort,
     media_time_ms,
     count() AS sample_size,
+    avgState(retention_score) AS retention_avg,
     quantileState(0.5)(retention_score) AS retention_median,
     quantileState(0.1)(retention_score) AS retention_p10,
     quantileState(0.9)(retention_score) AS retention_p90

@@ -74,6 +74,60 @@ def setup_test_clickhouse_db():
             ) ENGINE = MergeTree()
             ORDER BY (project_id, scene_id, media_time_ms, reaction_type);
         """)
+        client.query("""
+            CREATE TABLE IF NOT EXISTS momentlab_test.retention_by_second_aggregated (
+                project_id String,
+                experiment_id String,
+                scene_id String,
+                respondent_cohort String,
+                media_time_ms UInt32,
+                sample_size SimpleAggregateFunction(sum, UInt64),
+                retention_avg AggregateFunction(avg, Float32),
+                retention_median AggregateFunction(quantile(0.5), Float32),
+                retention_p10 AggregateFunction(quantile(0.1), Float32),
+                retention_p90 AggregateFunction(quantile(0.9), Float32)
+            ) ENGINE = AggregatingMergeTree()
+            ORDER BY (project_id, scene_id, experiment_id, respondent_cohort, media_time_ms);
+        """)
+        client.query("""
+            CREATE MATERIALIZED VIEW IF NOT EXISTS momentlab_test.retention_by_second_mv TO momentlab_test.retention_by_second_aggregated AS
+            SELECT
+                project_id,
+                experiment_id,
+                scene_id,
+                'ALL' AS respondent_cohort,
+                media_time_ms,
+                count() AS sample_size,
+                avgState(retention_score) AS retention_avg,
+                quantileState(0.5)(retention_score) AS retention_median,
+                quantileState(0.1)(retention_score) AS retention_p10,
+                quantileState(0.9)(retention_score) AS retention_p90
+            FROM momentlab_test.audience_events
+            GROUP BY project_id, experiment_id, scene_id, media_time_ms;
+        """)
+        client.query("""
+            CREATE TABLE IF NOT EXISTS momentlab_test.reaction_anomalies_aggregated (
+                project_id String,
+                scene_id String,
+                media_time_ms UInt32,
+                confused_count SimpleAggregateFunction(sum, UInt64),
+                engaging_count SimpleAggregateFunction(sum, UInt64),
+                bored_count SimpleAggregateFunction(sum, UInt64)
+            ) ENGINE = SummingMergeTree()
+            ORDER BY (project_id, scene_id, media_time_ms);
+        """)
+        client.query("""
+            CREATE MATERIALIZED VIEW IF NOT EXISTS momentlab_test.reaction_anomalies_mv TO momentlab_test.reaction_anomalies_aggregated AS
+            SELECT
+                project_id,
+                scene_id,
+                media_time_ms,
+                countIf(reaction_type = 'CONFUSED') AS confused_count,
+                countIf(reaction_type = 'ENGAGING') AS engaging_count,
+                countIf(reaction_type = 'BORED') AS bored_count
+            FROM momentlab_test.reaction_events
+            GROUP BY project_id, scene_id, media_time_ms;
+        """)
 
         # Seed initial baseline in momentlab_test for timeline/summary unit tests
         events, sessions = generate_northlight_events_and_sessions(count=525)
@@ -94,6 +148,25 @@ def setup_test_clickhouse_db():
         writer.insert_screening_sessions(sessions)
         writer.insert_playback_events(events)
         writer.flush()
+        try:
+            client.query("""
+                INSERT INTO momentlab_test.retention_by_second_aggregated
+                SELECT
+                    project_id,
+                    experiment_id,
+                    scene_id,
+                    'ALL' AS respondent_cohort,
+                    media_time_ms,
+                    count() AS sample_size,
+                    avgState(retention_score) AS retention_avg,
+                    quantileState(0.5)(retention_score) AS retention_median,
+                    quantileState(0.1)(retention_score) AS retention_p10,
+                    quantileState(0.9)(retention_score) AS retention_p90
+                FROM momentlab_test.audience_events
+                GROUP BY project_id, experiment_id, scene_id, media_time_ms;
+            """)
+        except Exception:
+            pass
     except Exception as e:
         pytest.fail(f"Failed setting up momentlab_test ClickHouse database: {e}")
 

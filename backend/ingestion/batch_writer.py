@@ -51,7 +51,7 @@ class ClickHouseBatchWriter:
             logger.warning("ClickHouse connection error (%s). Activating memory buffer.", str(e))
             self.client = None
 
-    def insert_playback_events(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def insert_playback_events(self, events: List[Dict[str, Any]], skip_idempotency_query: bool = False) -> Dict[str, Any]:
         """
         Inserts second-by-second playback events into audience_events.
         Enforces idempotency deduplication.
@@ -72,16 +72,17 @@ class ClickHouseBatchWriter:
             return {"status": "DUPLICATE", "inserted_count": 0}
 
         if self.client:
-            try:
-                candidate_keys = [str(ev["idempotency_key"]) for ev in new_events if ev.get("idempotency_key")]
-                if candidate_keys:
-                    existing_query = f"SELECT idempotency_key FROM {self.database}.audience_events WHERE idempotency_key IN {{keys:Array(String)}}"
-                    res = self.client.query(existing_query, parameters={"keys": candidate_keys})
-                    existing_keys = {str(row[0]) for row in res.result_rows}
-                    if existing_keys:
-                        new_events = [ev for ev in new_events if str(ev.get("idempotency_key")) not in existing_keys]
-            except Exception as e:
-                logger.warning("ClickHouse audience_events idempotency pre-check warning: %s", str(e))
+            if not skip_idempotency_query:
+                try:
+                    candidate_keys = [str(ev["idempotency_key"]) for ev in new_events if ev.get("idempotency_key")]
+                    if candidate_keys:
+                        existing_query = f"SELECT idempotency_key FROM {self.database}.audience_events WHERE idempotency_key IN {{keys:Array(String)}}"
+                        res = self.client.query(existing_query, parameters={"keys": candidate_keys})
+                        existing_keys = {str(row[0]) for row in res.result_rows}
+                        if existing_keys:
+                            new_events = [ev for ev in new_events if str(ev.get("idempotency_key")) not in existing_keys]
+                except Exception as e:
+                    logger.warning("ClickHouse audience_events idempotency pre-check warning: %s", str(e))
 
             if not new_events:
                 return {"status": "DUPLICATE", "inserted_count": 0}
@@ -160,7 +161,7 @@ class ClickHouseBatchWriter:
                 return {"status": "SUCCESS", "inserted_count": len(sessions)}
             except Exception as e:
                 logger.error("ClickHouse session insert error: %s", str(e))
-    def insert_reaction_events(self, reactions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def insert_reaction_events(self, reactions: List[Dict[str, Any]], skip_idempotency_query: bool = False) -> Dict[str, Any]:
         """
         Inserts reaction events (CONFUSED, ENGAGING, BORED, etc.) into reaction_events.
         Enforces idempotency deduplication.
@@ -172,7 +173,8 @@ class ClickHouseBatchWriter:
         for r in reactions:
             session_id = str(r.get("session_id") or "")
             media_time = int(r.get("media_time_ms", 0))
-            rxn_type = str(r.get("reaction_type") or r.get("event_type") or "ENGAGED")
+            rxn_type = str(r.get("reaction_type") or r.get("event_type") or "ENGAGED").strip().upper()
+            r["reaction_type"] = rxn_type
             key = r.get("idempotency_key") or f"{session_id}:{media_time}:{rxn_type}"
             r["idempotency_key"] = key
             if key in self._processed_idempotency_keys:
@@ -184,16 +186,17 @@ class ClickHouseBatchWriter:
             return {"status": "DUPLICATE", "inserted_count": 0}
 
         if self.client:
-            try:
-                candidate_keys = [str(r["idempotency_key"]) for r in new_reactions if r.get("idempotency_key")]
-                if candidate_keys:
-                    existing_query = f"SELECT idempotency_key FROM {self.database}.reaction_events WHERE idempotency_key IN {{keys:Array(String)}}"
-                    res = self.client.query(existing_query, parameters={"keys": candidate_keys})
-                    existing_keys = {str(row[0]) for row in res.result_rows}
-                    if existing_keys:
-                        new_reactions = [r for r in new_reactions if str(r.get("idempotency_key")) not in existing_keys]
-            except Exception as e:
-                logger.warning("ClickHouse reaction idempotency pre-check warning: %s", str(e))
+            if not skip_idempotency_query:
+                try:
+                    candidate_keys = [str(r["idempotency_key"]) for r in new_reactions if r.get("idempotency_key")]
+                    if candidate_keys:
+                        existing_query = f"SELECT idempotency_key FROM {self.database}.reaction_events WHERE idempotency_key IN {{keys:Array(String)}}"
+                        res = self.client.query(existing_query, parameters={"keys": candidate_keys})
+                        existing_keys = {str(row[0]) for row in res.result_rows}
+                        if existing_keys:
+                            new_reactions = [r for r in new_reactions if str(r.get("idempotency_key")) not in existing_keys]
+                except Exception as e:
+                    logger.warning("ClickHouse reaction idempotency pre-check warning: %s", str(e))
 
             if not new_reactions:
                 return {"status": "DUPLICATE", "inserted_count": 0}
@@ -207,7 +210,7 @@ class ClickHouseBatchWriter:
                         str(r.get("experiment_id") or "exp_23a"),
                         str(r.get("scene_id") or "sc_12"),
                         int(r.get("media_time_ms", 0)),
-                        str(r.get("reaction_type") or r.get("event_type") or "ENGAGED"),
+                        str(r.get("reaction_type")).strip().upper(),
                         str(r.get("idempotency_key")),
                         datetime.now(timezone.utc)
                     ]
