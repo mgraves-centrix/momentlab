@@ -277,7 +277,14 @@ async def get_recent_queries():
                 query_duration_ms
             FROM system.query_log
             WHERE type = 'QueryFinish'
-               AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%retention_by_second%' OR query LIKE '%reaction_anomalies%' OR query LIKE '%screening_sessions%')
+               AND user = 'momentlab_mcp_reader'
+               AND (trimLeft(query) LIKE 'SELECT%' OR trimLeft(query) LIKE 'select%')
+               AND query NOT LIKE '%momentlab_test%'
+               AND query NOT LIKE '%SELECT 1%'
+               AND query NOT LIKE '%version()%'
+               AND query NOT LIKE '%currentUser()%'
+               AND query NOT LIKE '%DESCRIBE%'
+               AND query NOT LIKE '%SHOW%'
                AND query NOT LIKE '%system.query_log%'
             ORDER BY query_start_time DESC
             LIMIT 10
@@ -303,24 +310,6 @@ async def get_recent_queries():
                 "duration_ms": int(row[4])
             })
         
-        # Cold start fallback to deterministic evidence lineage queries if query_log empty
-        if not queries:
-            queries = [
-                {
-                    "query_id": None,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "query": "SELECT media_time_ms, sum(sample_size) AS sample_size, quantileMerge(0.5)(retention_median) * 100 AS retention_median FROM momentlab.retention_by_second_aggregated WHERE scene_id = 'sc_12' GROUP BY media_time_ms ORDER BY media_time_ms ASC",
-                    "rows": 30358,
-                    "duration_ms": 2
-                },
-                {
-                    "query_id": None,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "query": "SELECT media_time_ms, avgMerge(retention_avg) as avg_value FROM momentlab.retention_by_second_aggregated WHERE project_id = 'proj_northlight_01' AND experiment_id = 'exp_23a' GROUP BY media_time_ms ORDER BY media_time_ms",
-                    "rows": 30358,
-                    "duration_ms": 3
-                }
-            ]
         return queries
     except Exception as e:
         logger.error("Error fetching query log: %s", e)

@@ -193,4 +193,35 @@ def test_telemetry_query_by_id_cluster_fallback_to_local():
         assert data["rows"] == 100
 
 
+def test_telemetry_queries_filtering_and_empty_state():
+    """Test P23: get_recent_queries filters by user='momentlab_mcp_reader', SELECT queries, excluding momentlab_test and probes, and returns [] when empty."""
+    from unittest.mock import patch, MagicMock
+    mock_client = MagicMock()
+
+    executed_sql = []
+    def mock_query(sql, parameters=None):
+        executed_sql.append(sql)
+        mock_res = MagicMock()
+        mock_res.result_rows = []
+        return mock_res
+
+    mock_client.query.side_effect = mock_query
+
+    with patch("backend.services.clickhouse.get_client", return_value=mock_client):
+        response = client.get("/api/v1/telemetry/queries")
+        assert response.status_code == 200
+        data = response.json()
+        assert data == []
+        assert len(executed_sql) >= 1
+        sql = executed_sql[0]
+        assert "user = 'momentlab_mcp_reader'" in sql
+        assert "momentlab_test" in sql
+        assert "SELECT 1" in sql
+        assert "version()" in sql
+        assert "currentUser()" in sql
+        assert "DESCRIBE" in sql
+        assert "SHOW" in sql
+
+
+
 
