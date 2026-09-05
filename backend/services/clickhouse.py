@@ -126,6 +126,7 @@ class LocalClickHouseClient:
                 translated_sql = re.sub(rf'\{{{k}:[A-Za-z0-9_\(\)]+\}}', val_str, translated_sql)
                 translated_sql = re.sub(rf'\{{{k}\}}', val_str, translated_sql)
         translated_sql = re.sub(r'momentlab\.', '', translated_sql)
+        translated_sql = re.sub(r"clusterAllReplicas\('[^']+',\s*system,\s*query_log\)", "query_log", translated_sql)
         translated_sql = re.sub(r'system\.query_log', 'query_log', translated_sql)
         translated_sql = re.sub(r'toUUID\(([^)]+)\)', r'\1', translated_sql)
         translated_sql = re.sub(r'toFloat32\(toInt32\(([a-zA-Z0-9_\.]+)\s*/\s*1000\)\s*\*\s*1000\)', r'CAST(CAST(\1 / 1000 AS INT) * 1000 AS FLOAT)', translated_sql)

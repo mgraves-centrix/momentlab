@@ -135,3 +135,56 @@ def test_telemetry_timeline_cohort_null_without_fabrication():
         assert rows[0]["cohort_25_34"] == 68.0
 
 
+def test_telemetry_query_by_id_cluster_replica_resolution():
+    """Regression test for P15: click-through endpoint resolves query_id via clusterAllReplicas even if local replica has 0 rows."""
+    from unittest.mock import patch, MagicMock
+    mock_client = MagicMock()
+
+    def mock_query(sql, parameters=None):
+        mock_res = MagicMock()
+        if "clusterAllReplicas" in sql:
+            # Cluster read finds the query (e.g. from non-local replica)
+            mock_res.result_rows = [
+                ("8928b3a4-2d4a-438c-84db-db51eedb7566", "2026-09-04 22:15:00", "SELECT * FROM momentlab.audience_events", 150, 12)
+            ]
+        else:
+            # Local read would return empty (0 rows)
+            mock_res.result_rows = []
+        return mock_res
+
+    mock_client.query.side_effect = mock_query
+
+    with patch("backend.services.clickhouse.get_client", return_value=mock_client):
+        response = client.get("/api/v1/telemetry/queries/8928b3a4-2d4a-438c-84db-db51eedb7566")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["query_id"] == "8928b3a4-2d4a-438c-84db-db51eedb7566"
+        assert data["rows"] == 150
+        assert "audience_events" in data["query"]
+
+
+def test_telemetry_query_by_id_cluster_fallback_to_local():
+    """Test that if clusterAllReplicas raises an exception, get_query_by_id falls back to system.query_log."""
+    from unittest.mock import patch, MagicMock
+    mock_client = MagicMock()
+
+    def mock_query(sql, parameters=None):
+        if "clusterAllReplicas" in sql:
+            raise Exception("UNKNOWN_FUNCTION clusterAllReplicas")
+        mock_res = MagicMock()
+        mock_res.result_rows = [
+            ("local-q-123", "2026-09-04 22:15:00", "SELECT * FROM momentlab.audience_events", 100, 10)
+        ]
+        return mock_res
+
+    mock_client.query.side_effect = mock_query
+
+    with patch("backend.services.clickhouse.get_client", return_value=mock_client):
+        response = client.get("/api/v1/telemetry/queries/local-q-123")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["query_id"] == "local-q-123"
+        assert data["rows"] == 100
+
+
+

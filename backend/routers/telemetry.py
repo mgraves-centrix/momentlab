@@ -203,7 +203,7 @@ async def get_recent_queries():
         from backend.services.clickhouse import get_client
         from datetime import datetime, timezone
         client = get_client()
-        query = """
+        query_local = """
             SELECT 
                 query_id,
                 query_start_time,
@@ -217,7 +217,17 @@ async def get_recent_queries():
             ORDER BY query_start_time DESC
             LIMIT 10
         """
-        result = client.query(query)
+        query_cluster = query_local.replace(
+            "FROM system.query_log",
+            "FROM clusterAllReplicas('default', system, query_log)"
+        )
+        try:
+            result = client.query(query_cluster)
+            logger.info("Fetched recent queries cluster-wide via clusterAllReplicas")
+        except Exception as cluster_err:
+            logger.info("clusterAllReplicas query failed (%s); falling back to local system.query_log for recent queries", cluster_err)
+            result = client.query(query_local)
+
         queries = []
         for row in result.result_rows:
             queries.append({
@@ -259,7 +269,7 @@ async def get_query_by_id(query_id: str):
     try:
         from backend.services.clickhouse import get_client
         client = get_client()
-        query = """
+        query_local = """
             SELECT 
                 query_id,
                 query_start_time,
@@ -270,7 +280,17 @@ async def get_query_by_id(query_id: str):
             WHERE query_id = {query_id:String}
             LIMIT 1
         """
-        result = client.query(query, parameters={'query_id': query_id})
+        query_cluster = query_local.replace(
+            "FROM system.query_log",
+            "FROM clusterAllReplicas('default', system, query_log)"
+        )
+        try:
+            result = client.query(query_cluster, parameters={'query_id': query_id})
+            logger.info("Fetched query ID %s cluster-wide via clusterAllReplicas", query_id)
+        except Exception as cluster_err:
+            logger.info("clusterAllReplicas lookup failed for query ID %s (%s); falling back to local system.query_log", query_id, cluster_err)
+            result = client.query(query_local, parameters={'query_id': query_id})
+
         if result.result_rows:
             row = result.result_rows[0]
             return {
