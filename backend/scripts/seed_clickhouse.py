@@ -19,6 +19,14 @@ def main():
     else:
         logger.info("Connected to ClickHouse instance at %s:%s (Database: %s)", writer.host, writer.port, db_name)
 
+    # Ensure arm column exists on live or local ClickHouse tables
+    if writer.client:
+        for tbl in ["audience_events", "screening_sessions", "reaction_events"]:
+            try:
+                writer.client.query(f"ALTER TABLE {db_name}.{tbl} ADD COLUMN IF NOT EXISTS arm String DEFAULT 'control'")
+            except Exception as e:
+                logger.warning("Migration warning for %s.arm: %s", tbl, e)
+
     # 1. Provision / Update Materialized Views & Aggregates DDL in ClickHouse
     if writer.client and not getattr(writer.client, "is_local", False):
         try:

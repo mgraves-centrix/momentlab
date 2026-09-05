@@ -99,7 +99,8 @@ class ClickHouseBatchWriter:
                         ev["retention_score"],
                         ev["playback_state"],
                         ev["idempotency_key"],
-                        datetime.now(timezone.utc)
+                        datetime.now(timezone.utc),
+                        str(ev.get("arm") or "control")
                     ]
                     for ev in new_events
                 ]
@@ -109,7 +110,7 @@ class ClickHouseBatchWriter:
                     column_names=[
                         "event_id", "session_id", "project_id", "experiment_id",
                         "scene_id", "media_time_ms", "retention_score",
-                        "playback_state", "idempotency_key", "event_timestamp"
+                        "playback_state", "idempotency_key", "event_timestamp", "arm"
                     ],
                     database=self.database
                 )
@@ -144,7 +145,8 @@ class ClickHouseBatchWriter:
                         s["respondent_cohort"],
                         int(s.get("consent_given", 1)),
                         s.get("consent_timestamp", datetime.now(timezone.utc)),
-                        s.get("created_at", datetime.now(timezone.utc))
+                        s.get("created_at", datetime.now(timezone.utc)),
+                        str(s.get("arm") or "control")
                     ]
                     for s in sessions
                 ]
@@ -154,7 +156,7 @@ class ClickHouseBatchWriter:
                     column_names=[
                         "session_id", "screening_token", "project_id", "experiment_id",
                         "scene_id", "respondent_cohort", "consent_given",
-                        "consent_timestamp", "created_at"
+                        "consent_timestamp", "created_at", "arm"
                     ],
                     database=self.database
                 )
@@ -212,7 +214,8 @@ class ClickHouseBatchWriter:
                         int(r.get("media_time_ms", 0)),
                         str(r.get("reaction_type")).strip().upper(),
                         str(r.get("idempotency_key")),
-                        datetime.now(timezone.utc)
+                        datetime.now(timezone.utc),
+                        str(r.get("arm") or "control")
                     ]
                     for r in new_reactions
                 ]
@@ -222,7 +225,7 @@ class ClickHouseBatchWriter:
                     column_names=[
                         "reaction_id", "session_id", "project_id", "experiment_id",
                         "scene_id", "media_time_ms", "reaction_type",
-                        "idempotency_key", "created_at"
+                        "idempotency_key", "created_at", "arm"
                     ],
                     database=self.database
                 )

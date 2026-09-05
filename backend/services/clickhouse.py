@@ -50,7 +50,8 @@ class LocalClickHouseClient:
                 retention_score REAL,
                 playback_state TEXT,
                 idempotency_key TEXT UNIQUE,
-                event_timestamp TEXT
+                event_timestamp TEXT,
+                arm TEXT DEFAULT 'control'
             )
         """)
         cur.execute("""
@@ -63,7 +64,8 @@ class LocalClickHouseClient:
                 media_time_ms INTEGER,
                 reaction_type TEXT,
                 idempotency_key TEXT UNIQUE,
-                created_at TEXT
+                created_at TEXT,
+                arm TEXT DEFAULT 'control'
             )
         """)
         cur.execute("""
@@ -76,9 +78,16 @@ class LocalClickHouseClient:
                 respondent_cohort TEXT,
                 consent_given INTEGER,
                 consent_timestamp TEXT,
-                created_at TEXT
+                created_at TEXT,
+                arm TEXT DEFAULT 'control'
             )
         """)
+        # Ensure arm column exists if table was already created without it
+        for tbl in ["audience_events", "reaction_events", "screening_sessions"]:
+            try:
+                cur.execute(f"ALTER TABLE {tbl} ADD COLUMN arm TEXT DEFAULT 'control'")
+            except Exception:
+                pass
         cur.execute("""
             CREATE TABLE IF NOT EXISTS query_log (
                 query_start_time TEXT,
@@ -125,6 +134,7 @@ class LocalClickHouseClient:
                     val_str = str(v)
                 translated_sql = re.sub(rf'\{{{k}:[A-Za-z0-9_\(\)]+\}}', val_str, translated_sql)
                 translated_sql = re.sub(rf'\{{{k}\}}', val_str, translated_sql)
+        translated_sql = re.sub(r'momentlab_test\.', '', translated_sql)
         translated_sql = re.sub(r'momentlab\.', '', translated_sql)
         translated_sql = re.sub(r"clusterAllReplicas\('[^']+',\s*system,\s*query_log\)", "query_log", translated_sql)
         translated_sql = re.sub(r'system\.query_log', 'query_log', translated_sql)
@@ -132,10 +142,13 @@ class LocalClickHouseClient:
         translated_sql = re.sub(r'toFloat32\(toInt32\(([a-zA-Z0-9_\.]+)\s*/\s*1000\)\s*\*\s*1000\)', r'CAST(CAST(\1 / 1000 AS INT) * 1000 AS FLOAT)', translated_sql)
         translated_sql = re.sub(r'avgMerge\(retention_avg\)', r'avg(retention_score)', translated_sql)
         translated_sql = re.sub(r'quantileMerge\([0-9\.]+\)\(retention_median\)', r'avg(retention_score)', translated_sql)
+        translated_sql = re.sub(r'sum\(sample_size\)', r'count(*)', translated_sql)
         translated_sql = re.sub(r'retention_by_second_aggregated', r'audience_events', translated_sql)
         translated_sql = re.sub(r'reaction_anomalies_aggregated', r'reaction_events', translated_sql)
         translated_sql = re.sub(r'quantile\([0-9\.]+\)\(([a-zA-Z0-9_]+)\)', r'avg(\1)', translated_sql)
         translated_sql = re.sub(r'count\(\)', 'count(*)', translated_sql)
+        if "DROP DATABASE" in translated_sql.upper():
+            return LocalQueryResult([])
 
         conn = self._get_conn()
         cur = conn.cursor()

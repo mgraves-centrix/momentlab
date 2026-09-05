@@ -41,7 +41,8 @@ def setup_test_clickhouse_db():
                 respondent_cohort String,
                 consent_given UInt8,
                 consent_timestamp DateTime64(3, 'UTC'),
-                created_at DateTime64(3, 'UTC') DEFAULT now64()
+                created_at DateTime64(3, 'UTC') DEFAULT now64(),
+                arm String DEFAULT 'control'
             ) ENGINE = MergeTree()
             ORDER BY (project_id, experiment_id, session_id);
         """)
@@ -56,7 +57,8 @@ def setup_test_clickhouse_db():
                 retention_score Float32,
                 playback_state String,
                 idempotency_key String,
-                event_timestamp DateTime64(3, 'UTC')
+                event_timestamp DateTime64(3, 'UTC'),
+                arm String DEFAULT 'control'
             ) ENGINE = MergeTree()
             ORDER BY (project_id, scene_id, media_time_ms, event_timestamp);
         """)
@@ -70,7 +72,8 @@ def setup_test_clickhouse_db():
                 media_time_ms UInt32,
                 reaction_type String,
                 idempotency_key String,
-                created_at DateTime64(3, 'UTC') DEFAULT now64()
+                created_at DateTime64(3, 'UTC') DEFAULT now64(),
+                arm String DEFAULT 'control'
             ) ENGINE = MergeTree()
             ORDER BY (project_id, scene_id, media_time_ms, reaction_type);
         """)
