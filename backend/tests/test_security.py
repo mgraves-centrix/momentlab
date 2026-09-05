@@ -30,6 +30,44 @@ def test_unauthenticated_reset_must_401():
     response = client.post("/api/v1/telemetry/reset")
     assert response.status_code == 401
 
+def test_unauthenticated_request_revision_must_401():
+    response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/hypothesis/request-revision")
+    assert response.status_code == 401
+
+def test_unauthenticated_discard_must_401():
+    response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/hypothesis/discard")
+    assert response.status_code == 401
+
+def test_unauthenticated_generate_hypothesis_must_401():
+    response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+    assert response.status_code == 401
+
+def test_unauthenticated_veo_generate_must_401():
+    response = client.post("/api/v1/media/veo-generate")
+    assert response.status_code == 401
+
+def test_unauthenticated_youtube_ingest_must_401():
+    response = client.post("/api/v1/media/youtube-ingest")
+    assert response.status_code == 401
+
+def test_unauthenticated_project_media_upload_must_401():
+    response = client.post("/api/v1/projects/proj_northlight_01/media?filename=test.mp4&content_type=video/mp4")
+    assert response.status_code == 401
+
+def test_participant_consent_must_not_be_401():
+    response = client.post(
+        "/api/v1/screenings/consent",
+        json={"session_id": "55555555-5555-4555-8555-555555555555", "screening_token": "demo_token_123", "respondent_cohort": "25_34", "consent_given": True}
+    )
+    assert response.status_code != 401
+
+def test_participant_playback_must_not_be_401():
+    response = client.post(
+        "/api/v1/events/playback",
+        json={"session_id": "55555555-5555-4555-8555-555555555555", "project_id": "proj_northlight_01", "scene_id": "sc_12", "media_time_ms": 1000, "playback_state": "PLAYING"}
+    )
+    assert response.status_code != 401
+
 def test_sql_injection_payload_must_not_return_data():
     response = client.get("/api/v1/telemetry/timeline?project_id=NOPE' OR '1'='1&experiment_id=nope")
     assert response.status_code == 200

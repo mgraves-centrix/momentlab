@@ -142,7 +142,10 @@ def test_ungrounded_run_endpoint_integration(api_client):
          patch("backend.services.clickhouse.get_client", return_value=mock_ch_client), \
          patch("backend.agents.mcp_client.MAX_POLL_SECONDS", 0.01), \
          patch("backend.agents.mcp_client.time.sleep", return_value=None):
-        response = api_client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+        response = api_client.post(
+            "/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis",
+            headers={"Authorization": "Bearer valid_reviewer_token_123"}
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
@@ -172,7 +175,10 @@ def test_grounded_run_endpoint_integration(api_client):
          patch("google.adk.Runner.run_async", side_effect=mock_run_async), \
          patch("backend.services.clickhouse.get_client", return_value=mock_ch_client), \
          patch("backend.agents.mcp_client.time.sleep", return_value=None):
-        response = api_client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+        response = api_client.post(
+            "/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis",
+            headers={"Authorization": "Bearer valid_reviewer_token_123"}
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
@@ -230,7 +236,10 @@ def test_captured_mcp_tool_call_grounding_fallback(api_client):
          patch("backend.services.clickhouse.get_client", return_value=mock_ch_client), \
          patch("backend.agents.mcp_client.MAX_POLL_SECONDS", 0.01), \
          patch("backend.agents.mcp_client.time.sleep", return_value=None):
-        response = api_client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+        response = api_client.post(
+            "/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis",
+            headers={"Authorization": "Bearer valid_reviewer_token_123"}
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
@@ -297,7 +306,10 @@ def test_captured_mcp_tool_call_never_sets_synthetic_source_query_run_id(api_cli
          patch("backend.services.clickhouse.get_client", return_value=mock_ch_client), \
          patch("backend.agents.mcp_client.MAX_POLL_SECONDS", 0.01), \
          patch("backend.agents.mcp_client.time.sleep", return_value=None):
-        response = api_client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+        response = api_client.post(
+            "/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis",
+            headers={"Authorization": "Bearer valid_reviewer_token_123"}
+        )
         assert response.status_code == 200
         data = response.json()
         hypothesis = data["hypothesis"]

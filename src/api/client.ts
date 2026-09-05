@@ -166,15 +166,19 @@ export async function fetchExperimentHypothesis(projectId: string, experimentId:
   return data.hypothesis || data;
 }
 
-export async function approveHypothesis(projectId: string, experimentId: string): Promise<Hypothesis> {
+function getAuthHeaders(): Record<string, string> {
   const token = typeof window !== 'undefined' ? sessionStorage.getItem('reviewer_token') : null;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
+  return headers;
+}
+
+export async function approveHypothesis(projectId: string, experimentId: string): Promise<Hypothesis> {
   const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/test/approve`, {
     method: 'POST',
-    headers
+    headers: getAuthHeaders()
   });
   if (!res.ok) throw new Error('Failed to approve hypothesis');
   return await res.json();
@@ -182,7 +186,8 @@ export async function approveHypothesis(projectId: string, experimentId: string)
 
 export async function generateHypothesis(projectId: string, experimentId: string): Promise<any> {
   const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/generate-hypothesis`, {
-    method: 'POST'
+    method: 'POST',
+    headers: getAuthHeaders()
   });
   if (!res.ok) throw new Error('Failed to generate hypothesis');
   const data = await res.json();
@@ -192,7 +197,7 @@ export async function generateHypothesis(projectId: string, experimentId: string
 export async function requestRevisionHypothesis(projectId: string, experimentId: string, notes?: string): Promise<any> {
   const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/hypothesis/request-revision`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ notes: notes || 'Tighten cut window' })
   });
   if (!res.ok) throw new Error('Failed to request revision');
@@ -201,7 +206,8 @@ export async function requestRevisionHypothesis(projectId: string, experimentId:
 
 export async function discardHypothesis(projectId: string, experimentId: string): Promise<any> {
   const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/hypothesis/discard`, {
-    method: 'POST'
+    method: 'POST',
+    headers: getAuthHeaders()
   });
   if (!res.ok) throw new Error('Failed to discard hypothesis');
   return await res.json();

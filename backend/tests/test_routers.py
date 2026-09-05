@@ -53,7 +53,10 @@ def test_approve_hypothesis_endpoint():
 def test_generate_hypothesis_failure_returns_502():
     from unittest.mock import patch
     with patch("backend.routers.hypotheses.generate_hypothesis", side_effect=RuntimeError("ADK connection timeout")):
-        response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+        response = client.post(
+            "/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis",
+            headers={"Authorization": "Bearer valid_reviewer_token_123"}
+        )
         assert response.status_code == 502
         assert "Hypothesis generation failed: ADK connection timeout" in response.json()["detail"]
 
@@ -85,7 +88,10 @@ def test_generate_hypothesis_success_returns_hypothesis():
         "isSimulated": True
     }
     with patch("backend.routers.hypotheses.generate_hypothesis", return_value=mock_payload):
-        response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
+        response = client.post(
+            "/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis",
+            headers={"Authorization": "Bearer valid_reviewer_token_123"}
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
