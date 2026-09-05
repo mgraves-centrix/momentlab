@@ -1,9 +1,10 @@
 import uuid
 from typing import Optional, List, Union, Dict, Any
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from backend.auth_deps import get_current_reviewer
+from backend.rate_limiter import limiter
 
 router = APIRouter()
 
@@ -24,7 +25,9 @@ class ReactionEventPayload(BaseModel):
     idempotency_key: Optional[str] = None
 
 @router.post("/events", status_code=status.HTTP_201_CREATED)
-async def record_telemetry_events(payload: Union[ReactionEventPayload, List[ReactionEventPayload], Dict[str, Any], List[Dict[str, Any]]]):
+@limiter.limit("120/minute")
+async def record_telemetry_events(request: Request, payload: Union[ReactionEventPayload, List[ReactionEventPayload], Dict[str, Any], List[Dict[str, Any]]]):
+
     """
     Persists audience reaction events directly into momentlab.reaction_events in ClickHouse.
     Supports single events or batch payloads.

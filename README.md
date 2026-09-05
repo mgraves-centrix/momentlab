@@ -211,7 +211,9 @@ MomentLab includes a fully responsive mobile workflow for reviewing findings and
 
 - **Synthetic Footage & Simulated Audience Data**: In compliance with hackathon rules, all screening footage and audience responses in default test configurations are synthetic assets and deterministic simulated behavioral fixtures. All AI-generated media is explicitly labeled `SYNTHETIC`.
 - **Zero Biometric Tracking**: MomentLab enforces a strict policy against collecting, inferring, or storing biometric, facial, gaze, voice-stress, or emotion-recognition data. All telemetry consists strictly of consented media timecodes, play/pause states, and explicit button reactions.
+- **Backend-Mediated Firestore Access**: Direct client access to Firestore is disabled; all database operations are secured and routed exclusively through service account credentials within the backend API.
 - **Google Veo Status**: Generative video generation via Google Veo calls the Vertex AI API (`veo-2.0-generate-001`). If active Veo quota is not yet enabled on the GCP project, the endpoint returns an honest `BLOCKED` status detailing the exact Model Garden allowlist step.
+
 
 ---
 
