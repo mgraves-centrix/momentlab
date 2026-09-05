@@ -92,6 +92,17 @@ def _extract_text_from_event(event) -> str:
             texts.append(str(event.output.text))
     return "".join(texts)
 
+def _is_data_query(q_dict: dict) -> bool:
+    q_tables = [t.lower() for t in q_dict.get("tables", [])]
+    q_text = (q_dict.get("query") or "").lower()
+    has_target = any("audience_events" in t or "reaction_events" in t for t in q_tables) or ("audience_events" in q_text or "reaction_events" in q_text)
+    is_sys = any(t.startswith("system.") for t in q_tables) or "system.query_log" in q_text
+    return has_target and not is_sys
+
+def compute_grounding(run_queries: list) -> tuple[int, bool]:
+    data_queries = [q for q in run_queries if _is_data_query(q)]
+    return len(data_queries), len(data_queries) > 0
+
 async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
     """Uses Google ADK and ClickHouse MCP to analyze data and generate a hypothesis."""
     start_time = time.time()
@@ -335,7 +346,7 @@ Respond strictly in valid JSON format with the following keys:
 
         poll_iter = 0
         st_iso = datetime.fromtimestamp(st_sec, tz=timezone.utc).isoformat()
-        logger.debug(f"[PROVENANCE_DEBUG] Start poll. run_started_at={st_iso} ({st_sec}), run_finished_at={datetime.fromtimestamp(run_finished_at, tz=timezone.utc).isoformat()} ({en_sec})")
+        logger.debug(f"Start poll. run_started_at={st_iso} ({st_sec}), run_finished_at={datetime.fromtimestamp(run_finished_at, tz=timezone.utc).isoformat()} ({en_sec})")
 
         while time.time() - poll_start < max_poll_seconds:
             poll_iter += 1
@@ -346,7 +357,7 @@ Respond strictly in valid JSON format with the following keys:
             try:
                 ch_client.query("SYSTEM FLUSH LOGS")
             except Exception as f_err:
-                logger.debug(f"[PROVENANCE_DEBUG] SYSTEM FLUSH LOGS call error: {f_err}")
+                logger.debug(f"SYSTEM FLUSH LOGS call error: {f_err}")
 
             q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec, 'en_sec': curr_en_sec})
             found = []
@@ -362,14 +373,14 @@ Respond strictly in valid JSON format with the following keys:
                             "query_start_time": str(r[5]) if len(r) > 5 else ""
                         })
             
-            logger.debug(f"[PROVENANCE_DEBUG] Poll iter {poll_iter}: window [{st_iso} .. {curr_en_iso}], returned {len(found)} rows")
+            logger.debug(f"Poll iter {poll_iter}: window [{st_iso} .. {curr_en_iso}], returned {len(found)} rows")
             for row in found:
-                logger.debug(f"[PROVENANCE_DEBUG]   q_row: id={row['query_id']} start={row['query_start_time']} tables={row['tables']} sql={row['query'][:80]!r}")
+                logger.debug(f"  q_row: id={row['query_id']} start={row['query_start_time']} tables={row['tables']} sql={row['query'][:80]!r}")
 
             if found:
                 run_queries = found
                 has_data_query = any(_is_data_query(q) for q in found)
-                logger.debug(f"[PROVENANCE_DEBUG] Poll iter {poll_iter}: has_data_query={has_data_query}")
+                logger.debug(f"Poll iter {poll_iter}: has_data_query={has_data_query}")
                 if has_data_query:
                     logger.info(f"Found {len(run_queries)} agent query log(s) including data query after {time.time() - poll_start:.2f}s")
                     break
@@ -388,9 +399,7 @@ Respond strictly in valid JSON format with the following keys:
     parsed_res["agentQueryRunIds"] = [q["query_id"] for q in run_queries]
 
     # Calculate grounding state based on successful ClickHouse data queries
-    data_queries = [q for q in run_queries if _is_data_query(q)]
-    successful_data_query_count = len(data_queries)
-    is_grounded = successful_data_query_count > 0
+    successful_data_query_count, is_grounded = compute_grounding(run_queries)
 
     parsed_res["grounded"] = is_grounded
     parsed_res["successfulDataQueryCount"] = successful_data_query_count
@@ -399,7 +408,7 @@ Respond strictly in valid JSON format with the following keys:
 
     def _match_record_to_query(rec: dict, queries: list) -> dict:
         if not queries:
-            logger.debug("[PROVENANCE_DEBUG] _match_record_to_query: queries is empty -> None")
+            logger.debug("_match_record_to_query: queries is empty -> None")
             return None
         
         metric = (rec.get("metric") or "").lower()
@@ -410,7 +419,7 @@ Respond strictly in valid JSON format with the following keys:
         is_audience = any(k in metric for k in ["retention", "cliff", "response", "drop"])
         family = "reaction" if is_reaction else ("audience" if is_audience else "other")
 
-        logger.debug(f"[PROVENANCE_DEBUG] Matching record rec_id={rec.get('id')} metric='{metric}' family={family}")
+        logger.debug(f"Matching record rec_id={rec.get('id')} metric='{metric}' family={family}")
         
         candidates = []
         for q in queries:
@@ -419,16 +428,16 @@ Respond strictly in valid JSON format with the following keys:
             
             # Reject system introspection queries
             if any(t.startswith("system.") for t in q_tables):
-                logger.debug(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} REJECTED: system tables {q_tables}")
+                logger.debug(f"  cand q_id={q.get('query_id')} REJECTED: system tables {q_tables}")
                 continue
 
             if is_reaction:
                 if not any("reaction_events" in t for t in q_tables):
-                    logger.debug(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} REJECTED: reaction metric but tables {q_tables} does not contain reaction_events")
+                    logger.debug(f"  cand q_id={q.get('query_id')} REJECTED: reaction metric but tables {q_tables} does not contain reaction_events")
                     continue
             elif is_audience:
                 if not any("audience_events" in t for t in q_tables):
-                    logger.debug(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} REJECTED: audience metric but tables {q_tables} does not contain audience_events")
+                    logger.debug(f"  cand q_id={q.get('query_id')} REJECTED: audience metric but tables {q_tables} does not contain audience_events")
                     continue
             
             score = 1
@@ -447,16 +456,16 @@ Respond strictly in valid JSON format with the following keys:
                     if str(ms_val) in q_text or str(sec_val) in q_text:
                         score += 1
 
-            logger.debug(f"[PROVENANCE_DEBUG]   cand q_id={q.get('query_id')} ACCEPTED score={score} tables={q_tables}")
+            logger.debug(f"  cand q_id={q.get('query_id')} ACCEPTED score={score} tables={q_tables}")
             candidates.append((score, q))
             
         if not candidates:
-            logger.debug(f"[PROVENANCE_DEBUG] rec_id={rec.get('id')}: no valid candidates after filtering -> None")
+            logger.debug(f"rec_id={rec.get('id')}: no valid candidates after filtering -> None")
             return None
             
         candidates.sort(key=lambda x: x[0], reverse=True)
         winner = candidates[0][1]
-        logger.debug(f"[PROVENANCE_DEBUG] rec_id={rec.get('id')} WINNER q_id={winner['query_id']} score={candidates[0][0]}")
+        logger.debug(f"rec_id={rec.get('id')} WINNER q_id={winner['query_id']} score={candidates[0][0]}")
         return winner
 
 
