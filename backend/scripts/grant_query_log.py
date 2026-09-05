@@ -24,6 +24,8 @@ def main():
         logger.info("Connected as admin. Granting permissions...")
         client.command("GRANT SELECT ON system.query_log TO momentlab_writer;")
         client.command("GRANT SELECT ON system.query_log TO momentlab_mcp_reader;")
+        client.command("GRANT REMOTE ON *.* TO momentlab_writer;")
+        client.command("GRANT REMOTE ON *.* TO momentlab_mcp_reader;")
         logger.info("Permissions granted successfully!")
     except Exception as e:
         logger.error(f"Failed to grant permissions: {e}")
