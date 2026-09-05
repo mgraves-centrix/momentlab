@@ -286,6 +286,7 @@ async def get_recent_queries():
                AND query NOT LIKE '%DESCRIBE%'
                AND query NOT LIKE '%SHOW%'
                AND query NOT LIKE '%system.query_log%'
+               AND query NOT LIKE '%system.settings%'
             ORDER BY query_start_time DESC
             LIMIT 10
         """
