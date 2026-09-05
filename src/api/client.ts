@@ -84,8 +84,10 @@ export interface Hypothesis {
       durationMs: number;
     }[];
   };
-  status: 'PROPOSED' | 'APPROVED' | 'LAUNCHED' | 'EVALUATED';
+  status: 'PROPOSED' | 'APPROVED' | 'LAUNCHED' | 'EVALUATED' | 'REVISION_REQUESTED' | 'DISCARDED' | 'UNGROUNDED';
   isSimulated: boolean;
+  grounded?: boolean;
+  successfulDataQueryCount?: number;
   retentionDrop?: string;
   detectedMoment?: string;
   anomalyWindow?: string;

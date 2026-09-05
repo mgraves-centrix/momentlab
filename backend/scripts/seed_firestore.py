@@ -66,6 +66,8 @@ hyp_data = {
     "forecastConfusion": "-4%",
     "status": "PROPOSED",
     "isSimulated": True,
+    "grounded": True,
+    "successfulDataQueryCount": 1,
     "evidenceIds": [],
     "evidenceRecords": [],
     "trace": {

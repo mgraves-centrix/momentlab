@@ -212,7 +212,14 @@ export const MomentEvidencePage: React.FC = () => {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c4a7ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                     </div>
                     <div>
-                      <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>HYPOTHESIS PREVIEW</div>
+                      <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>HYPOTHESIS PREVIEW</span>
+                        {hypothesisData?.grounded === false ? (
+                          <span style={{ fontSize: '9px', backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>UNGROUNDED</span>
+                        ) : hypothesisData?.grounded === true ? (
+                          <span style={{ fontSize: '9px', backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', border: '1px solid #58c94b', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>GROUNDED</span>
+                        ) : null}
+                      </div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f3f2', letterSpacing: '0.02em', marginBottom: '4px' }}>{hypothesisData?.proposedChange || '—'}</div>
                       <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>{hypothesisData?.rationale || 'Moving the reveal earlier maintains momentum and should increase engagement across all cohorts.'}</div>
                     </div>

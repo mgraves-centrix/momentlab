@@ -206,9 +206,15 @@ export const EditHypothesisPage: React.FC = () => {
                 <div style={{ fontSize: '11px', fontWeight: 800, color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   OBSERVATION & TELEMETRY TRIGGER
                 </div>
-                <span style={{ fontSize: '10px', backgroundColor: '#2d1b54', color: '#c4a7ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                  CLICKHOUSE DETECTED
-                </span>
+                {hypothesis.grounded === false ? (
+                  <span style={{ fontSize: '10px', backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                    UNGROUNDED (0 QUERIES)
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '10px', backgroundColor: '#2d1b54', color: '#c4a7ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                    CLICKHOUSE DETECTED
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: '14px', color: '#f1f3f2', lineHeight: 1.5, marginBottom: '12px' }}>
                 Detector: {summaryData?.retention_drop || 'unavailable'} retention drop (vs 00:00–00:10 baseline) detected at timestamp {summaryData?.detected_moment || 'unavailable'} in Scene 12. Agent's own analysis: {(hypothesis as any)?.retentionDrop || (hypothesis as any)?.evidenceRecords?.[0]?.effectSize || 'unavailable'} drop (vs local pre-cliff baseline).
@@ -219,7 +225,11 @@ export const EditHypothesisPage: React.FC = () => {
                     EVIDENCE: {hypothesis.evidenceRecords[0].id}
                   </div>
                 )}
-                {hypothesis.evidenceRecords?.[0]?.sourceQueryRunId ? (
+                {hypothesis.grounded === false ? (
+                  <div style={{ fontSize: '11px', backgroundColor: 'rgba(255, 101, 74, 0.15)', border: '1px solid #ff654a', padding: '4px 10px', borderRadius: '4px', color: '#ff654a', fontFamily: 'monospace', fontWeight: 700 }}>
+                    UNGROUNDED (0 data queries succeeded)
+                  </div>
+                ) : hypothesis.evidenceRecords?.[0]?.sourceQueryRunId ? (
                   <div
                     onClick={() => setSelectedQueryId(hypothesis.evidenceRecords![0].sourceQueryRunId)}
                     style={{ fontSize: '11px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '4px 10px', borderRadius: '4px', color: '#58c94b', fontFamily: 'monospace', cursor: 'pointer' }}
