@@ -103,6 +103,8 @@ def compute_grounding(run_queries: list) -> tuple[int, bool]:
     data_queries = [q for q in run_queries if _is_data_query(q)]
     return len(data_queries), len(data_queries) > 0
 
+MAX_POLL_SECONDS = 15
+
 async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
     """Uses Google ADK and ClickHouse MCP to analyze data and generate a hypothesis."""
     start_time = time.time()
@@ -314,15 +316,8 @@ Respond strictly in valid JSON format with the following keys:
     en_sec = int(run_finished_at) + 2
 
     run_queries = []
-    max_poll_seconds = 15
+    max_poll_seconds = MAX_POLL_SECONDS
     poll_start = time.time()
-
-    def _is_data_query(q_dict: dict) -> bool:
-        q_tables = [t.lower() for t in q_dict.get("tables", [])]
-        q_text = (q_dict.get("query") or "").lower()
-        has_target = any("audience_events" in t or "reaction_events" in t for t in q_tables) or ("audience_events" in q_text or "reaction_events" in q_text)
-        is_sys = any(t.startswith("system.") for t in q_tables) or "system.query_log" in q_text
-        return has_target and not is_sys
 
     try:
         from backend.services.clickhouse import get_client

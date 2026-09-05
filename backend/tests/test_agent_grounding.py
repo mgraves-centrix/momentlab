@@ -1,6 +1,6 @@
+import time
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
-from fastapi.testclient import TestClient
 from backend.agents.mcp_client import compute_grounding
 
 @pytest.fixture
@@ -133,23 +133,15 @@ def _make_mock_runner_and_client(query_log_rows):
     return mock_run_async, mock_ch_client, mock_mcp_toolset
 
 
-@pytest.mark.anyio
-async def test_ungrounded_run_endpoint_integration(api_client):
+def test_ungrounded_run_endpoint_integration(api_client):
     """Verifies that when agent query log returns 0 data queries, the real generate_hypothesis computes grounded: False and status: UNGROUNDED."""
     mock_run_async, mock_ch_client, mock_mcp_toolset = _make_mock_runner_and_client([])
-    
-    t_state = {"t": 1000.0}
-    def mock_time():
-        t_state["t"] += 10.0
-        return t_state["t"]
 
     with patch("backend.agents.mcp_client.McpToolset", return_value=mock_mcp_toolset), \
-         patch("backend.agents.mcp_client.StdioServerParameters", MagicMock()), \
-         patch("backend.agents.mcp_client.StdioConnectionParams", MagicMock()), \
          patch("google.adk.Runner.run_async", side_effect=mock_run_async), \
          patch("backend.services.clickhouse.get_client", return_value=mock_ch_client), \
-         patch("time.sleep", return_value=None), \
-         patch("time.time", side_effect=mock_time):
+         patch("backend.agents.mcp_client.MAX_POLL_SECONDS", 0.01), \
+         patch("backend.agents.mcp_client.time.sleep", return_value=None):
         response = api_client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
         assert response.status_code == 200
         data = response.json()
@@ -162,8 +154,7 @@ async def test_ungrounded_run_endpoint_integration(api_client):
         assert hypothesis.get("status") == "UNGROUNDED"
 
 
-@pytest.mark.anyio
-async def test_grounded_run_endpoint_integration(api_client):
+def test_grounded_run_endpoint_integration(api_client):
     """Verifies that when agent query log returns ClickHouse data query rows, real generate_hypothesis computes grounded: True."""
     query_log_rows = [
         (
@@ -178,11 +169,9 @@ async def test_grounded_run_endpoint_integration(api_client):
     mock_run_async, mock_ch_client, mock_mcp_toolset = _make_mock_runner_and_client(query_log_rows)
     
     with patch("backend.agents.mcp_client.McpToolset", return_value=mock_mcp_toolset), \
-         patch("backend.agents.mcp_client.StdioServerParameters", MagicMock()), \
-         patch("backend.agents.mcp_client.StdioConnectionParams", MagicMock()), \
          patch("google.adk.Runner.run_async", side_effect=mock_run_async), \
          patch("backend.services.clickhouse.get_client", return_value=mock_ch_client), \
-         patch("time.sleep", return_value=None):
+         patch("backend.agents.mcp_client.time.sleep", return_value=None):
         response = api_client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
         assert response.status_code == 200
         data = response.json()

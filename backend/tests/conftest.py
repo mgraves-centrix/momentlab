@@ -96,7 +96,7 @@ def setup_test_clickhouse_db():
     yield
 
     try:
-        client = get_client(username="default")
+        client = get_client(username="default", database="default")
         client.query("DROP DATABASE IF EXISTS momentlab_test")
     except Exception as e:
         print("Warning dropping momentlab_test ClickHouse database:", e)
