@@ -17,7 +17,7 @@ ui-verify:
 
 verify:
 	@echo "Running System Verification Tests..."
-	@PYTHONPATH=. python3 -m pytest backend/tests/
+	@PYTHONPATH=. .venv/bin/pytest backend/tests/
 
 submission-audit:
 	@echo "Running Hackathon Submission Audit..."
