@@ -77,7 +77,7 @@ cd momentlab
 # Setup Python virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 
 # Install Frontend dependencies
 npm install
@@ -101,6 +101,9 @@ CLICKHOUSE_PASSWORD=<YOUR_CLICKHOUSE_PASSWORD>
 CLICKHOUSE_DATABASE=momentlab
 CLICKHOUSE_SECURE=true
 
+CLICKHOUSE_ADMIN_USER=default
+CLICKHOUSE_ADMIN_PASSWORD=<YOUR_CLICKHOUSE_ADMIN_PASSWORD>
+
 CLICKHOUSE_WRITER_USER=momentlab_writer
 CLICKHOUSE_WRITER_PASSWORD=<YOUR_CLICKHOUSE_WRITER_PASSWORD>
 
@@ -115,6 +118,10 @@ REVIEWER_TOKENS=rev_demo_token_123,rev_p11_token_456
 #### Note on `REVIEWER_TOKENS`
 The backend enforces Bearer token authentication on approval and reset endpoints (`POST /api/v1/projects/{pid}/experiments/{eid}/hypotheses/{hid}/approve` and `POST /api/v1/telemetry/reset`). Set `REVIEWER_TOKENS` as a comma-separated string in local `.env` or in GCP Secret Manager / Cloud Run environment variables.
 
+#### ClickHouse Cloud Operational Requirements
+* **Service Status**: The ClickHouse Cloud instance must be RUNNING (a stopped/idled service returns TLS EOF during handshakes and causes the app to report `UNHEALTHY`).
+* **Required Grants**: The four SQL grants (`GRANT SELECT ON system.query_log` and `GRANT REMOTE ON *.*` to `momentlab_writer` and `momentlab_mcp_reader`) must be applied via `python backend/scripts/grant_query_log.py`. Without these grants, system query logging and multi-replica cluster resolution fail silently.
+
 ### 3. Deployment & Seeding Sequence
 
 When deploying or seeding a new environment, execute commands in the following required order:
@@ -123,17 +130,21 @@ When deploying or seeding a new environment, execute commands in the following r
 # 1. Build and deploy container image to GCP Cloud Run
 ./deploy.sh
 
-# 2. Seed ClickHouse tables with baseline schema and screening sessions
-python backend/simulator/seed_clickhouse.py
+# 2. Grant ClickHouse permissions required for evidence query log inspection and multi-replica provenance resolution
+# (Required: Grants system.query_log SELECT and REMOTE permissions to momentlab_writer and momentlab_mcp_reader)
+python backend/scripts/grant_query_log.py
 
-# 3. Seed Firestore database with baseline experiment and hypothesis documents
-python backend/simulator/seed_firestore.py
+# 3. Seed ClickHouse tables with baseline schema and screening sessions
+python backend/scripts/seed_clickhouse.py
+
+# 4. Seed Firestore database with baseline experiment and hypothesis documents
+python backend/scripts/seed_firestore.py
 ```
 
 ### 4. Run Locally
 
 ```bash
-# Start local demo environment (Backend FastAPI on port 8000 + Frontend Vite on port 5173)
+# Start local demo environment (Backend FastAPI on port 8000 + Frontend Vite on port 3000)
 make demo
 
 # Or run backend directly:
@@ -143,7 +154,7 @@ PYTHONPATH=. uvicorn backend.main:app --reload --port 8000
 npm run dev
 ```
 
-### 4. Run Verification Suite
+### 5. Run Verification Suite
 
 ```bash
 # Run backend pytest suite

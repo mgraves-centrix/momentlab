@@ -1,7 +1,7 @@
 import os
-import clickhouse_connect
 from dotenv import load_dotenv
 import logging
+from backend.services.clickhouse import get_client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("grant_query_log")
@@ -9,19 +9,12 @@ logger = logging.getLogger("grant_query_log")
 load_dotenv('.env')
 
 def main():
-    host = os.getenv("CLICKHOUSE_HOST", "localhost")
-    port = int(os.getenv("CLICKHOUSE_PORT", "8123"))
-    user = os.getenv("CLICKHOUSE_ADMIN_USER", "default")
-    password = os.getenv("CLICKHOUSE_ADMIN_PASSWORD", "")
+    user = os.getenv("CLICKHOUSE_ADMIN_USER") or os.getenv("CLICKHOUSE_USER", "default")
+    password = os.getenv("CLICKHOUSE_ADMIN_PASSWORD") or os.getenv("CLICKHOUSE_PASSWORD", "")
     
     try:
-        client = clickhouse_connect.get_client(
-            host=host,
-            port=port,
-            username=user,
-            password=password
-        )
-        logger.info("Connected as admin. Granting permissions...")
+        client = get_client(username=user, password=password)
+        logger.info("Connected to ClickHouse. Granting permissions...")
         client.command("GRANT SELECT ON system.query_log TO momentlab_writer;")
         client.command("GRANT SELECT ON system.query_log TO momentlab_mcp_reader;")
         client.command("GRANT REMOTE ON *.* TO momentlab_writer;")
@@ -32,3 +25,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
