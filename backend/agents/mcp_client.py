@@ -239,6 +239,7 @@ Respond strictly in valid JSON format with the following keys:
     step_start_time = time.time()
     current_step_name = "Agent Initialization"
     
+    captured_mcp_queries = []
     async for event in runner.run_async(user_id="default", session_id=session_id, new_message=content):
         now = time.time()
         duration_ms = int((now - step_start_time) * 1000)
@@ -247,13 +248,20 @@ Respond strictly in valid JSON format with the following keys:
         function_calls = event.get_function_calls()
         if function_calls:
             for call in function_calls:
+                call_name = getattr(call, "name", "") or ""
+                call_args = getattr(call, "args", {}) or {}
                 steps.append({
                     "name": current_step_name,
                     "status": "success",
                     "durationMs": duration_ms
                 })
-                current_step_name = f"Tool Call: {call.name}"
+                current_step_name = f"Tool Call: {call_name}"
                 step_start_time = now
+
+                if isinstance(call_args, dict) and "query" in call_args:
+                    q_str = str(call_args["query"]).strip()
+                    if q_str and q_str not in captured_mcp_queries:
+                        captured_mcp_queries.append(q_str)
                 
         # Track tool responses
         function_responses = event.get_function_responses()
@@ -309,13 +317,36 @@ Respond strictly in valid JSON format with the following keys:
         "steps": steps
     }
     
-    # Capture real ClickHouse query IDs executed by momentlab_mcp_reader during this run window
+    # 1. Build query records from captured MCP tool calls
+    captured_query_objects = []
+    for idx, sql in enumerate(captured_mcp_queries):
+        tables = []
+        sql_lower = sql.lower()
+        if "audience_events" in sql_lower:
+            tables.append("momentlab.audience_events")
+        if "reaction_events" in sql_lower:
+            tables.append("momentlab.reaction_events")
+        if "screening_sessions" in sql_lower:
+            tables.append("momentlab.screening_sessions")
+        if "system." in sql_lower or "query_log" in sql_lower:
+            tables.append("system.query_log")
+
+        captured_query_objects.append({
+            "query_id": f"q_mcp_{uuid.uuid4().hex[:8]}",
+            "query": sql,
+            "read_rows": None,
+            "query_duration_ms": None,
+            "tables": tables,
+            "query_start_time": datetime.fromtimestamp(start_time, tz=timezone.utc).isoformat()
+        })
+
+    # 2. Correlate with ClickHouse system.query_log (expanded window to handle clock drift)
     run_started_at = start_time
     run_finished_at = time.time()
-    st_sec = int(run_started_at) - 5
-    en_sec = int(run_finished_at) + 2
+    st_sec = int(run_started_at) - 120  # 2 minute buffer before run start to absorb wall clock drift
+    en_sec = int(run_finished_at) + 30
 
-    run_queries = []
+    found_log_rows = []
     max_poll_seconds = MAX_POLL_SECONDS
     poll_start = time.time()
 
@@ -324,9 +355,9 @@ Respond strictly in valid JSON format with the following keys:
         ch_client = get_client()
 
         q_log_query = """
-            SELECT query_id, query, read_rows, query_duration_ms, tables, query_start_time
+            SELECT query_id, query, read_rows, query_duration_ms, tables, query_start_time, type
             FROM system.query_log
-            WHERE type = 'QueryFinish'
+            WHERE type IN ('QueryFinish', 'QueryStart')
               AND user = 'momentlab_mcp_reader'
               AND (
                 hasAny(tables, ['momentlab.audience_events', 'momentlab.reaction_events'])
@@ -334,19 +365,17 @@ Respond strictly in valid JSON format with the following keys:
                 OR query LIKE '%reaction_events%'
               )
               AND query NOT LIKE '%system.query_log%'
-              AND query_start_time >= toDateTime({st_sec:UInt32})
-              AND query_start_time <= toDateTime({en_sec:UInt32})
+              AND toUnixTimestamp(query_start_time) >= {st_sec:UInt32}
+              AND toUnixTimestamp(query_start_time) <= {en_sec:UInt32}
             ORDER BY query_start_time ASC
         """
 
         poll_iter = 0
         st_iso = datetime.fromtimestamp(st_sec, tz=timezone.utc).isoformat()
-        logger.debug(f"Start poll. run_started_at={st_iso} ({st_sec}), run_finished_at={datetime.fromtimestamp(run_finished_at, tz=timezone.utc).isoformat()} ({en_sec})")
 
         while time.time() - poll_start < max_poll_seconds:
             poll_iter += 1
-            curr_en_sec = max(en_sec, int(time.time()) + 2)
-            curr_en_iso = datetime.fromtimestamp(curr_en_sec, tz=timezone.utc).isoformat()
+            curr_en_sec = max(en_sec, int(time.time()) + 30)
 
             # Flush query logs on every poll iteration
             try:
@@ -355,32 +384,32 @@ Respond strictly in valid JSON format with the following keys:
                 logger.debug(f"SYSTEM FLUSH LOGS call error: {f_err}")
 
             q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec, 'en_sec': curr_en_sec})
-            found = []
+            found_by_id = {}
             if q_res and q_res.result_rows:
                 for r in q_res.result_rows:
                     if r and r[0]:
-                        found.append({
-                            "query_id": str(r[0]),
+                        qid = str(r[0])
+                        row_type = str(r[6]) if len(r) > 6 else "QueryFinish"
+                        row_dict = {
+                            "query_id": qid,
                             "query": str(r[1]),
                             "read_rows": int(r[2]),
                             "query_duration_ms": int(r[3]),
                             "tables": list(r[4]) if isinstance(r[4], (list, tuple)) else [str(r[4])],
-                            "query_start_time": str(r[5]) if len(r) > 5 else ""
-                        })
+                            "query_start_time": str(r[5]) if len(r) > 5 else "",
+                            "type": row_type
+                        }
+                        # Prefer QueryFinish over QueryStart if available
+                        if qid not in found_by_id or row_type == "QueryFinish":
+                            found_by_id[qid] = row_dict
             
-            logger.debug(f"Poll iter {poll_iter}: window [{st_iso} .. {curr_en_iso}], returned {len(found)} rows")
-            for row in found:
-                logger.debug(f"  q_row: id={row['query_id']} start={row['query_start_time']} tables={row['tables']} sql={row['query'][:80]!r}")
+            found_log_rows = list(found_by_id.values())
 
-            if found:
-                run_queries = found
-                has_data_query = any(_is_data_query(q) for q in found)
-                logger.debug(f"Poll iter {poll_iter}: has_data_query={has_data_query}")
+            if found_log_rows:
+                has_data_query = any(_is_data_query(q) for q in found_log_rows)
                 if has_data_query:
-                    logger.info(f"Found {len(run_queries)} agent query log(s) including data query after {time.time() - poll_start:.2f}s")
+                    logger.info(f"Found {len(found_log_rows)} agent query log(s) including data query after {time.time() - poll_start:.2f}s")
                     break
-                else:
-                    logger.info(f"Found {len(found)} query log(s) but all are introspection/system queries. Continuing poll...")
 
             time.sleep(1.0)
             try:
@@ -391,6 +420,19 @@ Respond strictly in valid JSON format with the following keys:
     except Exception as q_err:
         logger.warning(f"Could not fetch query IDs from system.query_log: {q_err}")
 
+    # 3. Merge captured MCP tool queries with system.query_log rows
+    # Prefer system.query_log entries (which contain real query_id, read_rows, query_duration_ms)
+    run_queries = list(found_log_rows)
+    for cap_q in captured_query_objects:
+        cap_sql = cap_q["query"].strip()
+        # Check if already present in found_log_rows by query text similarity
+        already_in_log = any(
+            cap_sql.lower() in log_q["query"].lower() or log_q["query"].lower() in cap_sql.lower()
+            for log_q in found_log_rows
+        )
+        if not already_in_log:
+            run_queries.append(cap_q)
+
     parsed_res["agentQueryRunIds"] = [q["query_id"] for q in run_queries]
 
     # Calculate grounding state based on successful ClickHouse data queries
@@ -400,6 +442,14 @@ Respond strictly in valid JSON format with the following keys:
     parsed_res["successfulDataQueryCount"] = successful_data_query_count
     if not is_grounded:
         parsed_res["status"] = "UNGROUNDED"
+
+    # PERMANENT INFO-LEVEL OBSERVABILITY LOG (Requirement 3)
+    st_iso = datetime.fromtimestamp(st_sec, tz=timezone.utc).isoformat()
+    en_iso = datetime.fromtimestamp(en_sec, tz=timezone.utc).isoformat()
+    logger.info(
+        "Grounding correlation run_id=%s: window=[%s .. %s], query_log_rows=%d, captured_mcp_queries=%d, data_queries=%d, decision=%s",
+        run_id, st_iso, en_iso, len(found_log_rows), len(captured_mcp_queries), successful_data_query_count, "GROUNDED" if is_grounded else "UNGROUNDED"
+    )
 
     def _match_record_to_query(rec: dict, queries: list) -> dict:
         if not queries:
