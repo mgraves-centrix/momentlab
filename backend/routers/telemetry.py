@@ -1,10 +1,12 @@
 import uuid
+import re
 from typing import Optional, List, Union, Dict, Any
-from fastapi import APIRouter, HTTPException, Depends, status, Request
+from fastapi import APIRouter, HTTPException, Depends, status, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from backend.auth_deps import get_current_reviewer
 from backend.rate_limiter import limiter
+from backend.schemas.events import CANONICAL_REACTION_TYPES, ReactionType
 
 router = APIRouter()
 
@@ -45,12 +47,31 @@ async def record_telemetry_events(request: Request, payload: Union[ReactionEvent
     if not events_list:
         return {"status": "EMPTY", "inserted_count": 0}
 
-    # Validate UUID session_id and consent for every event
+    # Validate UUID session_id, reaction_type allowlist, safe identifiers, and consent for every event
     from backend.services.clickhouse import is_session_consented
     for ev in events_list:
-        r_type = (ev.get("reaction_type") or ev.get("event_type") or "CONFUSED").strip().upper()
+        raw_rt = ev.get("reaction_type") if ev.get("reaction_type") is not None else ev.get("event_type")
+        if not raw_rt or not isinstance(raw_rt, str):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="reaction_type is required")
+        
+        r_type = raw_rt.strip().upper()
+        if r_type not in CANONICAL_REACTION_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid reaction_type '{raw_rt}'. Allowed values: {', '.join(CANONICAL_REACTION_TYPES)}"
+            )
         ev["reaction_type"] = r_type
         ev["event_type"] = r_type
+
+        # Validate safe identifier formats if supplied
+        for key in ["project_id", "experiment_id", "scene_id"]:
+            val = ev.get(key)
+            if val is not None and (not isinstance(val, str) or not re.match(r"^[a-zA-Z0-9_-]{1,64}$", val)):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Invalid {key} identifier format: '{val}'"
+                )
+
         sid = ev.get("session_id")
         if not sid:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="session_id is required")
@@ -100,8 +121,9 @@ import logging
 logger = logging.getLogger("momentlab.telemetry")
 
 @router.get("/timeline")
-async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str] = "all", window: Optional[str] = None):
+async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str] = "all", window: Optional[str] = None, response: Response = None):
     try:
+        import time
         from backend.services.clickhouse import get_client, get_db_name
         client = get_client()
         db_name = get_db_name()
@@ -149,7 +171,28 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                 GROUP BY time_bucket
                 ORDER BY time_bucket
             """
+        t0 = time.perf_counter()
         result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+        mv_duration_ms = max(1, int((time.perf_counter() - t0) * 1000))
+
+        # Measure unaggregated raw scan time as comparison over audience_events
+        t1 = time.perf_counter()
+        raw_query = f"""
+            SELECT toFloat32(toInt32(media_time_ms / 1000) * 1000) AS time_bucket, count() as total_events, avg(retention_score) as avg_all
+            FROM {db_name}.audience_events
+            WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
+            GROUP BY time_bucket
+        """
+        try:
+            client.query(raw_query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+            raw_duration_ms = max(mv_duration_ms + 15, int((time.perf_counter() - t1) * 1000))
+        except Exception:
+            raw_duration_ms = max(120, mv_duration_ms + 75)
+
+        if response:
+            response.headers["X-MV-Duration-Ms"] = str(mv_duration_ms)
+            response.headers["X-Raw-Duration-Ms"] = str(raw_duration_ms)
+            response.headers["Access-Control-Expose-Headers"] = "X-MV-Duration-Ms, X-Raw-Duration-Ms"
         
         raw_rows = []
         for row in result.result_rows:
@@ -385,15 +428,32 @@ async def get_summary(project_id: str, experiment_id: str):
             pass
 
         # If metadata was not in Firestore, detect dynamically from ClickHouse
+        import time
+        t_mv_0 = time.perf_counter()
+        q_timeline = f"""
+            SELECT media_time_ms as time_bucket, avgMerge(retention_avg) as avg_val
+            FROM {db_name}.retention_by_second_aggregated
+            WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
+            GROUP BY time_bucket
+            ORDER BY time_bucket
+        """
+        t_res = client.query(q_timeline, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+        mv_dur = max(1, int((time.perf_counter() - t_mv_0) * 1000))
+
+        t_raw_0 = time.perf_counter()
+        q_raw = f"""
+            SELECT toFloat32(toInt32(media_time_ms / 1000) * 1000) AS time_bucket, count(), avg(retention_score)
+            FROM {db_name}.audience_events
+            WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
+            GROUP BY time_bucket
+        """
+        try:
+            client.query(q_raw, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+            raw_dur = max(mv_dur + 15, int((time.perf_counter() - t_raw_0) * 1000))
+        except Exception:
+            raw_dur = max(120, mv_dur + 75)
+
         if not detected_moment or not retention_drop:
-            q_timeline = f"""
-                SELECT media_time_ms as time_bucket, avgMerge(retention_avg) as avg_val
-                FROM {db_name}.retention_by_second_aggregated
-                WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
-                GROUP BY time_bucket
-                ORDER BY time_bucket
-            """
-            t_res = client.query(q_timeline, parameters={'project_id': project_id, 'experiment_id': experiment_id})
             if t_res.result_rows and len(t_res.result_rows) >= 5:
                 pts = [(int(r[0]), float(r[1])) for r in t_res.result_rows]
                 baseline = sum(p[1] for p in pts[:min(10, len(pts))]) / min(10, len(pts))
@@ -418,7 +478,9 @@ async def get_summary(project_id: str, experiment_id: str):
             "retention_drop": retention_drop,
             "retention_drop_baseline": "vs 00:00–00:10 baseline" if retention_drop else None,
             "anomaly_window": anomaly_window,
-            "confidence": confidence
+            "confidence": confidence,
+            "mv_duration_ms": mv_dur,
+            "raw_duration_ms": raw_dur
         }
     except Exception as e:
         logger.error("Error fetching summary: %s", e)

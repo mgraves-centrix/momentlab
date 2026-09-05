@@ -282,4 +282,33 @@ def test_reaction_idempotent_across_requests():
     q_res = ch.query(f"SELECT count() FROM {db}.reaction_events WHERE session_id=toUUID('{sid}')")
     assert q_res.result_rows[0][0] == 1
 
+def test_non_canonical_reaction_type_rejected_and_writes_no_row():
+    from backend.services.clickhouse import get_client, get_db_name
+    ch = get_client()
+    db = get_db_name()
+    sid = str(uuid.uuid4())
+    
+    client.post("/api/v1/screenings/consent", json={
+        "session_id": sid,
+        "screening_token": "demo_token_123",
+        "respondent_cohort": "25_34",
+        "consent_given": True
+    })
+
+    for bad_rt in ["GARBAGE_XYZ", "", "'; DROP TABLE x;--", "BORED_EXTRA", "CONFUSED_X"]:
+        res = client.post("/api/v1/telemetry/events", json={
+            "session_id": sid,
+            "project_id": "proj_northlight_01",
+            "experiment_id": "exp_23a",
+            "scene_id": "sc_12",
+            "media_time_ms": 37000,
+            "reaction_type": bad_rt
+        })
+        assert res.status_code == 422, f"Expected 422 for reaction_type '{bad_rt}', got {res.status_code}"
+
+    # Verify zero rows written to ClickHouse reaction_events for this session
+    q_res = ch.query(f"SELECT count() FROM {db}.reaction_events WHERE session_id=toUUID('{sid}')")
+    assert q_res.result_rows[0][0] == 0
+
+
 

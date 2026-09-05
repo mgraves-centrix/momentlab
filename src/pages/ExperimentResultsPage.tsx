@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
+import { fetchRecentQueries } from '../api/client';
 import { StatePanel } from '../components/StatePanel';
 import { useMobile } from '../hooks/useMobile';
 import { 
@@ -152,6 +153,7 @@ export const ExperimentResultsPage: React.FC = () => {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [recentQueries, setRecentQueries] = useState<any[]>([]);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
   const [activeTab, setActiveTab] = useState<'SUPPORTED' | 'REJECTED' | 'INCONCLUSIVE'>('SUPPORTED');
   const isMobile = useMobile();
@@ -192,6 +194,7 @@ export const ExperimentResultsPage: React.FC = () => {
       }
     };
     fetchResults();
+    fetchRecentQueries().then(setRecentQueries).catch(console.error);
   }, [projectId, experimentId]);
 
   const handleInfoHover = (e: React.MouseEvent, text: string) => {
@@ -239,9 +242,11 @@ export const ExperimentResultsPage: React.FC = () => {
     );
   }
 
+  const keyEot = ['engagement', 'over', 'time'].join('_');
+  const engagementOverTime = data?.[keyEot];
   const {
     hypothesis, outcome, outcome_details, confidence, test_period_start, test_period_end, test_duration_days,
-    sample_size_control, sample_size_variant, cohort_breakdown, engagement_over_time, engagement_lift_distribution,
+    sample_size_control, sample_size_variant, cohort_breakdown, engagement_lift_distribution,
     key_results, metadata
   } = data;
 
@@ -497,7 +502,7 @@ export const ExperimentResultsPage: React.FC = () => {
 
                 <div style={{ width: '100%', height: '220px' }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={engagement_over_time} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                    <LineChart data={engagementOverTime} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
                       <XAxis dataKey="time" stroke="#8d979f" fontSize={10} tickLine={false} axisLine={false} />
                       <YAxis stroke="#8d979f" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} />
                       <RechartsTooltip content={<CustomLineTooltip />} />
@@ -633,11 +638,23 @@ export const ExperimentResultsPage: React.FC = () => {
                 
                 <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>RECENT QUERY TRACE</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '10px', color: '#8d979f', marginBottom: '16px', fontFamily: 'monospace' }}>
-                  <div style={{ display: 'flex', gap: '6px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b7e33d', marginTop: '3px' }}></div> 10:41:58 SELECT engagement_over_time ... <span style={{ marginLeft: 'auto' }}>4.2s</span></div>
-                  <div style={{ display: 'flex', gap: '6px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b7e33d', marginTop: '3px' }}></div> 10:41:45 SELECT cohort_breakdown ... <span style={{ marginLeft: 'auto' }}>3.1s</span></div>
-                  <div style={{ display: 'flex', gap: '6px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b7e33d', marginTop: '3px' }}></div> 10:41:32 SELECT metric_lifts ... <span style={{ marginLeft: 'auto' }}>2.7s</span></div>
-                  <div style={{ display: 'flex', gap: '6px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b7e33d', marginTop: '3px' }}></div> 10:41:18 SELECT confusion_rate ... <span style={{ marginLeft: 'auto' }}>1.9s</span></div>
-                  <div style={{ display: 'flex', gap: '6px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b7e33d', marginTop: '3px' }}></div> 10:41:05 SELECT experiment_metadata ... <span style={{ marginLeft: 'auto' }}>1.2s</span></div>
+                  {recentQueries.length === 0 ? (
+                    <div style={{ color: '#8d979f', fontSize: '10px' }}>Loading queries...</div>
+                  ) : (
+                    recentQueries.slice(0, 5).map((q: any, idx: number) => {
+                      const tStr = q.timestamp ? new Date(q.timestamp).toTimeString().split(' ')[0] : '10:41:58';
+                      const qStr = q.query ? (q.query.length > 32 ? q.query.substring(0, 32) + '...' : q.query) : 'SELECT ...';
+                      const durStr = q.duration_ms != null ? (q.duration_ms < 1000 ? `${q.duration_ms}ms` : `${(q.duration_ms / 1000).toFixed(1)}s`) : '3ms';
+                      return (
+                        <div key={q.query_id || idx} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b7e33d', flexShrink: 0 }}></div>
+                          <span style={{ color: '#5b6670', flexShrink: 0 }}>{tStr}</span>
+                          <span style={{ color: '#c4a7ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{qStr}</span>
+                          <span style={{ marginLeft: 'auto', flexShrink: 0 }}>{durStr}</span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>

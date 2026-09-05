@@ -9,6 +9,8 @@ interface ResponseTimelineProps {
   selectedCohort?: 'all' | '18_24' | '25_34';
   error?: string | null;
   onRetry?: () => void;
+  mvDurationMs?: number;
+  rawDurationMs?: number;
 }
 
 export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
@@ -17,10 +19,14 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
   onTimeSelect,
   selectedCohort = 'all',
   error = null,
-  onRetry
+  onRetry,
+  mvDurationMs,
+  rawDurationMs
 }) => {
   const [hoveredPoint, setHoveredPoint] = useState<TimelineDataPoint | null>(null);
   const [showTableView, setShowTableView] = useState(false);
+  const mvMs = mvDurationMs ?? (data as any)?.mvDurationMs;
+  const rawMs = rawDurationMs ?? (data as any)?.rawDurationMs;
 
   // If telemetry database outage / 503 error
   if (error) {
@@ -151,6 +157,13 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
         <div>
           <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Audience Response Timeline</h3>
           <p style={{ fontSize: '11px', color: 'var(--muted)', margin: '2px 0 0 0' }}>Synchronized retention rate (%) across scene timeline</p>
+          {(mvMs != null || rawMs != null) && (
+            <div style={{ marginTop: '4px' }}>
+              <span style={{ fontSize: '10px', backgroundColor: 'rgba(88, 201, 75, 0.12)', color: '#58c94b', border: '1px solid rgba(88, 201, 75, 0.3)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>
+                served from materialized view - {mvMs != null ? `${mvMs}ms` : 'fast'} {rawMs != null ? `(raw scan ${rawMs}ms)` : ''}
+              </span>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button

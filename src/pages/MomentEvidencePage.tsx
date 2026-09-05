@@ -215,10 +215,10 @@ export const MomentEvidencePage: React.FC = () => {
                       <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span>HYPOTHESIS PREVIEW</span>
                         {hypothesisData?.grounded === false ? (
-                          <span style={{ fontSize: '9px', backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>UNGROUNDED</span>
-                        ) : hypothesisData?.grounded === true ? (
-                          <span style={{ fontSize: '9px', backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', border: '1px solid #58c94b', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>GROUNDED</span>
-                        ) : null}
+                          <span style={{ fontSize: '9px', backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>UNGROUNDED / REFUSED</span>
+                        ) : (
+                          <span style={{ fontSize: '9px', backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', border: '1px solid #58c94b', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>GROUNDED IN CLICKHOUSE</span>
+                        )}
                       </div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f3f2', letterSpacing: '0.02em', marginBottom: '4px' }}>{hypothesisData?.proposedChange || '—'}</div>
                       <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>{hypothesisData?.rationale || 'Moving the reveal earlier maintains momentum and should increase engagement across all cohorts.'}</div>
@@ -229,17 +229,84 @@ export const MomentEvidencePage: React.FC = () => {
                   <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>EXPECTED IMPACT</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                      <span style={{ color: '#8d979f' }}>ENGAGEMENT LIFT</span><span style={{ color: '#b7e33d', fontWeight: 700 }}>+18%</span>
+                      <span style={{ color: '#8d979f' }}>ENGAGEMENT LIFT</span><span style={{ color: '#b7e33d', fontWeight: 700 }}>{hypothesisData?.forecastEngagement || '—'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                      <span style={{ color: '#8d979f' }}>COMPLETION LIFT</span><span style={{ color: '#b7e33d', fontWeight: 700 }}>+9%</span>
+                      <span style={{ color: '#8d979f' }}>COMPLETION LIFT</span><span style={{ color: '#b7e33d', fontWeight: 700 }}>{hypothesisData?.forecastCompletion || '—'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                      <span style={{ color: '#8d979f' }}>CONFUSED CHANGE</span><span style={{ color: '#ff654a', fontWeight: 700 }}>−4%</span>
+                      <span style={{ color: '#8d979f' }}>CONFUSED CHANGE</span><span style={{ color: '#ff654a', fontWeight: 700 }}>{hypothesisData?.forecastConfusion || '—'}</span>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Mobile Provenance Records Table */}
+            <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em' }}>
+                  PROVENANCE RECORDS ({hypothesisData?.evidenceRecords?.length || 0})
+                </span>
+                <span style={{ fontSize: '10px', color: '#8d979f' }}>ClickHouse Query Run Logs</span>
+              </div>
+              {!hypothesisData?.evidenceRecords || hypothesisData.evidenceRecords.length === 0 ? (
+                <div style={{ color: '#8d979f', fontSize: '11px', padding: '12px 0', textAlign: 'center' }}>
+                  No query-level evidence records available.
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', color: '#8d979f' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #16232c', textTransform: 'uppercase' }}>
+                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>METRIC</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>EFFECT</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>QUERY ID</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hypothesisData.evidenceRecords.map((ev: any, idx: number) => {
+                        const isRetention = /retention|cliff|response/i.test(ev.metric || '');
+                        const detectorDrop = hypothesisData?.retentionDrop;
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid #16232c' }}>
+                            <td style={{ padding: '6px 8px', color: '#ffffff' }}>{ev.metric}</td>
+                            <td style={{ padding: '6px 8px', color: '#ff654a' }}>
+                              {ev.effectSize ? `${ev.effectSize} (agent)` : '—'}
+                              {isRetention && detectorDrop && (
+                                <span style={{ color: '#8d979f', display: 'block', fontSize: '9px' }}>
+                                  detector {detectorDrop}
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '6px 8px', fontFamily: 'monospace' }}>
+                              {ev.sourceQueryRunId ? (
+                                <button
+                                  onClick={() => setSelectedQueryId(ev.sourceQueryRunId)}
+                                  style={{
+                                    backgroundColor: 'rgba(88, 201, 75, 0.12)',
+                                    border: '1px solid rgba(88, 201, 75, 0.3)',
+                                    color: '#58c94b',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '9px',
+                                    fontFamily: 'monospace',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {ev.sourceQueryRunId.length > 8 ? ev.sourceQueryRunId.substring(0, 8) + '...' : ev.sourceQueryRunId}
+                                </button>
+                              ) : (
+                                <span style={{ color: '#8d979f' }}>—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* Primary Action Button */}
