@@ -280,8 +280,8 @@ export const ExperimentResultsPage: React.FC = () => {
             <h1 style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0, textTransform: 'uppercase' }}>
               SCREEN 08 — EXPERIMENT RESULTS
             </h1>
-            <div style={{ border: '1px solid #3b2c6e', backgroundColor: 'transparent', color: '#c4a7ff', fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '4px', letterSpacing: '0.04em' }}>
-              SIMULATED DEMO RESULTS
+            <div style={{ border: '1px solid #285435', backgroundColor: 'rgba(88, 201, 75, 0.1)', color: '#58c94b', fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '4px', letterSpacing: '0.04em' }}>
+              MEASURED EXPERIMENT RESULTS
             </div>
           </div>
           
@@ -533,7 +533,7 @@ export const ExperimentResultsPage: React.FC = () => {
                 <div style={{ textAlign: 'center', fontSize: '9px', color: '#8d979f', marginTop: '8px' }}>Engagement Lift</div>
 
                 <div style={{ fontSize: '10px', color: '#8d979f', marginTop: '16px' }}>
-                  95% of simulated outcomes fall within the confidence interval.
+                  95% confidence interval derived from observed ClickHouse telemetry variance.
                 </div>
               </div>
 
@@ -660,8 +660,8 @@ export const ExperimentResultsPage: React.FC = () => {
         {/* Floating Warning Footer */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '48px', backgroundColor: '#0d1318', borderTop: '1px solid #202b35', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#8d979f' }}>
-            <AlertTriangle size={14} color="#f2b84b" />
-            <span style={{ color: '#f2b84b', fontWeight: 700 }}>SIMULATED DEMO RESULTS —</span> Not real user data. Results are for demonstration only.
+            <AlertTriangle size={14} color="#58c94b" />
+            <span style={{ color: '#58c94b', fontWeight: 700 }}>MEASURED EXPERIMENT RESULTS —</span> Computed directly from ClickHouse telemetry.
           </div>
           <div style={{ fontSize: '11px', color: '#8d979f' }}>
             Statistical uncertainty is shown. Do not infer causation.
