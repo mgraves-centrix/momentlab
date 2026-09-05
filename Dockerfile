@@ -31,9 +31,17 @@ COPY backend ./backend
 COPY clickhouse ./clickhouse
 COPY --from=build-frontend /app/dist ./static
 
+# Create non-root user and assign permissions
+RUN useradd -m -u 10001 appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
+ENV HOME=/home/appuser
+
 EXPOSE 8080
 
 ENV PORT=8080
 ENV PYTHONPATH=/app
 
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]
+

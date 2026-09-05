@@ -98,3 +98,22 @@ def test_config_endpoint_leaks_no_credential():
     for secret in secret_tokens:
         assert secret not in body
     assert "reviewer_token" not in response.text
+
+def test_security_headers_present():
+    response = client.get("/health")
+    assert response.headers.get("Strict-Transport-Security") == "max-age=31536000; includeSubDomains"
+    assert response.headers.get("X-Content-Type-Options") == "nosniff"
+    assert response.headers.get("X-Frame-Options") == "DENY"
+    assert response.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+    assert "Content-Security-Policy" in response.headers
+
+def test_rate_limiting_burst_exceeded():
+    statuses = []
+    for i in range(70):
+        res = client.post(
+            "/api/v1/screenings/consent",
+            json={"session_id": "00000000-0000-4000-8000-000000000001", "screening_token": "demo_token_123", "respondent_cohort": "25_34", "consent_given": True}
+        )
+        statuses.append(res.status_code)
+    assert 429 in statuses
+

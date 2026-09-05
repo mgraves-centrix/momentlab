@@ -1,10 +1,11 @@
 import logging
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from pydantic import BaseModel
 from typing import Optional
 from backend.agents.mcp_client import generate_hypothesis
 from backend.services import db
 from backend.auth_deps import get_current_reviewer
+from backend.rate_limiter import limiter
 
 logger = logging.getLogger("momentlab.hypotheses")
 
@@ -28,7 +29,9 @@ async def get_hypothesis(project_id: str, experiment_id: str):
     }
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}/generate-hypothesis")
-async def create_hypothesis(project_id: str, experiment_id: str, reviewer_id: str = Depends(get_current_reviewer)):
+@limiter.limit("20/minute")
+async def create_hypothesis(request: Request, project_id: str, experiment_id: str, reviewer_id: str = Depends(get_current_reviewer)):
+
     try:
         hypothesis_data = await generate_hypothesis(project_id, experiment_id)
         

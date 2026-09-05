@@ -2,12 +2,15 @@ import os
 import sys
 import uuid
 import logging
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from typing import List, Dict, Any
 from datetime import datetime, timezone
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from backend.rate_limiter import limiter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,7 +32,30 @@ app = FastAPI(
     description="High-throughput audience event ingestion, real-time ClickHouse analytics, Gemini ADK screening control, and NLE Export service."
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data: https: blob:; "
+        "media-src 'self' data: https: blob:; "
+        "connect-src 'self' https:; "
+        "frame-ancestors 'none';"
+    )
+    return response
+
 allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://momentlab-web-qa24oxtrrq-uc.a.run.app").split(",")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -85,7 +111,8 @@ def health_check():
     return res
 
 @app.post("/api/v1/screenings/consent", response_model=ConsentRecord)
-def register_screening_consent(consent: ConsentRecord):
+@limiter.limit("60/minute")
+def register_screening_consent(request: Request, consent: ConsentRecord):
     """
     Registers screening consent. Required before playback events are accepted.
     Enforces ZERO biometric / emotion tracking policy.
@@ -118,7 +145,9 @@ def register_screening_consent(consent: ConsentRecord):
     return consent
 
 @app.post("/api/v1/events/playback", response_model=IngestionResponse)
-def ingest_playback_event(event: PlaybackEvent):
+@limiter.limit("120/minute")
+def ingest_playback_event(request: Request, event: PlaybackEvent):
+
     """
     Ingests second-by-second audience playback event into ClickHouse pipeline.
     Requires prior valid consent registration for event.session_id.
