@@ -384,7 +384,12 @@ Respond strictly in valid JSON format with the following keys:
             except Exception as f_err:
                 logger.debug(f"SYSTEM FLUSH LOGS call error: {f_err}")
 
-            q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec, 'en_sec': curr_en_sec})
+            q_log_query_cluster = q_log_query.replace("FROM system.query_log", "FROM clusterAllReplicas('default', system, query_log)")
+            try:
+                q_res = ch_client.query(q_log_query_cluster, parameters={'st_sec': st_sec, 'en_sec': curr_en_sec})
+            except Exception:
+                q_res = ch_client.query(q_log_query, parameters={'st_sec': st_sec, 'en_sec': curr_en_sec})
+
             found_by_id = {}
             if q_res and q_res.result_rows:
                 for r in q_res.result_rows:
