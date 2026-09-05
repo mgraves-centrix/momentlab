@@ -42,8 +42,10 @@ export interface Hypothesis {
   forecastCompletion?: string;
   forecastConfusion?: string;
   evidenceIds: string[];
-  status: 'PROPOSED' | 'APPROVED' | 'LAUNCHED' | 'EVALUATED' | 'REVISION_REQUESTED' | 'DISCARDED';
+  status: 'PROPOSED' | 'APPROVED' | 'LAUNCHED' | 'EVALUATED' | 'REVISION_REQUESTED' | 'DISCARDED' | 'UNGROUNDED';
   isSimulated: boolean;
+  grounded?: boolean;
+  successfulDataQueryCount?: number;
   retentionDrop?: string;
   detectedMoment?: string;
   detectedMomentMs?: number;

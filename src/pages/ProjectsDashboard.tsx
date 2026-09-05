@@ -319,6 +319,9 @@ export const ProjectsDashboard: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff' }}>NORTHLIGHT A/B TEST</span>
                       <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>ACTIVE</span>
+                      {northlightHypothesis?.grounded === false && (
+                        <span style={{ backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>UNGROUNDED</span>
+                      )}
                     </div>
                     <div style={{ fontSize: '11px', color: '#c4a7ff', marginTop: '2px' }}>{northlightHypothesis?.proposedChange || '—'}</div>
                     <div style={{ fontSize: '10px', color: '#8d979f', marginTop: '2px' }}>Started May 19, 2025 · 2 Variants · {northlightRespondents != null ? `${northlightRespondents.toLocaleString()} Respondents` : '—'}</div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Hypothesis } from '../types/northlight';
 
 interface HypothesisCardProps {
@@ -75,13 +75,44 @@ export const HypothesisCard: React.FC<HypothesisCardProps> = ({
           </span>
         </div>
 
-        {/* Mandated SIMULATED Forecast Badge */}
-        {hypothesis.isSimulated && (
-          <span className="badge badge-simulated">
-            SIMULATED FORECAST
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {hypothesis.grounded === false ? (
+            <span className="badge" style={{ backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', fontWeight: 700, letterSpacing: '0.04em' }}>
+              UNGROUNDED (0 QUERIES)
+            </span>
+          ) : hypothesis.grounded === true ? (
+            <span className="badge" style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', border: '1px solid #58c94b', fontWeight: 700, letterSpacing: '0.04em' }}>
+              GROUNDED IN CLICKHOUSE
+            </span>
+          ) : null}
+
+          {hypothesis.isSimulated && (
+            <span className="badge badge-simulated">
+              SIMULATED FORECAST
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Warning banner for ungrounded runs */}
+      {hypothesis.grounded === false && (
+        <div style={{
+          backgroundColor: 'rgba(255, 101, 74, 0.12)',
+          border: '1px solid rgba(255, 101, 74, 0.35)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 14px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '12px',
+          color: '#ff654a',
+          fontWeight: 600
+        }}>
+          <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+          <span>UNGROUNDED ANALYSIS: 0 ClickHouse data queries succeeded during this run. Proposal is derived from model priors.</span>
+        </div>
+      )}
 
       {/* Proposed Change Title */}
       <h2 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text)', marginBottom: '12px' }}>
