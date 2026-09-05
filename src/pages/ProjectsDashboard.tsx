@@ -488,27 +488,27 @@ export const ProjectsDashboard: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '11px' }}>
                 {recentQueries.length === 0 ? (
-                  <div style={{ color: '#8d979f', fontSize: '11px' }}>Loading live queries...</div>
+                  <div style={{ color: '#8d979f', fontSize: '11px', fontStyle: 'italic', padding: '4px 0' }}>
+                    no agent queries yet; generate a hypothesis to see live query activity
+                  </div>
                 ) : (
                   recentQueries.slice(0, 5).map((run: any, idx: number) => {
-                    const queryTimeStr = run.timestamp
-                      ? new Date(run.timestamp).toTimeString().split(' ')[0]
-                      : '10:42:11';
-                    const queryText = run.query
-                      ? (run.query.length > 38 ? run.query.substring(0, 38) + '...' : run.query)
-                      : 'SELECT ...';
+                    const queryText = run.query || 'SELECT ...';
                     const durationStr = run.duration_ms != null
                       ? (run.duration_ms < 1000 ? `${run.duration_ms}ms` : `${(run.duration_ms / 1000).toFixed(1)}s`)
-                      : '3ms';
+                      : '0ms';
+                    const rowsStr = run.rows != null ? `${run.rows} rows` : '';
 
                     return (
-                      <div key={run.query_id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'monospace', color: '#8d979f' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                      <div key={run.query_id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'monospace', color: '#8d979f', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', minWidth: 0 }}>
                           <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#58c94b', flexShrink: 0 }} />
-                          <span style={{ color: '#5b6670', flexShrink: 0 }}>{queryTimeStr}</span>
-                          <span style={{ color: '#c4a7ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{queryText}</span>
+                          <span style={{ color: '#58c94b', fontWeight: 700, flexShrink: 0 }}>{durationStr}</span>
+                          {rowsStr && <span style={{ color: '#8d979f', flexShrink: 0 }}>{rowsStr}</span>}
+                          <span style={{ color: '#c4a7ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={queryText}>
+                            {queryText}
+                          </span>
                         </div>
-                        <span style={{ flexShrink: 0, marginLeft: '8px' }}>{durationStr}</span>
                       </div>
                     );
                   })
