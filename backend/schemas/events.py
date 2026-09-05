@@ -22,14 +22,18 @@ class PlaybackEvent(BaseModel):
     playback_state: Literal["PLAYING", "PAUSED", "SEEKING"] = "PLAYING"
     idempotency_key: str
 
+CANONICAL_REACTION_TYPES = ("CONFUSED", "ENGAGING", "BORED", "ENGAGED", "FUNNY", "TOO SLOW")
+ReactionType = Literal["CONFUSED", "ENGAGING", "BORED", "ENGAGED", "FUNNY", "TOO SLOW"]
+
 class ReactionEvent(BaseModel):
     session_id: str
     project_id: str = "proj_northlight_01"
     experiment_id: str = "exp_23a"
     scene_id: str = "sc_12"
     media_time_ms: int = Field(ge=0)
-    reaction_type: Literal["CONFUSED", "ENGAGING"]
-    idempotency_key: str
+    reaction_type: ReactionType
+    value: Optional[float] = None
+    idempotency_key: Optional[str] = None
 
 class IngestionResponse(BaseModel):
     status: Literal["SUCCESS", "QUEUED", "DUPLICATE", "REJECTED_NO_CONSENT"]

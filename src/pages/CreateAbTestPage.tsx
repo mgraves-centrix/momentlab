@@ -209,7 +209,12 @@ export const CreateAbTestPage: React.FC = () => {
                 <div style={{ padding: '14px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
                   <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>TEST WINDOW & DURATION</div>
                   <div style={{ fontSize: '16px', fontWeight: 700, color: '#f1f3f2', marginBottom: '4px' }}>
-                    7 Days (2025-05-19 — 2025-05-26)
+                    {(() => {
+                      const now = new Date();
+                      const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                      const formatDate = (d: Date) => d.toISOString().split('T')[0];
+                      return `7 Days (${formatDate(now)} — ${formatDate(endDate)})`;
+                    })()}
                   </div>
                   <div style={{ fontSize: '11px', color: '#8d979f' }}>
                     Auto-pauses when sample target or stopping rule boundary is reached.
@@ -225,7 +230,7 @@ export const CreateAbTestPage: React.FC = () => {
                   <span>EARLY STOPPING RULE & GUARDRAIL CONSTRAINTS</span>
                 </div>
                 <p style={{ fontSize: '12px', color: '#8d979f', margin: 0, lineHeight: 1.5 }}>
-                  The experiment will automatically terminate if variant abandonment exceeds <strong>8.0%</strong> or if confused reaction rate increases by <strong>&gt; +5.0%</strong> (stopping rule). Guardrail metrics are evaluated continuously via ClickHouse real-time streaming.
+                  The experiment will automatically terminate if variant abandonment exceeds <strong>{((summaryData as any)?.abandonmentThreshold ?? 8.0).toFixed(1)}%</strong> or if confused reaction rate increases by <strong>&gt; +{((summaryData as any)?.confusedGuardrail ?? 5.0).toFixed(1)}%</strong> (stopping rule). Guardrail metrics are evaluated continuously via ClickHouse real-time streaming.
                 </p>
               </div>
 

@@ -95,6 +95,28 @@ export interface Hypothesis {
 
 const API_BASE = '/api/v1';
 
+export interface HealthStatus {
+  status: string;
+  git_sha: string;
+  database_connected: boolean;
+  database_host: string;
+  database_version: string;
+  server_version: string;
+  buffered_events: number;
+}
+
+export async function fetchHealth(): Promise<HealthStatus> {
+  const res = await fetch('/health');
+  if (!res.ok) throw new Error('Failed to fetch health');
+  return await res.json();
+}
+
+export async function fetchExperimentResults(projectId: string, experimentId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/experiments/${experimentId}/results`);
+  if (!res.ok) throw new Error('Failed to fetch experiment results');
+  return await res.json();
+}
+
 export async function fetchProjects(): Promise<Project[]> {
   const res = await fetch(`${API_BASE}/projects`);
   if (!res.ok) throw new Error('Failed to fetch projects');
@@ -119,7 +141,11 @@ export async function fetchExperimentSummary(projectId: string, experimentId: st
   return await res.json();
 }
 
-export async function fetchExperimentTimeline(projectId: string, experimentId: string, cohort: string = 'all'): Promise<TimelineDataPoint[]> {
+export async function fetchExperimentTimeline(
+  projectId: string,
+  experimentId: string,
+  cohort: string = 'all'
+): Promise<TimelineDataPoint[] & { mvDurationMs?: number; rawDurationMs?: number }> {
   const url = `${API_BASE}/telemetry/timeline?project_id=${projectId}&experiment_id=${experimentId}${cohort && cohort !== 'all' ? `&cohort=${cohort}` : ''}`;
   const res = await fetch(url);
   if (!res.ok) {
@@ -130,9 +156,14 @@ export async function fetchExperimentTimeline(projectId: string, experimentId: s
     } catch (_) {}
     throw new Error(errorDetail);
   }
+  const mvMsStr = res.headers.get('X-MV-Duration-Ms');
+  const rawMsStr = res.headers.get('X-Raw-Duration-Ms');
+  const mvDurationMs = mvMsStr ? parseInt(mvMsStr, 10) : undefined;
+  const rawDurationMs = rawMsStr ? parseInt(rawMsStr, 10) : undefined;
+
   const data = await res.json();
   if (data.length > 0) {
-    return data.map((d: any) => {
+    const pts: any = data.map((d: any) => {
       const allVal = (d.all_cohort !== null && d.all_cohort !== undefined)
         ? Math.round(d.all_cohort)
         : (d.avg_value !== null && d.avg_value !== undefined ? (d.avg_value > 1.0 ? Math.round(d.avg_value) : Math.round(d.avg_value * 100)) : null);
@@ -154,8 +185,14 @@ export async function fetchExperimentTimeline(projectId: string, experimentId: s
         isAnomaly: Boolean(d.is_anomaly)
       };
     });
+    if (mvDurationMs !== undefined) pts.mvDurationMs = mvDurationMs;
+    if (rawDurationMs !== undefined) pts.rawDurationMs = rawDurationMs;
+    return pts;
   } else {
-    return [];
+    const emptyPts: any = [];
+    if (mvDurationMs !== undefined) emptyPts.mvDurationMs = mvDurationMs;
+    if (rawDurationMs !== undefined) emptyPts.rawDurationMs = rawDurationMs;
+    return emptyPts;
   }
 }
 

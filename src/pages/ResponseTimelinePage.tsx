@@ -358,6 +358,8 @@ export const ResponseTimelinePage: React.FC = () => {
                   onTimeSelect={(t) => updateQueryParams({ media_time_ms: t })}
                   selectedCohort={selectedCohort}
                   error={timelineError}
+                  mvDurationMs={(timelineData as any)?.mvDurationMs ?? (summaryData as any)?.mv_duration_ms}
+                  rawDurationMs={(timelineData as any)?.rawDurationMs ?? (summaryData as any)?.raw_duration_ms}
                 />
 
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
