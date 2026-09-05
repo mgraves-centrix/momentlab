@@ -95,7 +95,8 @@ def _extract_text_from_event(event) -> str:
 def _is_data_query(q_dict: dict) -> bool:
     q_tables = [t.lower() for t in q_dict.get("tables", [])]
     q_text = (q_dict.get("query") or "").lower()
-    has_target = any("audience_events" in t or "reaction_events" in t for t in q_tables) or ("audience_events" in q_text or "reaction_events" in q_text)
+    data_targets = ["audience_events", "reaction_events", "retention_by_second", "reaction_anomalies"]
+    has_target = any(any(dt in t for dt in data_targets) for t in q_tables) or any(dt in q_text for dt in data_targets)
     is_sys = any(t.startswith("system.") for t in q_tables) or "system.query_log" in q_text
     return has_target and not is_sys
 
@@ -148,48 +149,48 @@ You are an expert film editor and data analyst for MomentLab.
 You MUST use your ClickHouse MCP `run_query` tool to query the ClickHouse database (`momentlab` database) before generating your hypothesis.
 
 DATABASE SCHEMA:
-1. `momentlab.audience_events`:
+1. `momentlab.retention_by_second_aggregated` (Materialized Aggregating View for Retention):
    - `project_id` (String), `experiment_id` (String), `scene_id` (String)
-   - `media_time_ms` (UInt32) - Video time in milliseconds (e.g. 33000 = 33s, 41000 = 41s).
-   - `retention_score` (Float32) - Retention score value between 0.0 and 1.0.
-   - `playback_state` (String) - 'PLAYING', 'PAUSED', 'SEEKING'.
-   - `session_id` (UUID)
+   - `media_time_ms` (UInt32) - Video time in milliseconds.
+   - `retention_avg` - State for avg. Use `avgMerge(retention_avg)` in queries.
+   - `sample_size` - Sample count per time bucket. Use `sum(sample_size)`.
 
-2. `momentlab.reaction_events`:
-   - `project_id` (String), `experiment_id` (String), `scene_id` (String)
-   - `media_time_ms` (UInt32)
-   - `reaction_type` (String) - 'CONFUSED', 'ENGAGING', etc.
-   - `session_id` (UUID)
+2. `momentlab.reaction_anomalies_aggregated` (Materialized Summing View for Reactions):
+   - `project_id` (String), `scene_id` (String), `media_time_ms` (UInt32)
+   - `confused_count`, `engaging_count`, `bored_count` - Use `sum(confused_count)`, etc.
 
-3. `momentlab.screening_sessions`:
-   - `session_id` (UUID), `project_id` (String), `experiment_id` (String), `respondent_cohort` (String - e.g. '18_24', '25_34', '35_44').
+3. `momentlab.audience_events`:
+   - Raw playback events table (`project_id`, `experiment_id`, `scene_id`, `media_time_ms`, `retention_score`).
+
+4. `momentlab.reaction_events`:
+   - Raw reaction events table (`project_id`, `scene_id`, `media_time_ms`, `reaction_type`).
 
 CLICKHOUSE SQL RULES & WORKED EXAMPLES:
-- Always query `momentlab.audience_events` or `momentlab.reaction_events`.
-- Filter by `project_id` and `experiment_id`.
-- Aggregate by media time buckets or scene to find drops in retention or spikes in confusion reactions.
+- Prefer querying `momentlab.retention_by_second_aggregated` or `momentlab.reaction_anomalies_aggregated` or `momentlab.audience_events` / `momentlab.reaction_events`.
+- Filter by `project_id` and `experiment_id` (or `scene_id`).
+- Aggregate by media_time_ms to find retention cliffs or reaction spikes.
 
-Example 1 (Audience Retention Drop by Time Bucket):
+Example 1 (Audience Retention Drop using Materialized View):
 SELECT
-    toInt32(media_time_ms / 1000) AS sec,
-    avg(retention_score) AS avg_retention,
-    count() AS sample_size
-FROM momentlab.audience_events
+    media_time_ms AS sec_ms,
+    avgMerge(retention_avg) AS avg_retention,
+    sum(sample_size) AS sample_size
+FROM momentlab.retention_by_second_aggregated
 WHERE project_id = 'proj_northlight_01' AND experiment_id = 'exp_23a'
-GROUP BY sec
-ORDER BY sec ASC;
+GROUP BY sec_ms
+ORDER BY sec_ms ASC;
 
-Example 2 (Reaction Spikes):
+Example 2 (Reaction Spikes using Materialized View):
 SELECT
-    toInt32(media_time_ms / 1000) AS sec,
-    reaction_type,
-    count() AS cnt
-FROM momentlab.reaction_events
-WHERE project_id = 'proj_northlight_01' AND experiment_id = 'exp_23a'
-GROUP BY sec, reaction_type
-ORDER BY cnt DESC;
+    media_time_ms,
+    sum(confused_count) AS confused,
+    sum(engaging_count) AS engaging
+FROM momentlab.reaction_anomalies_aggregated
+WHERE scene_id = 'sc_12'
+GROUP BY media_time_ms
+ORDER BY confused DESC;
 
-IMPORTANT: Run at least one valid SQL query using `run_query` against `momentlab.audience_events` or `momentlab.reaction_events` to ground your analysis in real ClickHouse telemetry data.
+IMPORTANT: Run at least one valid SQL query using `run_query` against ClickHouse tables (`momentlab.retention_by_second_aggregated`, `momentlab.reaction_anomalies_aggregated`, `momentlab.audience_events`, or `momentlab.reaction_events`) to ground your analysis in real ClickHouse telemetry data.
 
 Respond strictly in valid JSON format with the following keys:
 - id: A unique string identifier.
@@ -326,6 +327,10 @@ Respond strictly in valid JSON format with the following keys:
             tables.append("momentlab.audience_events")
         if "reaction_events" in sql_lower:
             tables.append("momentlab.reaction_events")
+        if "retention_by_second" in sql_lower:
+            tables.append("momentlab.retention_by_second_aggregated")
+        if "reaction_anomalies" in sql_lower:
+            tables.append("momentlab.reaction_anomalies_aggregated")
         if "screening_sessions" in sql_lower:
             tables.append("momentlab.screening_sessions")
         if "system." in sql_lower or "query_log" in sql_lower:
@@ -361,9 +366,11 @@ Respond strictly in valid JSON format with the following keys:
             WHERE type IN ('QueryFinish', 'QueryStart')
               AND user = 'momentlab_mcp_reader'
               AND (
-                hasAny(tables, ['momentlab.audience_events', 'momentlab.reaction_events'])
+                hasAny(tables, ['momentlab.audience_events', 'momentlab.reaction_events', 'momentlab.retention_by_second_aggregated', 'momentlab.reaction_anomalies_aggregated'])
                 OR query LIKE '%audience_events%'
                 OR query LIKE '%reaction_events%'
+                OR query LIKE '%retention_by_second%'
+                OR query LIKE '%reaction_anomalies%'
               )
               AND query NOT LIKE '%system.query_log%'
               AND toUnixTimestamp(query_start_time) >= {st_sec:UInt32}
@@ -489,12 +496,12 @@ Respond strictly in valid JSON format with the following keys:
                 continue
 
             if is_reaction:
-                if not any("reaction_events" in t for t in q_tables):
-                    logger.debug(f"  cand q_id={q.get('query_id')} REJECTED: reaction metric but tables {q_tables} does not contain reaction_events")
+                if not any(("reaction_events" in t or "reaction_anomalies" in t) for t in q_tables) and not ("reaction_events" in q_text or "reaction_anomalies" in q_text):
+                    logger.debug(f"  cand q_id={q.get('query_id')} REJECTED: reaction metric but tables {q_tables} does not contain reaction tables")
                     continue
             elif is_audience:
-                if not any("audience_events" in t for t in q_tables):
-                    logger.debug(f"  cand q_id={q.get('query_id')} REJECTED: audience metric but tables {q_tables} does not contain audience_events")
+                if not any(("audience_events" in t or "retention_by_second" in t) for t in q_tables) and not ("audience_events" in q_text or "retention_by_second" in q_text):
+                    logger.debug(f"  cand q_id={q.get('query_id')} REJECTED: audience metric but tables {q_tables} does not contain audience tables")
                     continue
             
             score = 1

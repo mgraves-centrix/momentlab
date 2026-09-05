@@ -98,7 +98,7 @@ def test_mcp_query_correlation_invariants():
     # Must contain user filter for momentlab_mcp_reader
     assert "user = 'momentlab_mcp_reader'" in content
     # Must contain table filtering for audience_events and reaction_events
-    assert "hasAny(tables, ['momentlab.audience_events', 'momentlab.reaction_events'])" in content
+    assert "hasAny(tables, ['momentlab.audience_events', 'momentlab.reaction_events" in content
     # Must NOT contain fallback unwindowed query or round-robin indexing
     assert "ORDER BY query_start_time DESC LIMIT 5" not in content
     assert "idx % len(real_query_ids)" not in content

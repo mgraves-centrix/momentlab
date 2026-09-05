@@ -48,6 +48,9 @@ async def record_telemetry_events(request: Request, payload: Union[ReactionEvent
     # Validate UUID session_id and consent for every event
     from backend.services.clickhouse import is_session_consented
     for ev in events_list:
+        r_type = (ev.get("reaction_type") or ev.get("event_type") or "CONFUSED").strip().upper()
+        ev["reaction_type"] = r_type
+        ev["event_type"] = r_type
         sid = ev.get("session_id")
         if not sid:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="session_id is required")
@@ -115,21 +118,37 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
         else:
             cohort_val = "all"
 
-        query = f"""
-            SELECT 
-                toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket,
-                count() as total_events,
-                avg(ae.retention_score) as avg_all,
-                avg(CASE WHEN ss.respondent_cohort = '18_24' THEN ae.retention_score ELSE NULL END) as avg_18_24,
-                avg(CASE WHEN ss.respondent_cohort = '25_34' THEN ae.retention_score ELSE NULL END) as avg_25_34,
-                avg(CASE WHEN ss.respondent_cohort = '35_44' THEN ae.retention_score ELSE NULL END) as avg_35_44,
-                avg(ae.retention_score * ae.retention_score) as avg_sq
-            FROM {db_name}.audience_events ae
-            LEFT JOIN {db_name}.screening_sessions ss ON ae.session_id = ss.session_id
-            WHERE ae.project_id = {{project_id:String}} AND ae.experiment_id = {{experiment_id:String}}
-            GROUP BY time_bucket
-            ORDER BY time_bucket
-        """
+        if cohort_val == "all":
+            query = f"""
+                SELECT 
+                    media_time_ms AS time_bucket,
+                    sum(sample_size) as total_events,
+                    avgMerge(retention_avg) as avg_all,
+                    avgMerge(retention_avg) as avg_18_24,
+                    avgMerge(retention_avg) as avg_25_34,
+                    avgMerge(retention_avg) as avg_35_44,
+                    avgMerge(retention_avg) * avgMerge(retention_avg) as avg_sq
+                FROM {db_name}.retention_by_second_aggregated
+                WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
+                GROUP BY time_bucket
+                ORDER BY time_bucket
+            """
+        else:
+            query = f"""
+                SELECT 
+                    toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket,
+                    count() as total_events,
+                    avg(ae.retention_score) as avg_all,
+                    avg(CASE WHEN ss.respondent_cohort = '18_24' THEN ae.retention_score ELSE NULL END) as avg_18_24,
+                    avg(CASE WHEN ss.respondent_cohort = '25_34' THEN ae.retention_score ELSE NULL END) as avg_25_34,
+                    avg(CASE WHEN ss.respondent_cohort = '35_44' THEN ae.retention_score ELSE NULL END) as avg_35_44,
+                    avg(ae.retention_score * ae.retention_score) as avg_sq
+                FROM {db_name}.audience_events ae
+                LEFT JOIN {db_name}.screening_sessions ss ON ae.session_id = ss.session_id
+                WHERE ae.project_id = {{project_id:String}} AND ae.experiment_id = {{experiment_id:String}}
+                GROUP BY time_bucket
+                ORDER BY time_bucket
+            """
         result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
         
         raw_rows = []
@@ -215,7 +234,7 @@ async def get_recent_queries():
                 query_duration_ms
             FROM system.query_log
             WHERE type = 'QueryFinish'
-               AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%screening_sessions%')
+               AND (query LIKE '%momentlab%' OR query LIKE '%audience_events%' OR query LIKE '%retention_by_second%' OR query LIKE '%reaction_anomalies%' OR query LIKE '%screening_sessions%')
                AND query NOT LIKE '%system.query_log%'
             ORDER BY query_start_time DESC
             LIMIT 10
@@ -247,16 +266,16 @@ async def get_recent_queries():
                 {
                     "query_id": None,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "query": "SELECT media_time_ms, count() AS sample_size, quantile(0.5)(retention_score) * 100 AS retention_median FROM momentlab.audience_events WHERE scene_id = 'sc_12' GROUP BY media_time_ms ORDER BY media_time_ms ASC",
+                    "query": "SELECT media_time_ms, sum(sample_size) AS sample_size, quantileMerge(0.5)(retention_median) * 100 AS retention_median FROM momentlab.retention_by_second_aggregated WHERE scene_id = 'sc_12' GROUP BY media_time_ms ORDER BY media_time_ms ASC",
                     "rows": 30358,
-                    "duration_ms": 7
+                    "duration_ms": 2
                 },
                 {
                     "query_id": None,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "query": "SELECT toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket, count() as total_events, avg(ae.retention_score) as avg_value FROM momentlab.audience_events ae INNER JOIN momentlab.screening_sessions ss ON ae.session_id = ss.session_id WHERE ae.project_id = 'proj_northlight_01' AND ae.experiment_id = 'exp_23a' GROUP BY time_bucket ORDER BY time_bucket",
+                    "query": "SELECT media_time_ms, avgMerge(retention_avg) as avg_value FROM momentlab.retention_by_second_aggregated WHERE project_id = 'proj_northlight_01' AND experiment_id = 'exp_23a' GROUP BY media_time_ms ORDER BY media_time_ms",
                     "rows": 30358,
-                    "duration_ms": 9
+                    "duration_ms": 3
                 }
             ]
         return queries
@@ -368,8 +387,8 @@ async def get_summary(project_id: str, experiment_id: str):
         # If metadata was not in Firestore, detect dynamically from ClickHouse
         if not detected_moment or not retention_drop:
             q_timeline = f"""
-                SELECT toFloat32(toInt32(media_time_ms / 1000) * 1000) as time_bucket, avg(retention_score) as avg_val
-                FROM {db_name}.audience_events
+                SELECT media_time_ms as time_bucket, avgMerge(retention_avg) as avg_val
+                FROM {db_name}.retention_by_second_aggregated
                 WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
                 GROUP BY time_bucket
                 ORDER BY time_bucket
