@@ -28,7 +28,7 @@ async def get_hypothesis(project_id: str, experiment_id: str):
     }
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}/generate-hypothesis")
-async def create_hypothesis(project_id: str, experiment_id: str):
+async def create_hypothesis(project_id: str, experiment_id: str, reviewer_id: str = Depends(get_current_reviewer)):
     try:
         hypothesis_data = await generate_hypothesis(project_id, experiment_id)
         
@@ -57,7 +57,7 @@ async def create_hypothesis(project_id: str, experiment_id: str):
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Hypothesis generation failed: {str(e)}")
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}/hypothesis/request-revision")
-async def request_hypothesis_revision(project_id: str, experiment_id: str, req: Optional[RevisionRequest] = None):
+async def request_hypothesis_revision(project_id: str, experiment_id: str, req: Optional[RevisionRequest] = None, reviewer_id: str = Depends(get_current_reviewer)):
     firestore_db = db.get_db()
     doc_ref = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
     doc = doc_ref.get()
@@ -82,7 +82,7 @@ async def request_hypothesis_revision(project_id: str, experiment_id: str, req: 
     }
 
 @router.post("/projects/{project_id}/experiments/{experiment_id}/hypothesis/discard")
-async def discard_hypothesis(project_id: str, experiment_id: str):
+async def discard_hypothesis(project_id: str, experiment_id: str, reviewer_id: str = Depends(get_current_reviewer)):
     firestore_db = db.get_db()
     doc_ref = firestore_db.collection('projects').document(project_id).collection('experiments').document(experiment_id).collection('hypotheses').document('current')
     doc = doc_ref.get()

@@ -177,7 +177,7 @@ def _get_media_bucket_name():
     return os.getenv("MEDIA_BUCKET_NAME", "momentlab-media-demo")
 
 @router.post("/{project_id}/media", response_model=SignedUrlResponse)
-def generate_upload_url(project_id: str, filename: str, content_type: str):
+def generate_upload_url(project_id: str, filename: str, content_type: str, reviewer_id: str = Depends(get_current_reviewer)):
     """Generates a V4 signed URL for uploading video media to GCS."""
     client = db.get_db()
     if not client.collection('projects').document(project_id).get().exists:

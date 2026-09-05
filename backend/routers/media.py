@@ -3,10 +3,11 @@ import re
 import uuid
 import logging
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from backend.services import db
 from backend.services.gcp_config import get_gcp_project_id, get_gcp_location
+from backend.auth_deps import get_current_reviewer
 
 logger = logging.getLogger("momentlab.media")
 from backend.services.veo_pipeline import (
@@ -60,7 +61,7 @@ def list_veo_models(project_id: Optional[str] = None):
     }
 
 @router.post("/veo-generate")
-async def generate_veo_media(req: Optional[VeoGenerateRequest] = None):
+async def generate_veo_media(req: Optional[VeoGenerateRequest] = None, reviewer_id: str = Depends(get_current_reviewer)):
     """
     Triggers Google Veo multi-clip generative video pipeline on Vertex AI to produce a synthetic film scene.
     Stitches clips server-side into a continuous asset covering the analyzed window.
@@ -80,7 +81,7 @@ async def generate_veo_media(req: Optional[VeoGenerateRequest] = None):
     )
 
 @router.post("/youtube-ingest", response_model=YouTubeIngestResponse)
-async def ingest_youtube_video(req: YouTubeIngestRequest):
+async def ingest_youtube_video(req: YouTubeIngestRequest, reviewer_id: str = Depends(get_current_reviewer)):
     """
     Ingests a YouTube video for private audience telemetry instrumentation using YouTube IFrame Player API.
     Does not rehost copyrighted video. Stores canonical embed URL and scene metadata.

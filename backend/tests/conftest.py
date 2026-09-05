@@ -5,7 +5,11 @@ from backend.services.clickhouse import get_client
 from backend.simulator.fixtures import generate_northlight_events_and_sessions
 from backend.ingestion.batch_writer import ClickHouseBatchWriter
 
-os.environ.setdefault("REVIEWER_TOKENS", "valid_reviewer_token_123")
+os.environ["REVIEWER_TOKENS"] = "valid_reviewer_token_123"
+
+@pytest.fixture(autouse=True)
+def setup_reviewer_tokens():
+    os.environ["REVIEWER_TOKENS"] = "valid_reviewer_token_123"
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_clickhouse_db():
