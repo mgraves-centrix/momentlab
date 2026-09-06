@@ -3,7 +3,8 @@
 > **Turn consented, second-by-second audience behavior into the next controlled edit experiment.**  
 > Built for the **Agentic Cinema: The Blockbuster Hackathon (ClickHouse Track)**.
 
-🔗 **Live Hosted App**: [https://momentlab-web-qa24oxtrrq-uc.a.run.app](https://momentlab-web-qa24oxtrrq-uc.a.run.app)  
+🔗 **Live Hosted App**: [https://momentlab.ai](https://momentlab.ai)  
+🌐 **Origin Cloud Run URL**: [https://momentlab-web-qa24oxtrrq-uc.a.run.app](https://momentlab-web-qa24oxtrrq-uc.a.run.app)  
 🎥 **Demo Video**: Demo video: to be added before submission (YouTube, 3 min) | [Demo Script & Storyboard](docs/demo-script.md)
 
 ![Desktop Built](docs/images/momentlab-built.png)

@@ -54,7 +54,7 @@ async def add_security_headers(request: Request, call_next):
     )
     return response
 
-allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://momentlab-web-qa24oxtrrq-uc.a.run.app").split(",")
+allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://momentlab-web-qa24oxtrrq-uc.a.run.app,https://momentlab.ai,https://www.momentlab.ai").split(",")
 
 
 app.add_middleware(
