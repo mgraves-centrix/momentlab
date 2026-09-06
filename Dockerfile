@@ -11,20 +11,18 @@ RUN npm ci && npm run build
 FROM python:3.14-slim
 WORKDIR /app
 
-ARG GIT_SHA="unknown"
-ENV GIT_SHA=${GIT_SHA}
-
-# Install system dependencies and copy official uv/uvx binaries
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
 # Copy backend requirements and install
 COPY backend/requirements.txt ./backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
+
+ARG GIT_SHA="unknown"
+ENV GIT_SHA=${GIT_SHA}
 
 # Copy backend code, clickhouse DDL, and built frontend dist
 COPY backend ./backend
