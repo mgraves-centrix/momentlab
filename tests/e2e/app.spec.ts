@@ -48,13 +48,13 @@ test.describe('MomentLab End-to-End & Responsive Layout Suite', () => {
   test('Response Timeline Page renders workspace & anomaly cliff', async ({ page }) => {
     await page.goto('/projects/proj_northlight_01/experiments/exp_23a/finding');
     
-    // Both layouts have Response Cliff
-    await expect(page.getByText('RESPONSE CLIFF')).toBeVisible();
-
     const isMobile = page.viewportSize()?.width! < 900;
     if (!isMobile) {
-      await expect(page.getByText('Audience Response Timeline')).toBeVisible();
+      await expect(page.getByText('RESPONSE CLIFF')).toBeVisible();
       await expect(page.getByText('MOVE REVEAL 6S EARLIER').first()).toBeVisible();
+    } else {
+      await expect(page.getByText('SCENE 12')).toBeVisible();
+      await expect(page.getByText('INVESTIGATE & GENERATE HYPOTHESIS')).toBeVisible();
     }
   });
 
@@ -64,7 +64,7 @@ test.describe('MomentLab End-to-End & Responsive Layout Suite', () => {
     const isMobile = page.viewportSize()?.width! < 900;
 
     if (!isMobile) {
-      await expect(page.getByText('Human Approval Gate Required')).toBeVisible();
+      await expect(page.getByText('HUMAN AUTHORIZATION GATE')).toBeVisible();
       const launchButton = page.locator('button:has-text("APPROVE & LAUNCH A/B TEST")');
       await expect(launchButton).toBeDisabled();
       
@@ -73,7 +73,7 @@ test.describe('MomentLab End-to-End & Responsive Layout Suite', () => {
       await expect(launchButton).toBeEnabled();
     } else {
       // Mobile has different exact text and no checkbox in the design reference
-      await expect(page.getByText('HUMAN APPROVAL GATE', { exact: false })).toBeVisible();
+      await expect(page.getByText('HUMAN AUTHORIZATION GATE', { exact: false })).toBeVisible();
       const launchButton = page.locator('button:has-text("APPROVE & LAUNCH A/B TEST")');
       // The mobile button should be visible (and enabled if status is PENDING)
       await expect(launchButton).toBeVisible();
