@@ -26,7 +26,7 @@ export const ConfidenceMeter: React.FC<ConfidenceMeterProps> = ({
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <span style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+          <span style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
             Calibrated Model Confidence
           </span>
           <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--lime)', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '8px' }} className="tabular-nums">
@@ -62,7 +62,7 @@ export const ConfidenceMeter: React.FC<ConfidenceMeterProps> = ({
       {/* Non-Causal Compliance Callout */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', backgroundColor: 'var(--surface-2)', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
         <Info size={14} color="var(--violet-soft)" style={{ marginTop: '2px', flexShrink: 0 }} />
-        <span style={{ fontSize: '10px', color: 'var(--muted)', lineHeight: 1.3 }}>
+        <span style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: 1.3 }}>
           <strong>Compliance Disclosure:</strong> Confidence reflects observational retention alignment, not causal guarantee. Mandatory human approval required before launching Cut B.
         </span>
       </div>

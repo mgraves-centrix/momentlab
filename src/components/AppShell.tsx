@@ -244,7 +244,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               >
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#58c94b', boxShadow: '0 0 6px #58c94b' }} />
                 <span>AGENTS ONLINE</span>
-                <span style={{ backgroundColor: '#1d4825', color: '#58c94b', padding: '1px 5px', borderRadius: '10px', fontSize: '10px' }}>4</span>
+                <span style={{ backgroundColor: '#1d4825', color: '#58c94b', padding: '1px 5px', borderRadius: '10px', fontSize: '11px' }}>4</span>
               </div>
             )}
 

@@ -128,21 +128,21 @@ export const MomentEvidencePage: React.FC = () => {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>OBSERVATION</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>OBSERVATION</span>
                   </div>
                   <div style={{ fontSize: '11px', color: '#9aa8b2', lineHeight: '1.4' }}>Engagement drops significantly starting at 00:37 and continues through 00:41.</div>
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>INFERENCE</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>INFERENCE</span>
                   </div>
                   <div style={{ fontSize: '11px', color: '#9aa8b2', lineHeight: '1.4' }}>The camera reveal at 00:37 is likely causing viewers to lose momentum.</div>
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>UNCERTAINTY</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>UNCERTAINTY</span>
                   </div>
                   <div style={{ fontSize: '11px', color: '#9aa8b2', lineHeight: '1.4' }}>Moderate uncertainty due to cohort variance and limited sample in 18–24 group.</div>
                 </div>
@@ -153,7 +153,7 @@ export const MomentEvidencePage: React.FC = () => {
             <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>COHORT COMPARISON</div>
-                <div style={{ display: 'flex', gap: '12px', fontSize: '9px', color: '#9aa8b2', fontWeight: 600 }}>
+                <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#9aa8b2', fontWeight: 600 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '8px', height: '4px', backgroundColor: '#8b5cf6', borderRadius: '2px' }}/> RESPONSE CLIFF</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '8px', height: '4px', backgroundColor: '#b7e33d', borderRadius: '2px' }}/> CONFIDENCE</div>
                 </div>
@@ -166,7 +166,7 @@ export const MomentEvidencePage: React.FC = () => {
                     <path d="M 0 5 Q 10 5, 20 10 T 50 18" fill="none" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="2 2" />
                   </svg>
                   <div style={{ fontSize: '20px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '2px' }}>−28%</div>
-                  <div style={{ fontSize: '8px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
+                  <div style={{ fontSize: '12px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
                 </div>
 
                 <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
@@ -175,7 +175,7 @@ export const MomentEvidencePage: React.FC = () => {
                     <path d="M 0 6 Q 10 6, 20 12 T 50 16" fill="none" stroke="#6b46c1" strokeWidth="1" />
                   </svg>
                   <div style={{ fontSize: '20px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '2px' }}>−26%</div>
-                  <div style={{ fontSize: '8px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
+                  <div style={{ fontSize: '12px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
                 </div>
 
                 <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
@@ -184,7 +184,7 @@ export const MomentEvidencePage: React.FC = () => {
                     <path d="M 0 4 Q 10 4, 20 8 T 50 19" fill="none" stroke="#c4a7ff" strokeWidth="1" />
                   </svg>
                   <div style={{ fontSize: '20px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '2px' }}>−31%</div>
-                  <div style={{ fontSize: '8px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
+                  <div style={{ fontSize: '12px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
                 </div>
 
                 <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -212,12 +212,12 @@ export const MomentEvidencePage: React.FC = () => {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c4a7ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                     </div>
                     <div>
-                      <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontSize: '11px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span>HYPOTHESIS PREVIEW</span>
                         {hypothesisData?.grounded === false ? (
-                          <span style={{ fontSize: '9px', backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>UNGROUNDED / REFUSED</span>
+                          <span style={{ fontSize: '11px', backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>UNGROUNDED / REFUSED</span>
                         ) : (
-                          <span style={{ fontSize: '9px', backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', border: '1px solid #58c94b', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>GROUNDED IN CLICKHOUSE</span>
+                          <span style={{ fontSize: '11px', backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', border: '1px solid #58c94b', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>GROUNDED IN CLICKHOUSE</span>
                         )}
                       </div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f3f2', letterSpacing: '0.02em', marginBottom: '4px' }}>{hypothesisData?.proposedChange || '—'}</div>
@@ -226,7 +226,7 @@ export const MomentEvidencePage: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '9px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>EXPECTED IMPACT</div>
+                  <div style={{ fontSize: '11px', color: '#9aa8b2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>EXPECTED IMPACT</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
                       <span style={{ color: '#8d979f' }}>ENGAGEMENT LIFT</span><span style={{ color: '#b7e33d', fontWeight: 700 }}>{hypothesisData?.forecastEngagement || '—'}</span>
@@ -406,14 +406,13 @@ export const MomentEvidencePage: React.FC = () => {
                       <div key={i} style={{ 
                         flex: 1, 
                         backgroundImage: `url('/frames/frame_00_${32 + i}.png')`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
+                                     backgroundPosition: 'center',
                         border: i === 5 ? '2px solid #ff654a' : 'none'
                       }} />
                     ))}
                     {/* 00:37 Marker */}
                     <div style={{ position: 'absolute', left: '50%', width: '2px', height: '100%', backgroundColor: '#b7e33d', transform: 'translateX(-50%)' }}>
-                      <div style={{ position: 'absolute', top: '2px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#b7e33d', color: '#050a0e', fontSize: '9px', fontWeight: 800, padding: '2px 4px', borderRadius: '2px' }}>00:37</div>
+                      <div style={{ position: 'absolute', top: '2px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#b7e33d', color: '#050a0e', fontSize: '11px', fontWeight: 800, padding: '2px 4px', borderRadius: '2px' }}>00:37</div>
                     </div>
                   </div>
                 </div>
@@ -422,7 +421,7 @@ export const MomentEvidencePage: React.FC = () => {
                 <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                     <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>COHORT COMPARISON</div>
-                    <div style={{ display: 'flex', gap: '12px', fontSize: '9px', color: '#9aa8b2', fontWeight: 600 }}>
+                    <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#9aa8b2', fontWeight: 600 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '8px', height: '4px', backgroundColor: '#8b5cf6', borderRadius: '2px' }}/> RESPONSE CLIFF</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '8px', height: '4px', backgroundColor: '#b7e33d', borderRadius: '2px' }}/> CONFIDENCE</div>
                     </div>
@@ -430,44 +429,44 @@ export const MomentEvidencePage: React.FC = () => {
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', backgroundColor: '#16232c', border: '1px solid #16232c', borderRadius: '8px', overflow: 'hidden' }}>
                     <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '10px', color: '#f1f3f2', marginBottom: '8px' }}>ALL</div>
+                      <div style={{ fontSize: '11px', color: '#f1f3f2', marginBottom: '8px' }}>ALL</div>
                       <svg width="100%" height="20" viewBox="0 0 50 20" style={{ marginBottom: '8px' }}>
                         <path d="M 0 5 Q 10 5, 20 10 T 50 18" fill="none" stroke="#8b5cf6" strokeWidth="1" strokeDasharray="2 2" />
                       </svg>
                       <div style={{ fontSize: '20px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '2px' }}>−28%</div>
-                      <div style={{ fontSize: '8px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
+                      <div style={{ fontSize: '12px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
                     </div>
 
                     <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '10px', color: '#f1f3f2', marginBottom: '8px' }}>18–24</div>
+                      <div style={{ fontSize: '11px', color: '#f1f3f2', marginBottom: '8px' }}>18–24</div>
                       <svg width="100%" height="20" viewBox="0 0 50 20" style={{ marginBottom: '8px' }}>
                         <path d="M 0 6 Q 10 6, 20 12 T 50 16" fill="none" stroke="#6b46c1" strokeWidth="1" />
                       </svg>
                       <div style={{ fontSize: '20px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '2px' }}>−14%</div>
-                      <div style={{ fontSize: '8px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:35 – 00:39</div>
+                      <div style={{ fontSize: '12px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:35 – 00:39</div>
                     </div>
 
                     <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '10px', color: '#f1f3f2', marginBottom: '8px' }}>25–34</div>
+                      <div style={{ fontSize: '11px', color: '#f1f3f2', marginBottom: '8px' }}>25–34</div>
                       <svg width="100%" height="20" viewBox="0 0 50 20" style={{ marginBottom: '8px' }}>
                         <path d="M 0 4 Q 10 4, 20 10 T 50 20" fill="none" stroke="#c4a7ff" strokeWidth="1.5" />
                       </svg>
                       <div style={{ fontSize: '20px', fontWeight: 700, color: '#ff654a', fontFamily: 'var(--font-display)', marginBottom: '2px' }}>−41%</div>
-                      <div style={{ fontSize: '8px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
+                      <div style={{ fontSize: '12px', color: '#9aa8b2', fontFamily: 'monospace' }}>00:33 – 00:41</div>
                     </div>
 
                     <div style={{ backgroundColor: '#0d1318', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '9px', color: '#8d979f' }}>CONFIDENCE</span>
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#b7e33d' }}>{hypothesisData?.confidenceScore || 0}%</span>
+                        <span style={{ fontSize: '11px', color: '#8d979f' }}>CONFIDENCE</span>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#b7e33d' }}>{hypothesisData?.confidenceScore || 0}%</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '9px', color: '#8d979f' }}>CONF. INTERVAL</span>
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#f1f3f2' }}>[24%, 32%]</span>
+                        <span style={{ fontSize: '11px', color: '#8d979f' }}>CONF. INTERVAL</span>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#f1f3f2' }}>[24%, 32%]</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '9px', color: '#8d979f' }}>MIN EFFECT</span>
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#f1f3f2' }}>3.5%</span>
+                        <span style={{ fontSize: '11px', color: '#8d979f' }}>MIN EFFECT</span>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#f1f3f2' }}>3.5%</span>
                       </div>
                     </div>
                   </div>
@@ -478,23 +477,23 @@ export const MomentEvidencePage: React.FC = () => {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>OBSERVATION</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>OBSERVATION</span>
                     </div>
-                    <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>Engagement drops significantly starting at 00:37 and continues through 00:41.</div>
+                    <div style={{ fontSize: '11px', color: '#9aa8b2', lineHeight: '1.4' }}>Engagement drops significantly starting at 00:37 and continues through 00:41.</div>
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>INFERENCE</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>INFERENCE</span>
                     </div>
-                    <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>The camera reveal at 00:37 is likely causing viewers to lose momentum.</div>
+                    <div style={{ fontSize: '11px', color: '#9aa8b2', lineHeight: '1.4' }}>The camera reveal at 00:37 is likely causing viewers to lose momentum.</div>
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>UNCERTAINTY</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#f1f3f2', letterSpacing: '0.04em' }}>UNCERTAINTY</span>
                     </div>
-                    <div style={{ fontSize: '10px', color: '#9aa8b2', lineHeight: '1.4' }}>Moderate uncertainty due to cohort variance and limited sample in 18–24 group.</div>
+                    <div style={{ fontSize: '11px', color: '#9aa8b2', lineHeight: '1.4' }}>Moderate uncertainty due to cohort variance and limited sample in 18–24 group.</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#0d1318', border: '1px solid #1e2830', padding: '12px 16px', borderRadius: '8px' }}>
@@ -540,7 +539,7 @@ export const MomentEvidencePage: React.FC = () => {
                             <td style={{ padding: '8px 12px', color: 'var(--error)' }}>
                               {ev.effectSize ? `${ev.effectSize} (agent)` : '—'}
                               {isRetention && detectorDrop && (
-                                <span style={{ color: '#8d979f', marginLeft: '6px', fontSize: '10px' }}>
+                                <span style={{ color: '#8d979f', marginLeft: '6px', fontSize: '11px' }}>
                                   | detector {detectorDrop}
                                 </span>
                               )}
@@ -585,7 +584,7 @@ export const MomentEvidencePage: React.FC = () => {
                       OFFICIAL CLICKHOUSE MCP TELEMETRY
                     </span>
                   </div>
-                  <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px' }}>
+                  <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '11px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px' }}>
                     CONNECTED
                   </span>
                 </div>

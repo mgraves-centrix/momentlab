@@ -92,7 +92,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
               alt="Control Cut A Frame" 
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
             />
-            <div style={{ position: 'absolute', bottom: '4px', right: '4px', backgroundColor: 'rgba(0,0,0,0.7)', padding: '2px 6px', borderRadius: '2px', fontSize: '9px', color: '#fff', fontWeight: 700 }}>
+            <div style={{ position: 'absolute', bottom: '4px', right: '4px', backgroundColor: 'rgba(0,0,0,0.7)', padding: '2px 6px', borderRadius: '2px', fontSize: '11px', color: '#fff', fontWeight: 700 }}>
               REVEAL: {formatMs(controlRevealMs)}
             </div>
           </div>
@@ -102,7 +102,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
             <div style={{ position: 'absolute', left: 0, width: `${(controlRevealMs / 60000) * 100}%`, height: '100%', backgroundColor: 'rgba(141, 151, 159, 0.3)' }} />
             <div style={{ position: 'absolute', left: `${(controlRevealMs / 60000) * 100}%`, top: 0, bottom: 0, width: '4px', backgroundColor: 'var(--muted)' }} />
           </div>
-          <span style={{ fontSize: '10px', color: 'var(--muted)', marginTop: '6px', display: 'block' }}>
+          <span style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px', display: 'block' }}>
             Original edit sequence without early reveal
           </span>
         </div>
@@ -137,7 +137,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
               alt="Variant Cut B Frame" 
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
             />
-            <div style={{ position: 'absolute', bottom: '4px', right: '4px', backgroundColor: 'rgba(139, 92, 246, 0.85)', padding: '2px 6px', borderRadius: '2px', fontSize: '9px', color: '#fff', fontWeight: 700 }}>
+            <div style={{ position: 'absolute', bottom: '4px', right: '4px', backgroundColor: 'rgba(139, 92, 246, 0.85)', padding: '2px 6px', borderRadius: '2px', fontSize: '11px', color: '#fff', fontWeight: 700 }}>
               REVEAL: {formatMs(variantRevealMs)} (-6s)
             </div>
           </div>
@@ -147,7 +147,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
             <div style={{ position: 'absolute', left: 0, width: `${(variantRevealMs / 60000) * 100}%`, height: '100%', backgroundColor: 'rgba(139, 92, 246, 0.4)' }} />
             <div style={{ position: 'absolute', left: `${(variantRevealMs / 60000) * 100}%`, top: 0, bottom: 0, width: '4px', backgroundColor: 'var(--violet)' }} />
           </div>
-          <span style={{ fontSize: '10px', color: 'var(--violet-soft)', marginTop: '6px', display: 'block' }}>
+          <span style={{ fontSize: '11px', color: 'var(--violet-soft)', marginTop: '6px', display: 'block' }}>
             Applied 6s earlier reveal to preserve audience retention
           </span>
         </div>

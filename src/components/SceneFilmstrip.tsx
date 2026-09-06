@@ -59,7 +59,7 @@ export const SceneFilmstrip: React.FC<SceneFilmstripProps> = ({
       aria-label="Scene keyframe filmstrip scrubber"
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+        <span style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
           Scene Timeline
         </span>
         <span style={{ fontSize: '11px', color: 'var(--lime)', fontWeight: 700 }} className="tabular-nums">
@@ -104,7 +104,7 @@ export const SceneFilmstrip: React.FC<SceneFilmstripProps> = ({
             >
               <span
                 style={{
-                  fontSize: '9px',
+                  fontSize: '11px',
                   color: frame.isAnomaly ? 'var(--coral)' : 'var(--muted)',
                   fontWeight: frame.isAnomaly ? 700 : 400
                 }}

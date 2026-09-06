@@ -52,7 +52,7 @@ export const AnomalyCallout: React.FC<AnomalyCalloutProps> = ({
         <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--coral)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
           {effect}
         </div>
-        <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Retention Impact
         </div>
       </div>

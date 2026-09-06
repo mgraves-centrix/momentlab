@@ -107,9 +107,11 @@ def test_security_headers_present():
     assert response.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
     assert "Content-Security-Policy" in response.headers
 
-def test_rate_limiting_burst_exceeded():
+def test_rate_limiting_burst_exceeded(monkeypatch):
+    monkeypatch.setattr("backend.main.is_valid_screening_token", lambda token: True)
+    monkeypatch.setattr("backend.main.writer.insert_screening_sessions", lambda sessions: None)
     statuses = []
-    for i in range(70):
+    for i in range(100):
         res = client.post(
             "/api/v1/screenings/consent",
             json={"session_id": "00000000-0000-4000-8000-000000000001", "screening_token": "demo_token_123", "respondent_cohort": "25_34", "consent_given": True}

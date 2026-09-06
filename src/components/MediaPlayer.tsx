@@ -441,7 +441,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
                 border: '1px solid var(--border)',
                 padding: '3px 8px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '10px',
+                fontSize: '11px',
                 fontWeight: 700,
                 color: 'var(--violet-soft)',
                 letterSpacing: '0.04em',
