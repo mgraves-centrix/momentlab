@@ -33,7 +33,8 @@ COPY --from=build-frontend /app/dist ./static
 
 # Create non-root user and assign permissions
 RUN useradd -m -u 10001 appuser && \
-    chown -R appuser:appuser /app
+    mkdir -p /app/static /app/backend /app/clickhouse && \
+    chown -R appuser:appuser /app/static /app/backend /app/clickhouse
 
 USER appuser
 ENV HOME=/home/appuser
