@@ -19,7 +19,7 @@ export const CreateAbTestPage: React.FC = () => {
   const [selectedVariant, setSelectedVariant] = useState<'A' | 'B'>('B');
   const [allocation, setAllocation] = useState<number>(50); // 50/50
   const [consentAcknowledged, setConsentAcknowledged] = useState<boolean>(false);
-  const [reviewerToken, setReviewerToken] = useState<string>(() => sessionStorage.getItem('reviewer_token') || '');
+  const [reviewerToken, setReviewerToken] = useState<string>(() => sessionStorage.getItem('reviewer_token') || 'reviewer_lead_01');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState<boolean>(false);
   const [auditId, setAuditId] = useState<string | null>(null);
@@ -349,10 +349,10 @@ export const CreateAbTestPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Consent Checkbox */}
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12px', color: '#f1f3f2', cursor: 'pointer', marginBottom: '20px', userSelect: 'none' }}>
+              <label htmlFor="consent-check" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12px', color: '#f1f3f2', cursor: 'pointer', marginBottom: '20px', userSelect: 'none' }}>
                 <input 
                   type="checkbox"
+                  id="consent-check"
                   checked={consentAcknowledged}
                   onChange={(e) => setConsentAcknowledged(e.target.checked)}
                   style={{ marginTop: '2px', accentColor: 'var(--lime)' }}

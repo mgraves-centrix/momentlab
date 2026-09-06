@@ -160,6 +160,10 @@ npm run dev
 # Run backend pytest suite
 PYTHONPATH=. .venv/bin/pytest backend/tests -q
 
+# Run end-to-end Playwright suite (prerequisite: build first)
+npm run build
+npm run test:e2e      # or: npx playwright test
+
 # Run full system verification (build, lint, test)
 make verify
 ```
