@@ -1,6 +1,6 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Film, ChevronDown, Bell, Settings } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Film, ChevronDown, Bell, Settings, Check, X, Info } from 'lucide-react';
 import { MobileBottomNavigation } from './MobileBottomNavigation';
 import { useMobile } from '../hooks/useMobile';
 
@@ -11,14 +11,59 @@ interface AppShellProps {
   mcpStatus?: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED';
 }
 
+const AVAILABLE_PROJECTS = [
+  { id: 'proj_northlight_01', name: 'PROJECT NORTHLIGHT', expId: 'exp_23a', badge: 'ACTIVE' },
+  { id: 'proj_echoes_02', name: 'PROJECT ECHOES', expId: 'exp_echoes_01', badge: 'ACTIVE' },
+  { id: 'proj_below_03', name: 'PROJECT BELOW THE SURFACE', expId: 'exp_below_01', badge: 'DRAFT' }
+];
+
 export const AppShell: React.FC<AppShellProps> = ({
   children,
   projectId = 'proj_northlight_01',
   experimentId = 'exp_23a'
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useMobile();
   const isScreening = location.pathname.startsWith('/screen');
+
+  const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  const projectMenuRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  // Close menus on outside click or Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsProjectMenuOpen(false);
+        setIsNotifOpen(false);
+      }
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (projectMenuRef.current && !projectMenuRef.current.contains(e.target as Node)) {
+        setIsProjectMenuOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const currentProject = AVAILABLE_PROJECTS.find(p => p.id === projectId) || AVAILABLE_PROJECTS[0];
+
+  const handleSelectProject = (proj: typeof AVAILABLE_PROJECTS[0]) => {
+    setIsProjectMenuOpen(false);
+    navigate(`/projects/${proj.id}/experiments/${proj.expId}/finding`);
+  };
 
   const mainNavItems = [
     { label: 'PROJECTS', path: '/projects' },
@@ -59,24 +104,80 @@ export const AppShell: React.FC<AppShellProps> = ({
             </Link>
 
             {/* Project Dropdown Selector Pill */}
-            <button
-              style={{
-                backgroundColor: '#161e25',
-                border: '1px solid #283540',
-                borderRadius: '6px',
-                padding: '6px 12px',
-                fontSize: '11px',
-                fontWeight: 700,
-                color: '#c4a7ff',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                letterSpacing: '0.05em'
-              }}
-            >
-              <span>{isMobile ? 'NORTHLIGHT' : 'PROJECT NORTHLIGHT'}</span>
-              <ChevronDown size={14} color="#8d979f" />
-            </button>
+            <div ref={projectMenuRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
+                aria-expanded={isProjectMenuOpen}
+                aria-label="Select Project Menu"
+                style={{
+                  backgroundColor: '#161e25',
+                  border: '1px solid #283540',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#c4a7ff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  letterSpacing: '0.05em',
+                  cursor: 'pointer'
+                }}
+              >
+                <span>{isMobile ? currentProject.name.replace('PROJECT ', '') : currentProject.name}</span>
+                <ChevronDown size={14} color="#8d979f" style={{ transform: isProjectMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isProjectMenuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    left: 0,
+                    width: '260px',
+                    backgroundColor: '#0f171e',
+                    border: '1px solid #283540',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                    padding: '8px 0',
+                    zIndex: 200
+                  }}
+                >
+                  <div style={{ padding: '6px 14px', fontSize: '11px', fontWeight: 700, color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #1c262e' }}>
+                    Switch Active Project
+                  </div>
+                  {AVAILABLE_PROJECTS.map(proj => {
+                    const isSelected = proj.id === projectId;
+                    return (
+                      <div
+                        key={proj.id}
+                        onClick={() => handleSelectProject(proj)}
+                        style={{
+                          padding: '10px 14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          backgroundColor: isSelected ? '#1c2632' : 'transparent',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.15s'
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? '#ffffff' : '#d0d7de' }}>
+                            {proj.name}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '2px' }}>
+                            ID: {proj.id}
+                          </div>
+                        </div>
+                        {isSelected && <Check size={16} color="#8b5cf6" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Center: Main Navigation Tabs */}
@@ -148,16 +249,66 @@ export const AppShell: React.FC<AppShellProps> = ({
             )}
 
             {/* Notification Bell */}
-            <button style={{ color: '#8d979f', display: 'flex', alignItems: 'center', padding: '4px', position: 'relative' }}>
-              <Bell size={18} />
-              {isMobile && (
-                <span style={{ position: 'absolute', top: '2px', right: '4px', width: '6px', height: '6px', backgroundColor: '#58c94b', borderRadius: '50%', border: '1px solid #0c1115' }} />
+            <div ref={notifRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                aria-label="View System Notifications"
+                style={{ color: '#8d979f', display: 'flex', alignItems: 'center', padding: '6px', position: 'relative', cursor: 'pointer' }}
+              >
+                <Bell size={18} />
+                <span style={{ position: 'absolute', top: '4px', right: '4px', width: '6px', height: '6px', backgroundColor: '#58c94b', borderRadius: '50%', border: '1px solid #0c1115' }} />
+              </button>
+
+              {isNotifOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: '300px',
+                    backgroundColor: '#0f171e',
+                    border: '1px solid #283540',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                    padding: '12px',
+                    zIndex: 200
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #1c262e' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff' }}>System Alerts & Activity</span>
+                    <button onClick={() => setIsNotifOpen(false)} aria-label="Close notifications" style={{ color: '#8d979f', cursor: 'pointer' }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ padding: '8px', backgroundColor: '#162029', borderRadius: '4px', fontSize: '11px', color: '#c4a7ff', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <Info size={14} color="#8b5cf6" style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <div>
+                        <strong>Cut B Anomaly Detected</strong>
+                        <div style={{ color: '#8d979f', fontSize: '11px', marginTop: '2px' }}>Pacing cliff at 00:37 (-18.1% drop). Analysis ready.</div>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '8px', backgroundColor: '#162029', borderRadius: '4px', fontSize: '11px', color: '#58c94b', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <Check size={14} color="#58c94b" style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <div>
+                        <strong>ClickHouse MV Sync Verified</strong>
+                        <div style={{ color: '#8d979f', fontSize: '11px', marginTop: '2px' }}>35,240 respondents synced across 4 nodes.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
 
             {!isMobile && (
               <>
-                <button style={{ color: '#8d979f', display: 'flex', alignItems: 'center', padding: '4px' }}>
+                <button
+                  onClick={() => navigate('/admin/demo')}
+                  aria-label="System Settings and Admin"
+                  style={{ color: '#8d979f', display: 'flex', alignItems: 'center', padding: '6px', cursor: 'pointer' }}
+                >
                   <Settings size={18} />
                 </button>
 

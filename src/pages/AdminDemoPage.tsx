@@ -183,7 +183,7 @@ export const AdminDemoPage: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div style={{ backgroundColor: 'var(--surface-2)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>CLICKHOUSE ADAPTER</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>CLICKHOUSE ADAPTER</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: health?.database_connected ? 'var(--text)' : '#ff654a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Database size={14} color={health?.database_connected ? 'var(--lime)' : '#ff654a'} />
                   {health?.database_connected ? 'CONNECTED' : 'DISCONNECTED'}
@@ -191,21 +191,21 @@ export const AdminDemoPage: React.FC = () => {
               </div>
 
               <div style={{ backgroundColor: 'var(--surface-2)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>BUFFERED EVENTS</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>BUFFERED EVENTS</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
                   {health?.buffered_events ?? 0}
                 </div>
               </div>
 
               <div style={{ backgroundColor: 'var(--surface-2)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>ACTIVE EXPERIMENT</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>ACTIVE EXPERIMENT</div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--violet)' }}>
                   proj_northlight_01 / exp_23a
                 </div>
               </div>
 
               <div style={{ backgroundColor: 'var(--surface-2)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>TIMELINE BUCKETS</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>TIMELINE BUCKETS</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--lime)' }}>
                   {health?.timelineRows ?? 0} rows (00:00–01:00)
                 </div>

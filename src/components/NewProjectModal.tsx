@@ -129,7 +129,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             </div>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>Create New Film Project</h2>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label="Close modal" style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>
             <X size={20} />
           </button>
         </div>

@@ -27,10 +27,17 @@ export const ProjectsDashboard: React.FC = () => {
   const [resultsData, setResultsData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'respondents'>('recent');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    return (sessionStorage.getItem('momentlab_view_mode') as 'grid' | 'list') || 'grid';
+  });
   const [starredProjects, setStarredProjects] = useState<Record<string, boolean>>({ proj_northlight_01: true });
   const navigate = useNavigate();
   const isMobile = useMobile();
+
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    sessionStorage.setItem('momentlab_view_mode', mode);
+  };
 
   useEffect(() => {
     fetchProjects().then(data => {
@@ -151,7 +158,7 @@ export const ProjectsDashboard: React.FC = () => {
             <h2 style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.01em', margin: 0 }}>
               Automated Audience Pacing & Cut Verification
             </h2>
-            <span style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)', color: '#c4a7ff', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
+            <span style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)', color: '#c4a7ff', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
               VERIFIABLE CLICKHOUSE PROVENANCE
             </span>
           </div>
@@ -180,13 +187,15 @@ export const ProjectsDashboard: React.FC = () => {
             <span>View:</span>
             <div style={{ display: 'flex', backgroundColor: '#11171c', border: '1px solid #202a31', borderRadius: '4px', padding: '2px' }}>
               <button 
-                onClick={() => setViewMode('grid')}
+                onClick={() => handleViewModeChange('grid')}
+                aria-label="Grid View Mode"
                 style={{ padding: '4px 6px', borderRadius: '4px', backgroundColor: viewMode === 'grid' ? '#1f2a33' : 'transparent', color: viewMode === 'grid' ? '#fff' : '#8d979f', border: 'none', cursor: 'pointer' }}
               >
                 <LayoutGrid size={14} />
               </button>
               <button 
-                onClick={() => setViewMode('list')}
+                onClick={() => handleViewModeChange('list')}
+                aria-label="List View Mode"
                 style={{ padding: '4px 6px', borderRadius: '4px', backgroundColor: viewMode === 'list' ? '#1f2a33' : 'transparent', color: viewMode === 'list' ? '#fff' : '#8d979f', border: 'none', cursor: 'pointer' }}
               >
                 <List size={14} />
@@ -227,6 +236,80 @@ export const ProjectsDashboard: React.FC = () => {
 
                 const experimentUrl = `/projects/${project.project_id}/experiments/${experimentId}/finding`;
 
+                if (viewMode === 'list') {
+                  return (
+                    <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '8px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '220px' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#162029', flexShrink: 0 }}>
+                          <img
+                            src={project.thumbnail_url || "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80"}
+                            alt="Thumbnail"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h2 style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.02em', textTransform: 'uppercase', margin: 0 }}>
+                              {project.title}
+                            </h2>
+                            <Star 
+                              size={14} 
+                              color={starredProjects[project.project_id] ? "#ffd700" : "#8d979f"} 
+                              fill={starredProjects[project.project_id] ? "#ffd700" : "none"}
+                              onClick={(e) => toggleStar(project.project_id, e)}
+                              style={{ cursor: 'pointer' }} 
+                            />
+                            <span style={{
+                              backgroundColor: status === 'ACTIVE' ? 'rgba(88, 201, 75, 0.15)' : 'rgba(141, 151, 159, 0.15)',
+                              color: status === 'ACTIVE' ? '#58c94b' : '#8d979f',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '3px',
+                              border: `1px solid ${status === 'ACTIVE' ? 'rgba(88, 201, 75, 0.3)' : 'rgba(141, 151, 159, 0.3)'}`
+                            }}>
+                              {status}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '4px' }}>
+                            {project.description || 'Feature Film Project'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }} className="tabular-nums">
+                            {cutsCount != null ? cutsCount : '—'} cuts / {respCount != null ? respCount.toLocaleString() : '0'} resp
+                          </div>
+                          <div style={{ fontSize: '11px', color: isReady ? '#c4a7ff' : '#8d979f' }}>
+                            {isReady ? 'ANALYSIS READY' : 'DRAFT'}
+                          </div>
+                        </div>
+
+                        <Link
+                          to={experimentUrl}
+                          style={{
+                            backgroundColor: '#b7e33d',
+                            color: '#080b0e',
+                            textDecoration: 'none',
+                            padding: '8px 14px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <span>{isReady ? 'OPEN' : 'VIEW'}</span>
+                          <ChevronRight size={14} strokeWidth={2.5} />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '10px', overflow: 'hidden' }}>
                     <div style={{ padding: isMobile ? '16px' : '20px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px 1fr', gap: '20px' }}>
@@ -237,7 +320,7 @@ export const ProjectsDashboard: React.FC = () => {
                           alt="Thumbnail"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
-                        <span style={{ position: 'absolute', bottom: '6px', left: '6px', backgroundColor: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.04em' }}>
+                        <span style={{ position: 'absolute', bottom: '6px', left: '6px', backgroundColor: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '11px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.04em' }}>
                           PROJECT MEDIA
                         </span>
                       </div>
@@ -261,7 +344,7 @@ export const ProjectsDashboard: React.FC = () => {
                             <span style={{
                               backgroundColor: status === 'ACTIVE' ? 'rgba(88, 201, 75, 0.15)' : 'rgba(141, 151, 159, 0.15)',
                               color: status === 'ACTIVE' ? '#58c94b' : '#8d979f',
-                              fontSize: '10px',
+                              fontSize: '11px',
                               fontWeight: 700,
                               padding: '2px 8px',
                               borderRadius: '3px',
@@ -281,18 +364,18 @@ export const ProjectsDashboard: React.FC = () => {
                             <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">
                               {cutsCount != null ? cutsCount : '—'}
                             </div>
-                            <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cuts</div>
+                            <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cuts</div>
                           </div>
 
                           <div>
                             <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">
                               {respCount != null ? respCount.toLocaleString() : '0'}
                             </div>
-                            <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respondents</div>
+                            <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respondents</div>
                           </div>
 
                           <div>
-                            <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Latest Finding</div>
+                            <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Latest Finding</div>
                             <div style={{ fontSize: '11px', fontWeight: 700, color: finding ? '#ff6652' : '#8d979f', marginTop: '2px' }}>
                               {finding || 'No findings yet'}
                             </div>
@@ -309,7 +392,7 @@ export const ProjectsDashboard: React.FC = () => {
                               <div style={{ fontSize: '11px', fontWeight: 700, color: isReady ? '#c4a7ff' : '#8d979f', letterSpacing: '0.04em' }}>
                                 {isReady ? 'ANALYSIS READY' : respCount ? 'ANALYSIS PENDING' : 'NO EXPERIMENTS'}
                               </div>
-                              <div style={{ fontSize: '10px', color: '#8d979f' }}>
+                              <div style={{ fontSize: '11px', color: '#8d979f' }}>
                                 {isReady ? 'Findings available for review' : respCount ? 'Collecting screening data' : 'Ready to configure test'}
                               </div>
                             </div>
@@ -341,7 +424,7 @@ export const ProjectsDashboard: React.FC = () => {
                     <div style={{ borderTop: '1px solid #1a232b', padding: '10px 20px', backgroundColor: '#090e12', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#8d979f', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#202b35', color: '#fff', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>AD</div>
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#202b35', color: '#fff', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>AD</div>
                           <span>{project.owner_id || 'Admin'} <span style={{ color: '#5b6670' }}>Owner</span></span>
                         </div>
                         <span>Created {new Date(project.created_at).toLocaleDateString()}</span>
@@ -372,7 +455,7 @@ export const ProjectsDashboard: React.FC = () => {
                   <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
                     ACTIVE EXPERIMENTS
                   </h3>
-                  <span style={{ backgroundColor: '#1b2630', color: '#8d979f', fontSize: '10px', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>1</span>
+                  <span style={{ backgroundColor: '#1b2630', color: '#8d979f', fontSize: '11px', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>1</span>
                 </div>
                 <ArrowRight size={14} color="#8d979f" onClick={() => navigate('/projects/proj_northlight_01/experiments/exp_23a/finding')} style={{ cursor: 'pointer' }} />
               </div>
@@ -384,46 +467,46 @@ export const ProjectsDashboard: React.FC = () => {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff' }}>NORTHLIGHT A/B TEST</span>
-                      <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>ACTIVE</span>
+                      <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '11px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>ACTIVE</span>
                       {northlightHypothesis?.grounded === false ? (
-                        <span style={{ backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>UNGROUNDED / REFUSED</span>
+                        <span style={{ backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', fontSize: '11px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>UNGROUNDED / REFUSED</span>
                       ) : (
-                        <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', border: '1px solid #58c94b', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>GROUNDED IN CLICKHOUSE</span>
+                        <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', border: '1px solid #58c94b', fontSize: '11px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>GROUNDED IN CLICKHOUSE</span>
                       )}
                     </div>
                     <div style={{ fontSize: '11px', color: '#c4a7ff', marginTop: '2px' }}>{northlightHypothesis?.proposedChange || '—'}</div>
-                    <div style={{ fontSize: '10px', color: '#8d979f', marginTop: '2px' }}>Started {startedDateStr} · 2 Variants · {totalRespCount != null ? `${totalRespCount.toLocaleString()} Respondents` : '—'}</div>
+                    <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '2px' }}>Started {startedDateStr} · 2 Variants · {totalRespCount != null ? `${totalRespCount.toLocaleString()} Respondents` : '—'}</div>
                   </div>
                 </div>
 
                 {/* 3 Metric Boxes */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px', textAlign: 'center' }}>
                   <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
-                    <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase' }}>ENGAGEMENT LIFT</div>
+                    <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase' }}>ENGAGEMENT LIFT</div>
                     <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
                       {primaryLiftStr}
                     </div>
-                    <div style={{ fontSize: '8px', color: '#58c94b', marginTop: '1px', fontWeight: 700 }}>
+                    <div style={{ fontSize: '11px', color: '#58c94b', marginTop: '1px', fontWeight: 700 }}>
                       {resultsData?.key_results ? 'MEASURED' : 'SIMULATED'}
                     </div>
                   </div>
 
                   <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
-                    <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase' }}>COMPLETION LIFT</div>
+                    <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase' }}>COMPLETION LIFT</div>
                     <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
                       {secondaryLiftStr}
                     </div>
-                    <div style={{ fontSize: '8px', color: '#58c94b', marginTop: '1px', fontWeight: 700 }}>
+                    <div style={{ fontSize: '11px', color: '#58c94b', marginTop: '1px', fontWeight: 700 }}>
                       {resultsData?.key_results ? 'MEASURED' : 'SIMULATED'}
                     </div>
                   </div>
 
                   <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
-                    <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase' }}>CONFIDENCE</div>
+                    <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase' }}>CONFIDENCE</div>
                     <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
                       {confidenceVal}
                     </div>
-                    <div style={{ fontSize: '8px', color: '#8d979f', marginTop: '1px' }}>VERIFIED</div>
+                    <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '1px' }}>VERIFIED</div>
                   </div>
                 </div>
 
@@ -460,7 +543,7 @@ export const ProjectsDashboard: React.FC = () => {
                         )}
                       </svg>
                       {detMoment && detMomentMs != null && (
-                        <span style={{ position: 'absolute', top: '2px', left: `${markerX + 4}px`, backgroundColor: '#ff6652', color: '#fff', fontSize: '8px', fontWeight: 700, padding: '1px 3px', borderRadius: '2px' }}>
+                        <span style={{ position: 'absolute', top: '2px', left: `${markerX + 4}px`, backgroundColor: '#ff6652', color: '#fff', fontSize: '11px', fontWeight: 700, padding: '1px 3px', borderRadius: '2px' }}>
                           {detMoment}
                         </span>
                       )}
@@ -469,7 +552,7 @@ export const ProjectsDashboard: React.FC = () => {
                 })()}
 
                 {/* Graph Legend */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#8d979f', marginTop: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#8d979f', marginTop: '8px' }}>
                   <span style={{ color: '#8b5cf6' }}>-- Variant A (Control)</span>
                   <span style={{ color: '#c4a7ff' }}>— Variant B (Move earlier)</span>
                   <span style={{ color: '#5b6670' }}>--- All Respondents</span>
@@ -522,7 +605,7 @@ export const ProjectsDashboard: React.FC = () => {
                 <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em' }}>
                   CLICKHOUSE MCP
                 </h3>
-                <span style={{ backgroundColor: healthData?.database_connected !== false ? 'rgba(88, 201, 75, 0.15)' : 'rgba(255, 101, 74, 0.15)', color: healthData?.database_connected !== false ? '#58c94b' : '#ff654a', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', border: `1px solid ${healthData?.database_connected !== false ? 'rgba(88, 201, 75, 0.3)' : 'rgba(255, 101, 74, 0.3)'}` }}>
+                <span style={{ backgroundColor: healthData?.database_connected !== false ? 'rgba(88, 201, 75, 0.15)' : 'rgba(255, 101, 74, 0.15)', color: healthData?.database_connected !== false ? '#58c94b' : '#ff654a', fontSize: '11px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', border: `1px solid ${healthData?.database_connected !== false ? 'rgba(88, 201, 75, 0.3)' : 'rgba(255, 101, 74, 0.3)'}` }}>
                   {healthData?.database_connected !== false ? 'CONNECTED' : 'DISCONNECTED'}
                 </span>
               </div>

@@ -246,31 +246,31 @@ export const ResponseTimelinePage: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', backgroundColor: 'var(--surface-1)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', marginBottom: '16px' }}>
               <div>
-                <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Screening Sample Size</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Screening Sample Size</div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
                   {totalRespondents.toLocaleString()} <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 400 }}>respondents</span>
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Detected Moment</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Detected Moment</div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--violet-soft)', fontFamily: 'monospace' }}>
                   {detectedMoment}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Retention Drop</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Retention Drop</div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--coral)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
                   {retentionDrop}
                 </div>
-                <div style={{ fontSize: '9px', color: 'var(--muted)', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
                   vs 00:00–00:10 baseline
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Calibrated Confidence</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Calibrated Confidence</div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--lime)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
                   {confidence}%
                 </div>
@@ -304,7 +304,7 @@ export const ResponseTimelinePage: React.FC = () => {
                 )}
 
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Scene Notes</div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Scene Notes</div>
                   <div style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
                     <p style={{ margin: '0 0 8px 0' }}><strong>Context:</strong> Shadow entity revealed behind protagonist.</p>
                     <p style={{ margin: 0 }}><strong>Director's Intent:</strong> Build tension slowly before jump scare.</p>
@@ -312,7 +312,7 @@ export const ResponseTimelinePage: React.FC = () => {
                 </div>
 
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Experiment Info</div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Experiment Info</div>
                   <div style={{ fontSize: '12px', color: 'var(--text)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     <span style={{ color: 'var(--muted)' }}>Experiment ID:</span><span>{experimentId?.toUpperCase() || '—'}</span>
                     <span style={{ color: 'var(--muted)' }}>Scene:</span><span>12</span>

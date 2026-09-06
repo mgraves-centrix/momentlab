@@ -121,6 +121,11 @@ The backend enforces Bearer token authentication on approval and reset endpoints
 #### ClickHouse Cloud Operational Requirements
 * **Service Status**: The ClickHouse Cloud instance must be RUNNING (a stopped/idled service returns TLS EOF during handshakes and causes the app to report `UNHEALTHY`).
 * **Required Grants**: The four SQL grants (`GRANT SELECT ON system.query_log` and `GRANT REMOTE ON *.*` to `momentlab_writer` and `momentlab_mcp_reader`) must be applied via `python backend/scripts/grant_query_log.py`. Without these grants, system query logging and multi-replica cluster resolution fail silently.
+* **Materialized View Rebuild & Repair Path**: ClickHouse Materialized Views (`retention_by_second_mv` and `reaction_anomalies_mv`) trigger on `INSERT` operations. Deletes in `audience_events` or `reaction_events` leave stale rows in aggregated tables (`retention_by_second_aggregated` and `reaction_anomalies_aggregated`). To repair aggregates after raw data modifications:
+  ```bash
+  python backend/scripts/rebuild_materialized_views.py
+  ```
+  This script truncates aggregated tables, re-populates them directly from raw source events, and updates persisted detector state.
 
 ### 3. Deployment & Seeding Sequence
 

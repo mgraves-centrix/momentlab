@@ -22,6 +22,13 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-display: 'Inter Tight', 'Inter', system-ui, sans-serif;
   
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  
   --header-desktop-height: 60px;
   --header-mobile-height: 56px;
   --nav-mobile-height: 72px;

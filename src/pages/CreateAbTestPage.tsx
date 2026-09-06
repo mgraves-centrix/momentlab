@@ -168,7 +168,7 @@ export const CreateAbTestPage: React.FC = () => {
                 
                 {/* Traffic Allocation */}
                 <div style={{ padding: '14px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
-                  <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>TRAFFIC ALLOCATION</div>
+                  <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>TRAFFIC ALLOCATION</div>
                   <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f3f2', marginBottom: '6px' }}>
                     {allocation}% Control / {100 - allocation}% Variant
                   </div>
@@ -180,12 +180,12 @@ export const CreateAbTestPage: React.FC = () => {
                     onChange={(e) => setAllocation(parseInt(e.target.value, 10))}
                     style={{ width: '100%', accentColor: 'var(--lime)' }}
                   />
-                  <div style={{ fontSize: '10px', color: '#8d979f', marginTop: '4px' }}>Recommended: 50/50 Balanced split</div>
+                  <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '4px' }}>Recommended: 50/50 Balanced split</div>
                 </div>
 
                 {/* Target Cohorts */}
                 <div style={{ padding: '14px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
-                  <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>TARGET COHORTS</div>
+                  <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>TARGET COHORTS</div>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: '#c4a7ff', marginBottom: '6px' }}>
                     ALL COHORTS (18–24, 25–34, 35+)
                   </div>
@@ -196,7 +196,7 @@ export const CreateAbTestPage: React.FC = () => {
 
                 {/* Minimum Sample Size & Power */}
                 <div style={{ padding: '14px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
-                  <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>MINIMUM SAMPLE SIZE & POWER</div>
+                  <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>MINIMUM SAMPLE SIZE & POWER</div>
                   <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f3f2', marginBottom: '4px' }} className="tabular-nums">
                     N = {summaryData?.total_respondents != null ? (summaryData.total_respondents * 2).toLocaleString() : 'unavailable'} (Target: Cut {selectedVariant})
                   </div>
@@ -207,7 +207,7 @@ export const CreateAbTestPage: React.FC = () => {
 
                 {/* Test Window */}
                 <div style={{ padding: '14px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
-                  <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>TEST WINDOW & DURATION</div>
+                  <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '6px' }}>TEST WINDOW & DURATION</div>
                   <div style={{ fontSize: '16px', fontWeight: 700, color: '#f1f3f2', marginBottom: '4px' }}>
                     {(() => {
                       const now = new Date();
@@ -298,11 +298,11 @@ export const CreateAbTestPage: React.FC = () => {
                   </h3>
                 </div>
                 {reviewerToken.trim() ? (
-                  <span style={{ fontSize: '10px', color: '#58c94b', backgroundColor: '#111b15', border: '1px solid #1f3a28', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                  <span style={{ fontSize: '11px', color: '#58c94b', backgroundColor: '#111b15', border: '1px solid #1f3a28', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                     REVIEWER SIGNED IN
                   </span>
                 ) : (
-                  <span style={{ fontSize: '10px', color: '#ff654a', backgroundColor: '#211210', border: '1px solid #4a201c', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                  <span style={{ fontSize: '11px', color: '#ff654a', backgroundColor: '#211210', border: '1px solid #4a201c', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                     SIGN-IN REQUIRED
                   </span>
                 )}
@@ -398,7 +398,7 @@ export const CreateAbTestPage: React.FC = () => {
               </button>
 
               {auditId && (
-                <div style={{ marginTop: '12px', fontSize: '10px', color: '#8d979f', fontFamily: 'monospace', textAlign: 'center' }}>
+                <div style={{ marginTop: '12px', fontSize: '11px', color: '#8d979f', fontFamily: 'monospace', textAlign: 'center' }}>
                   IMMUTABLE AUDIT ID: {auditId}
                 </div>
               )}

@@ -501,6 +501,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
         <button
           onClick={handlePlayPause}
+          aria-label={isPlaying ? "Pause video" : "Play video"}
           style={{
             width: '36px',
             height: '36px',
@@ -546,6 +547,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
               else ytPlayerRef.current.mute();
             }
           }}
+          aria-label={isMuted ? "Unmute audio" : "Mute audio"}
           style={{
             width: '36px',
             height: '36px',

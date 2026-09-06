@@ -230,11 +230,11 @@ export const EditHypothesisPage: React.FC = () => {
                   OBSERVATION & TELEMETRY TRIGGER
                 </div>
                 {hypothesis.grounded === false ? (
-                  <span style={{ fontSize: '10px', backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                  <span style={{ fontSize: '11px', backgroundColor: 'rgba(255, 101, 74, 0.15)', color: '#ff654a', border: '1px solid #ff654a', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                     UNGROUNDED (0 QUERIES)
                   </span>
                 ) : (
-                  <span style={{ fontSize: '10px', backgroundColor: '#2d1b54', color: '#c4a7ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                  <span style={{ fontSize: '11px', backgroundColor: '#2d1b54', color: '#c4a7ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                     CLICKHOUSE DETECTED
                   </span>
                 )}
@@ -431,7 +431,7 @@ export const EditHypothesisPage: React.FC = () => {
                     >
                       <div>
                         <div style={{ fontSize: '11px', color: '#c4a7ff', fontWeight: 700 }}>{ev.id} · {ev.metric}</div>
-                        <div style={{ fontSize: '10px', color: '#8d979f' }}>
+                        <div style={{ fontSize: '11px', color: '#8d979f' }}>
                           Time: {ev.timestamp} | {ev.sourceQueryRunId ? (
                             <span style={{ color: '#58c94b', fontFamily: 'monospace' }}>{ev.sourceQueryRunId}</span>
                           ) : (

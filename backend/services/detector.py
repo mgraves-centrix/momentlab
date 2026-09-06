@@ -29,7 +29,7 @@ def run_anomaly_detector(project_id: str, experiment_id: str) -> Dict[str, Any]:
             }
 
         q_timeline = f"""
-            SELECT media_time_ms as time_bucket, avgMerge(retention_avg) as avg_val
+            SELECT media_time_ms as time_bucket, avgMerge(retention_avg) as avg_val, sum(sample_size) as total_samples
             FROM {db_name}.retention_by_second_aggregated
             WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
             GROUP BY time_bucket
@@ -43,20 +43,26 @@ def run_anomaly_detector(project_id: str, experiment_id: str) -> Dict[str, Any]:
         anomaly_window = None
 
         if t_res.result_rows and len(t_res.result_rows) >= 5:
-            pts = [(int(r[0]), float(r[1])) for r in t_res.result_rows]
-            baseline = sum(p[1] for p in pts[:min(10, len(pts))]) / min(10, len(pts))
-            min_pt = min(pts, key=lambda p: p[1])
-            drop_val = baseline - min_pt[1]
-            if drop_val >= 15.0:
-                cliff_ms = min_pt[0]
-                start_ms = max(0, cliff_ms - 4000)
-                end_ms = cliff_ms + 4000
-                detected_moment_ms = cliff_ms
-                s_sec = cliff_ms // 1000
-                detected_moment = f"{s_sec // 60:02d}:{s_sec % 60:02d}"
-                retention_drop = f"-{round(drop_val, 1)}%"
-                st_sec, en_sec = start_ms // 1000, end_ms // 1000
-                anomaly_window = f"{st_sec // 60:02d}:{st_sec % 60:02d}–{en_sec // 60:02d}:{en_sec % 60:02d}"
+            min_sample_threshold = max(10, int(total_respondents * 0.02))
+            pts = [
+                (int(r[0]), float(r[1]))
+                for r in t_res.result_rows
+                if len(r) < 3 or r[2] is None or int(r[2]) >= min_sample_threshold
+            ]
+            if pts and len(pts) >= 5:
+                baseline = sum(p[1] for p in pts[:min(10, len(pts))]) / min(10, len(pts))
+                min_pt = min(pts, key=lambda p: p[1])
+                drop_val = baseline - min_pt[1]
+                if drop_val >= 15.0:
+                    cliff_ms = min_pt[0]
+                    start_ms = max(0, cliff_ms - 4000)
+                    end_ms = cliff_ms + 4000
+                    detected_moment_ms = cliff_ms
+                    s_sec = cliff_ms // 1000
+                    detected_moment = f"{s_sec // 60:02d}:{s_sec % 60:02d}"
+                    retention_drop = f"-{round(drop_val, 1)}%"
+                    st_sec, en_sec = start_ms // 1000, end_ms // 1000
+                    anomaly_window = f"{st_sec // 60:02d}:{st_sec % 60:02d}–{en_sec // 60:02d}:{en_sec % 60:02d}"
 
         return {
             "sampleSize": total_respondents,

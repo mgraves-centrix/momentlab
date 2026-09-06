@@ -129,21 +129,21 @@ export const HypothesisCard: React.FC<HypothesisCardProps> = ({
           <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--success)' }} className="tabular-nums">
             {hypothesis.forecastEngagement}
           </div>
-          <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase' }}>Engagement</div>
+          <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase' }}>Engagement</div>
         </div>
 
         <div style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
           <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--lime)' }} className="tabular-nums">
             {hypothesis.forecastCompletion}
           </div>
-          <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase' }}>Completion</div>
+          <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase' }}>Completion</div>
         </div>
 
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--violet-soft)' }} className="tabular-nums">
             {hypothesis.forecastConfusion}
           </div>
-          <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase' }}>Confusion</div>
+          <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase' }}>Confusion</div>
         </div>
       </div>
 

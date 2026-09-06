@@ -82,7 +82,7 @@ const VideoPlayerWithTimeline: React.FC<{
         
         {/* Playhead */}
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${progressPercent}%`, width: '1px', backgroundColor: '#fff', zIndex: 15, transform: 'translateX(-50%)', pointerEvents: 'none' }}>
-          <div style={{ position: 'absolute', top: '4px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#000', border: '1px solid #333', padding: '2px 4px', fontSize: '9px', borderRadius: '2px', color: '#fff' }}>
+          <div style={{ position: 'absolute', top: '4px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#000', border: '1px solid #333', padding: '2px 4px', fontSize: '11px', borderRadius: '2px', color: '#fff' }}>
             {formatTime(currentSimulatedTime)}
           </div>
           <div style={{ position: 'absolute', bottom: '0', left: '50%', transform: 'translateX(-50%)', width: '7px', height: '7px', backgroundColor: '#fff', borderRadius: '50%' }}></div>
@@ -91,14 +91,14 @@ const VideoPlayerWithTimeline: React.FC<{
         {/* Reveal Marker (Static) */}
         {revealPercent <= 100 && (
           <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${revealPercent}%`, width: '1px', backgroundColor: highlightColor || '#8d979f', zIndex: 10, transform: 'translateX(-50%)', pointerEvents: 'none', opacity: highlightColor ? 1 : 0.6 }}>
-             <div style={{ position: 'absolute', top: '4px', left: '50%', transform: 'translateX(-50%)', backgroundColor: highlightColor || '#000', color: highlightColor ? '#000' : '#fff', border: highlightColor ? 'none' : '1px solid #333', padding: '2px 4px', fontSize: '9px', borderRadius: '2px', fontWeight: 700 }}>
+             <div style={{ position: 'absolute', top: '4px', left: '50%', transform: 'translateX(-50%)', backgroundColor: highlightColor || '#000', color: highlightColor ? '#000' : '#fff', border: highlightColor ? 'none' : '1px solid #333', padding: '2px 4px', fontSize: '11px', borderRadius: '2px', fontWeight: 700 }}>
               {formatTime(revealTime)}
             </div>
              <div style={{ position: 'absolute', bottom: '0', left: '50%', transform: 'translateX(-50%)', width: '7px', height: '7px', backgroundColor: highlightColor || '#8d979f', borderRadius: '50%' }}></div>
           </div>
         )}
         
-        <div style={{ position: 'absolute', bottom: '8px', right: '8px', fontSize: '9px', color: '#8d979f', backgroundColor: 'rgba(0,0,0,0.6)', padding: '2px 4px', zIndex: 10, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', bottom: '8px', right: '8px', fontSize: '11px', color: '#8d979f', backgroundColor: 'rgba(0,0,0,0.6)', padding: '2px 4px', zIndex: 10, pointerEvents: 'none' }}>
           {formatTime(simulatedDuration)}
         </div>
       </div>
@@ -261,7 +261,7 @@ export const ExperimentResultsPage: React.FC = () => {
         {hoverInfo && (
           <div style={{
             position: 'fixed', left: hoverInfo.x, top: hoverInfo.y, transform: 'translate(-50%, -100%)',
-            backgroundColor: '#1c2630', padding: '6px 10px', borderRadius: '4px', fontSize: '10px',
+            backgroundColor: '#1c2630', padding: '6px 10px', borderRadius: '4px', fontSize: '11px',
             color: '#fff', zIndex: 1000, pointerEvents: 'none', border: '1px solid #283540', whiteSpace: 'nowrap'
           }}>
             {hoverInfo.text}
@@ -307,7 +307,7 @@ export const ExperimentResultsPage: React.FC = () => {
           
           {/* HYPOTHESIS */}
           <div style={{ flex: 1, padding: '20px', borderRight: '1px solid #1c2630' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '12px' }}>
               HYPOTHESIS <Info size={12} onMouseEnter={(e) => handleInfoHover(e, "The proposed change being tested")} onMouseLeave={handleInfoLeave} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -322,7 +322,7 @@ export const ExperimentResultsPage: React.FC = () => {
 
           {/* OUTCOME */}
           <div style={{ flex: 1, padding: '20px', borderRight: '1px solid #1c2630' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>
               OUTCOME <Info size={12} onMouseEnter={(e) => handleInfoHover(e, "The overall result of the experiment")} onMouseLeave={handleInfoLeave} />
             </div>
             <div style={{ fontSize: '24px', fontWeight: 800, color: outcome === 'SUPPORTED' ? '#b7e33d' : '#ff6652', textTransform: 'uppercase' }}>
@@ -335,7 +335,7 @@ export const ExperimentResultsPage: React.FC = () => {
 
           {/* CONFIDENCE */}
           <div style={{ flex: 1, padding: '20px', borderRight: '1px solid #1c2630' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>
               CONFIDENCE <Info size={12} onMouseEnter={(e) => handleInfoHover(e, "Statistical confidence level")} onMouseLeave={handleInfoLeave} />
             </div>
             <div style={{ fontSize: '24px', fontWeight: 800, color: '#b7e33d' }}>
@@ -348,7 +348,7 @@ export const ExperimentResultsPage: React.FC = () => {
 
           {/* TEST PERIOD */}
           <div style={{ flex: 1, padding: '20px', borderRight: '1px solid #1c2630' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '12px' }}>
               TEST PERIOD <Info size={12} onMouseEnter={(e) => handleInfoHover(e, "Dates when the test was active")} onMouseLeave={handleInfoLeave} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: 700 }}>
@@ -363,14 +363,14 @@ export const ExperimentResultsPage: React.FC = () => {
           {/* SAMPLE SIZES */}
           <div style={{ flex: 1, padding: '20px', display: 'flex' }}>
             <div style={{ flex: 1 }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '12px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '12px' }}>
                 SAMPLE SIZES <Info size={12} onMouseEnter={(e) => handleInfoHover(e, "Number of subjects in each variant")} onMouseLeave={handleInfoLeave} />
               </div>
-              <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px', textTransform: 'uppercase' }}>CUT A (CONTROL)</div>
+              <div style={{ fontSize: '11px', color: '#8d979f', marginBottom: '4px', textTransform: 'uppercase' }}>CUT A (CONTROL)</div>
               <div style={{ fontSize: '20px', fontWeight: 800 }} className="tabular-nums">{sample_size_control.toLocaleString()}</div>
             </div>
             <div style={{ flex: 1, marginTop: '24px' }}>
-               <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px', textTransform: 'uppercase' }}>CUT B (VARIANT)</div>
+               <div style={{ fontSize: '11px', color: '#8d979f', marginBottom: '4px', textTransform: 'uppercase' }}>CUT B (VARIANT)</div>
                <div style={{ fontSize: '20px', fontWeight: 800 }} className="tabular-nums">{sample_size_variant.toLocaleString()}</div>
             </div>
           </div>
@@ -406,7 +406,7 @@ export const ExperimentResultsPage: React.FC = () => {
                 </div>
                 
                 <div style={{ padding: '16px', borderBottom: '1px solid #1c2630' }}>
-                  <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px', textTransform: 'uppercase' }}>CUT A (CONTROL)</div>
+                  <div style={{ fontSize: '11px', color: '#8d979f', marginBottom: '4px', textTransform: 'uppercase' }}>CUT A (CONTROL)</div>
                   <div style={{ fontSize: '12px', color: '#8d979f', marginBottom: '12px' }}>Original — Reveal at 00:43</div>
                   
                   <VideoPlayerWithTimeline 
@@ -419,8 +419,8 @@ export const ExperimentResultsPage: React.FC = () => {
 
                 <div style={{ padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase' }}>CUT B (VARIANT)</div>
-                    <span style={{ backgroundColor: 'rgba(196, 167, 255, 0.15)', color: '#c4a7ff', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '3px', border: '1px solid rgba(196, 167, 255, 0.3)' }}>
+                    <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase' }}>CUT B (VARIANT)</div>
+                    <span style={{ backgroundColor: 'rgba(196, 167, 255, 0.15)', color: '#c4a7ff', fontSize: '11px', fontWeight: 700, padding: '1px 6px', borderRadius: '3px', border: '1px solid rgba(196, 167, 255, 0.3)' }}>
                       SYNTHETIC PREVIEW
                     </span>
                   </div>
@@ -444,7 +444,7 @@ export const ExperimentResultsPage: React.FC = () => {
                 <div style={{ width: '100%', overflowX: 'auto' }}>
                   <table style={{ width: '100%', minWidth: '420px', borderCollapse: 'collapse', fontSize: '12px' }}>
                     <thead>
-                      <tr style={{ color: '#8d979f', fontSize: '10px', textTransform: 'uppercase' }}>
+                      <tr style={{ color: '#8d979f', fontSize: '11px', textTransform: 'uppercase' }}>
                         <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600 }}>COHORT</th>
                         <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>CUT A</th>
                         <th style={{ textAlign: 'center', padding: '12px', fontWeight: 600 }}>CUT B</th>
@@ -482,8 +482,8 @@ export const ExperimentResultsPage: React.FC = () => {
                     <Info size={12} color="#8d979f" onMouseEnter={(e) => handleInfoHover(e, "Engagement trends across the video duration")} onMouseLeave={handleInfoLeave} />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '10px', color: '#8d979f' }}>Metric</span>
-                    <div style={{ backgroundColor: 'transparent', border: '1px solid #283540', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontSize: '11px', color: '#8d979f' }}>Metric</span>
+                    <div style={{ backgroundColor: 'transparent', border: '1px solid #283540', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       Engagement <ChevronRight size={10} style={{ transform: 'rotate(90deg)' }} />
                     </div>
                   </div>
@@ -535,9 +535,9 @@ export const ExperimentResultsPage: React.FC = () => {
                   </ResponsiveContainer>
                 </div>
                 
-                <div style={{ textAlign: 'center', fontSize: '9px', color: '#8d979f', marginTop: '8px' }}>Engagement Lift</div>
+                <div style={{ textAlign: 'center', fontSize: '11px', color: '#8d979f', marginTop: '8px' }}>Engagement Lift</div>
 
-                <div style={{ fontSize: '10px', color: '#8d979f', marginTop: '16px' }}>
+                <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '16px' }}>
                   95% confidence interval derived from observed ClickHouse telemetry variance.
                 </div>
               </div>
@@ -555,14 +555,14 @@ export const ExperimentResultsPage: React.FC = () => {
 
                 {/* PRIMARY */}
                 <div style={{ marginBottom: '20px', borderBottom: '1px solid #1c2630', paddingBottom: '20px' }}>
-                  <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>PRIMARY (EFFICACY)</div>
+                  <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>PRIMARY (EFFICACY)</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: '12px', color: '#8d979f', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>{key_results.primary.metric} <Info size={10} onMouseEnter={(e) => handleInfoHover(e, "Primary metric tested")} onMouseLeave={handleInfoLeave} /></div>
                       <div style={{ fontSize: '28px', fontWeight: 800, color: '#b7e33d' }} className="tabular-nums">{key_results.primary.value}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px' }}>95% CI</div>
+                      <div style={{ fontSize: '11px', color: '#8d979f', marginBottom: '4px' }}>95% CI</div>
                       <div style={{ fontSize: '12px', color: '#8d979f' }}>{key_results.primary.ci}</div>
                     </div>
                   </div>
@@ -570,14 +570,14 @@ export const ExperimentResultsPage: React.FC = () => {
 
                 {/* SECONDARY */}
                 <div style={{ marginBottom: '20px', borderBottom: '1px solid #1c2630', paddingBottom: '20px' }}>
-                  <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>SECONDARY (EFFICACY)</div>
+                  <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>SECONDARY (EFFICACY)</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: '12px', color: '#8d979f', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>{key_results.secondary.metric} <Info size={10} onMouseEnter={(e) => handleInfoHover(e, "Secondary metric tested")} onMouseLeave={handleInfoLeave} /></div>
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#b7e33d' }} className="tabular-nums">{key_results.secondary.value}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px' }}>95% CI</div>
+                      <div style={{ fontSize: '11px', color: '#8d979f', marginBottom: '4px' }}>95% CI</div>
                       <div style={{ fontSize: '12px', color: '#8d979f' }}>{key_results.secondary.ci}</div>
                     </div>
                   </div>
@@ -585,14 +585,14 @@ export const ExperimentResultsPage: React.FC = () => {
 
                 {/* GUARDRAIL */}
                 <div>
-                  <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>GUARDRAIL</div>
+                  <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>GUARDRAIL</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: '12px', color: '#8d979f', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>{key_results.guardrail.metric} <Info size={10} onMouseEnter={(e) => handleInfoHover(e, "Guardrail metric to ensure no negative impact")} onMouseLeave={handleInfoLeave} /></div>
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#ff6652' }} className="tabular-nums">{key_results.guardrail.value}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px' }}>95% CI</div>
+                      <div style={{ fontSize: '11px', color: '#8d979f', marginBottom: '4px' }}>95% CI</div>
                       <div style={{ fontSize: '12px', color: '#8d979f' }}>{key_results.guardrail.ci}</div>
                     </div>
                   </div>
@@ -631,15 +631,15 @@ export const ExperimentResultsPage: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     CLICKHOUSE MCP <Info size={12} color="#8d979f" onMouseEnter={(e) => handleInfoHover(e, "Real-time DB connection status")} onMouseLeave={handleInfoLeave} />
                   </div>
-                  <div style={{ color: '#58c94b', fontSize: '9px', fontWeight: 700, border: '1px solid #58c94b', padding: '2px 6px', borderRadius: '2px' }}>
+                  <div style={{ color: '#58c94b', fontSize: '11px', fontWeight: 700, border: '1px solid #58c94b', padding: '2px 6px', borderRadius: '2px' }}>
                     CONNECTED
                   </div>
                 </div>
                 
-                <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>RECENT QUERY TRACE</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '10px', color: '#8d979f', marginBottom: '16px', fontFamily: 'monospace' }}>
+                <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '8px' }}>RECENT QUERY TRACE</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px', color: '#8d979f', marginBottom: '16px', fontFamily: 'monospace' }}>
                   {recentQueries.length === 0 ? (
-                    <div style={{ color: '#8d979f', fontSize: '10px' }}>Loading queries...</div>
+                    <div style={{ color: '#8d979f', fontSize: '11px' }}>Loading queries...</div>
                   ) : (
                     recentQueries.slice(0, 5).map((q: any, idx: number) => {
                       const tStr = q.timestamp ? new Date(q.timestamp).toTimeString().split(' ')[0] : '10:41:58';
@@ -659,10 +659,14 @@ export const ExperimentResultsPage: React.FC = () => {
 
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                   <div>
-                    <div style={{ fontSize: '9px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '4px' }}>DATA SOURCE</div>
+                    <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', marginBottom: '4px' }}>DATA SOURCE</div>
                     <div style={{ fontSize: '11px', color: '#ffffff' }}>ClickHouse Cloud</div>
                   </div>
-                  <button style={{ backgroundColor: 'transparent', border: '1px solid #283540', color: '#8d979f', padding: '6px 10px', borderRadius: '4px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                  <button
+                    onClick={() => navigate(`/projects/${projectId}/experiments/${experimentId}/evidence`)}
+                    aria-label="View All Queries Evidence Trace"
+                    style={{ backgroundColor: 'transparent', border: '1px solid #283540', color: '#8d979f', padding: '6px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                  >
                     VIEW ALL QUERIES
                   </button>
                 </div>

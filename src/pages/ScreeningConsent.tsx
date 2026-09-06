@@ -288,7 +288,11 @@ export const ScreeningConsentPage: React.FC = () => {
                   </span>
                 </Link>
                 
-                <button style={{ backgroundColor: 'transparent', border: '1px solid #1c262e', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 700, color: '#8d979f', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.05em' }}>
+                <button
+                  onClick={() => navigate('/projects')}
+                  aria-label="Switch Project"
+                  style={{ backgroundColor: 'transparent', border: '1px solid #1c262e', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 700, color: '#8d979f', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.05em', cursor: 'pointer' }}
+                >
                   <span>PROJECT NORTHLIGHT</span>
                   <ChevronDown size={14} />
                 </button>
@@ -299,15 +303,15 @@ export const ScreeningConsentPage: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ backgroundColor: 'transparent', border: '1px solid #1f3a28', borderRadius: '14px', padding: '4px 10px', fontSize: '10px', fontWeight: 600, color: '#8d979f', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.04em' }}>
+                <div style={{ backgroundColor: 'transparent', border: '1px solid #1f3a28', borderRadius: '14px', padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: '#8d979f', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.04em' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#58c94b' }} />
                   <span>AGENTS ONLINE</span>
-                  <span style={{ backgroundColor: '#1d4825', color: '#58c94b', padding: '2px 6px', borderRadius: '10px', fontSize: '9px' }}>4</span>
+                  <span style={{ backgroundColor: '#1d4825', color: '#58c94b', padding: '2px 6px', borderRadius: '10px', fontSize: '11px' }}>4</span>
                 </div>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #1c262e', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8d979f' }}>
                   <HelpCircle size={14} />
                 </div>
-                <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#1c262e', color: '#f1f3f2', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#1c262e', color: '#f1f3f2', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   NS
                 </div>
               </div>
@@ -396,7 +400,7 @@ export const ScreeningConsentPage: React.FC = () => {
                 <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', alignItems: 'flex-end' }}>
                   <div style={{ flex: '1.5' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '10px', color: '#8d979f', fontWeight: 700, letterSpacing: '0.04em' }}>AGE RANGE</span>
+                      <span style={{ fontSize: '11px', color: '#8d979f', fontWeight: 700, letterSpacing: '0.04em' }}>AGE RANGE</span>
                       <Info size={12} color="#5b6670" />
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
@@ -422,7 +426,7 @@ export const ScreeningConsentPage: React.FC = () => {
                     </div>
                   </div>
                   <div style={{ flex: '1' }}>
-                    <div style={{ fontSize: '10px', color: '#8d979f', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '8px' }}>RESEARCH CODE (OPTIONAL)</div>
+                    <div style={{ fontSize: '11px', color: '#8d979f', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '8px' }}>RESEARCH CODE (OPTIONAL)</div>
                     <input 
                       type="text" 
                       placeholder="Enter code"
@@ -556,7 +560,7 @@ export const ScreeningConsentPage: React.FC = () => {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b7e33d' }} />
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#b7e33d', letterSpacing: '0.04em' }}>CONNECTION ONLINE</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#b7e33d', letterSpacing: '0.04em' }}>CONNECTION ONLINE</span>
               </div>
             </header>
 

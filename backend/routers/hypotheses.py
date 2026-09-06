@@ -119,3 +119,14 @@ async def approve_test(project_id: str, experiment_id: str, reviewer_id: str = D
     doc_ref.set(data)
     
     return data
+
+@router.post("/projects/{project_id}/experiments/{experiment_id}/recompute-detector")
+async def recompute_detector(project_id: str, experiment_id: str, reviewer_id: str = Depends(get_current_reviewer)):
+    from backend.services.detector import compute_and_persist_detector
+    res = compute_and_persist_detector(project_id, experiment_id)
+    return {
+        "status": "success",
+        "project_id": project_id,
+        "experiment_id": experiment_id,
+        "detector": res
+    }
