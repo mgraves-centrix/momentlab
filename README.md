@@ -41,7 +41,7 @@ MomentLab executes real analytical queries against ClickHouse Cloud at runtime u
 * **Vertex AI / Gemini 2.5 Pro (`gemini-2.5-pro`)**: Native model inference evaluating audience events and generating structured hypothesis specifications.
 * **Official ClickHouse MCP Server (`ClickHouse/mcp-clickhouse`)**: Stdio-based Model Context Protocol transport executing real SQL queries against ClickHouse Cloud.
 * **ClickHouse Cloud Database**: High-performance analytical column store hosting `momentlab.screening_sessions`, `momentlab.audience_events`, `momentlab.reaction_events`, and `system.query_log`.
-* **GCP Cloud Run**: Containerized deployment hosting the FastAPI backend and React Vite single-page application.
+* **GCP Cloud Run**: Containerized deployment hosting the FastAPI backend and React Vite single-page application (`--min-instances=1` configured for judging week to eliminate cold starts; should be reverted to `0` post-judging to control cost).
 
 ---
 

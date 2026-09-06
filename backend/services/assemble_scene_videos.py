@@ -1,18 +1,31 @@
 #!/usr/bin/env python3
 """
-MomentLab Scene Video Assembly Pipeline
+MomentLab Scene Video Assembly Pipeline (One-off Offline Asset Pre-processor)
 Generates distinct full-length cinematic scene videos (>=61s, >=1280x720) per project
 using Ken Burns pans/zooms and crossfades between high-resolution stills.
 Uses pure ffmpeg and Python standard library.
+
+NOTE: This script is a one-off asset generator that produces the video files committed under public/frames/.
+It is not part of the runtime application loop.
+Source stills directory is configurable via MOMENTLAB_FRAMES_DIR env var or CLI argument.
 """
 
 import os
+import sys
 import shutil
 import subprocess
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
-BRAIN_DIR = "/Users/mattgraves/.gemini/antigravity-ide/brain/12f68d71-7a98-4847-b166-0d9108006ccc"
+FRAMES_DIR = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("MOMENTLAB_FRAMES_DIR", os.path.join(PUBLIC_DIR, "source_stills"))
+
+def verify_frames_dir():
+    if not os.path.exists(FRAMES_DIR):
+        print(f"Error: Source frames directory not found at '{FRAMES_DIR}'.")
+        print("Note: This script is a one-off asset generator; output scene videos are already pre-assembled under public/frames/.")
+        print("To re-run video assembly, provide a valid source directory via MOMENTLAB_FRAMES_DIR or as a command-line argument.")
+        sys.exit(1)
+
 
 def probe_duration(file_path: str) -> float:
     cmd = [
@@ -159,12 +172,12 @@ def prepare_northlight():
     
     # 6 source stills
     stills = [
-        (os.path.join(BRAIN_DIR, "northlight_establishing_1787539044004.jpg"), "frame_01_establishing.jpg", 13.0, "zoom_in"),
-        (os.path.join(BRAIN_DIR, "northlight_tension_1787539076667.jpg"), "frame_02_tension.jpg", 12.0, "pan_right"),
-        (os.path.join(BRAIN_DIR, "northlight_investigation_1787539088640.jpg"), "frame_03_investigation.jpg", 12.0, "zoom_out"),
-        (os.path.join(BRAIN_DIR, "northlight_drag_1787539099520.jpg"), "frame_04_drag.jpg", 12.0, "pan_left"),       # Covers 00:33-00:41 drag
-        (os.path.join(BRAIN_DIR, "northlight_reveal_1787539110915.jpg"), "frame_05_reveal.jpg", 12.0, "zoom_in"),      # Reveal at 00:43
-        (os.path.join(BRAIN_DIR, "northlight_reaction_1787539122917.jpg"), "frame_06_reaction.jpg", 9.0, "zoom_out"),
+        (os.path.join(FRAMES_DIR, "northlight_establishing_1787539044004.jpg"), "frame_01_establishing.jpg", 13.0, "zoom_in"),
+        (os.path.join(FRAMES_DIR, "northlight_tension_1787539076667.jpg"), "frame_02_tension.jpg", 12.0, "pan_right"),
+        (os.path.join(FRAMES_DIR, "northlight_investigation_1787539088640.jpg"), "frame_03_investigation.jpg", 12.0, "zoom_out"),
+        (os.path.join(FRAMES_DIR, "northlight_drag_1787539099520.jpg"), "frame_04_drag.jpg", 12.0, "pan_left"),       # Covers 00:33-00:41 drag
+        (os.path.join(FRAMES_DIR, "northlight_reveal_1787539110915.jpg"), "frame_05_reveal.jpg", 12.0, "zoom_in"),      # Reveal at 00:43
+        (os.path.join(FRAMES_DIR, "northlight_reaction_1787539122917.jpg"), "frame_06_reaction.jpg", 9.0, "zoom_out"),
     ]
     
     shot_clips = []
@@ -203,12 +216,12 @@ def prepare_echoes_of_salt():
     os.makedirs(out_dir, exist_ok=True)
     
     stills = [
-        (os.path.join(BRAIN_DIR, "echoes_coast_1787539135860.jpg"), "frame_01_coast.jpg", 13.0, "pan_right"),
-        (os.path.join(BRAIN_DIR, "echoes_lighthouse_1787539150073.jpg"), "frame_02_lighthouse.jpg", 12.0, "zoom_in"),
-        (os.path.join(BRAIN_DIR, "echoes_pier_1787539161821.jpg"), "frame_03_pier.jpg", 12.0, "zoom_out"),
-        (os.path.join(BRAIN_DIR, "echoes_cottage_1787539173936.jpg"), "frame_04_cottage.jpg", 12.0, "zoom_in"),
-        (os.path.join(BRAIN_DIR, "echoes_skiff_1787539185779.jpg"), "frame_05_skiff.jpg", 12.0, "pan_left"),
-        (os.path.join(BRAIN_DIR, "echoes_dusk_1787539198957.jpg"), "frame_06_dusk.jpg", 9.0, "zoom_in"),
+        (os.path.join(FRAMES_DIR, "echoes_coast_1787539135860.jpg"), "frame_01_coast.jpg", 13.0, "pan_right"),
+        (os.path.join(FRAMES_DIR, "echoes_lighthouse_1787539150073.jpg"), "frame_02_lighthouse.jpg", 12.0, "zoom_in"),
+        (os.path.join(FRAMES_DIR, "echoes_pier_1787539161821.jpg"), "frame_03_pier.jpg", 12.0, "zoom_out"),
+        (os.path.join(FRAMES_DIR, "echoes_cottage_1787539173936.jpg"), "frame_04_cottage.jpg", 12.0, "zoom_in"),
+        (os.path.join(FRAMES_DIR, "echoes_skiff_1787539185779.jpg"), "frame_05_skiff.jpg", 12.0, "pan_left"),
+        (os.path.join(FRAMES_DIR, "echoes_dusk_1787539198957.jpg"), "frame_06_dusk.jpg", 9.0, "zoom_in"),
     ]
     
     shot_clips = []
@@ -244,7 +257,7 @@ def prepare_below_the_surface():
     out_dir = os.path.join(PUBLIC_DIR, "frames", "below_the_surface")
     os.makedirs(out_dir, exist_ok=True)
     
-    vessel_src = os.path.join(BRAIN_DIR, "below_vessel_1787539211864.jpg")
+    vessel_src = os.path.join(FRAMES_DIR, "below_vessel_1787539211864.jpg")
     sub_src = os.path.join(PUBLIC_DIR, "below_the_surface_thumb.png")
     
     # Frame 1: Vessel wide
@@ -296,7 +309,9 @@ def prepare_below_the_surface():
     assert w >= 1280 and h >= 720, f"Resolution {w}x{h} < 1280x720"
 
 if __name__ == "__main__":
+    verify_frames_dir()
     prepare_northlight()
     prepare_echoes_of_salt()
     prepare_below_the_surface()
     print("All scene videos assembled and verified successfully!")
+

@@ -26,12 +26,15 @@ import {
 
 import { useMobile } from '../hooks/useMobile';
 
+import { StatePanel } from '../components/StatePanel';
+
 export const EditHypothesisPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { projectId, experimentId } = useParams();
   const [hypothesis, setHypothesis] = useState<Hypothesis | null>(null);
   const [summaryData, setSummaryData] = useState<ExperimentSummary | null>(null);
+  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [selectedQueryId, setSelectedQueryId] = useState<string | null>(null);
@@ -39,8 +42,14 @@ export const EditHypothesisPage: React.FC = () => {
 
   useEffect(() => {
     if (projectId && experimentId) {
-      fetchExperimentHypothesis(projectId, experimentId).then(setHypothesis);
-      fetchExperimentSummary(projectId, experimentId).then(setSummaryData);
+      setLoading(true);
+      Promise.all([
+        fetchExperimentHypothesis(projectId, experimentId).catch(() => null),
+        fetchExperimentSummary(projectId, experimentId).catch(() => null)
+      ]).then(([hyp, summary]) => {
+        setHypothesis(hyp);
+        setSummaryData(summary);
+      }).finally(() => setLoading(false));
     }
   }, [projectId, experimentId]);
 
@@ -76,11 +85,25 @@ export const EditHypothesisPage: React.FC = () => {
     }
   };
 
-  if (!hypothesis) {
+  if (loading) {
     return (
       <AppShell>
         <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px', color: '#8d979f' }}>
           Loading hypothesis specification...
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!hypothesis) {
+    return (
+      <AppShell>
+        <div style={{ maxWidth: '1000px', margin: '40px auto', padding: '0 24px' }}>
+          <StatePanel
+            type="insufficient_sample"
+            message="No hypothesis has been generated for this experiment yet. Run analysis or screening to generate a hypothesis."
+            onRetry={() => navigate(`/projects/${projectId}`)}
+          />
         </div>
       </AppShell>
     );

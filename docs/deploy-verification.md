@@ -2,7 +2,7 @@
 
 **Project**: MomentLab  
 **Target GCP Project**: `momentlab-504305` ("MomentLab", ACTIVE)  
-**Project Owner Account**: `guarded.ops@gmail.com`  
+**Project Owner Account**: `<your-gcp-account>`  
 **GCP Region**: `us-central1`  
 **Audit Date**: 2026-08-23  
 
@@ -12,7 +12,7 @@
 
 | Resource | Type | Configured Identity / Details | Verification Status | Notes / Live State |
 |---|---|---|---|---|
-| **Cloud Run Web & API Service** | GCP Cloud Run | `momentlab-web` (Port 8080) | **READY** | Deployed at `https://momentlab-web-qa24oxtrrq-uc.a.run.app` (Revision built 2026-08-03; predates current branch) |
+| **Cloud Run Web & API Service** | GCP Cloud Run | `momentlab-web` (Port 8080) | **READY** | Deployed at `https://momentlab-web-qa24oxtrrq-uc.a.run.app` (`min-instances=1` active for judging week to eliminate cold-start latency; revert to `--min-instances=0` post-judging to control hosting cost) |
 | **Artifact Registry** | Container Registry | `us-central1-docker.pkg.dev/momentlab-504305/momentlab-repo` | **BUILT** | Contains 3 `momentlab-web` container image digests; none tagged `latest` |
 | **ClickHouse Database & MCP** | Managed Cloud DB / MCP | `nk8zetjq1w.us-east1.gcp.clickhouse.cloud:8443` (DB: `momentlab`) | **VERIFIED** | Live ClickHouse Cloud instance with 30,360 rows verified; official MCP client integration |
 | **Secret Manager** | Secret Manager | `clickhouse-writer-credentials`, `clickhouse-mcp-credentials` | **NOT PROVISIONED** | `gcloud secrets list` returns 0 secrets in `momentlab-504305`; runtime relies on local `.env` |

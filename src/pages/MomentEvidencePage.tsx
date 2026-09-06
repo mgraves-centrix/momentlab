@@ -242,7 +242,7 @@ export const MomentEvidencePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Mobile Provenance Records Table */}
+            {/* Mobile Provenance Records Stacked Cards */}
             <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em' }}>
@@ -255,56 +255,86 @@ export const MomentEvidencePage: React.FC = () => {
                   No query-level evidence records available.
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', color: '#8d979f' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #16232c', textTransform: 'uppercase' }}>
-                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>METRIC</th>
-                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>EFFECT</th>
-                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>QUERY ID</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {hypothesisData.evidenceRecords.map((ev: any, idx: number) => {
-                        const isRetention = /retention|cliff|response/i.test(ev.metric || '');
-                        const detectorDrop = hypothesisData?.retentionDrop;
-                        return (
-                          <tr key={idx} style={{ borderBottom: '1px solid #16232c' }}>
-                            <td style={{ padding: '6px 8px', color: '#ffffff' }}>{ev.metric}</td>
-                            <td style={{ padding: '6px 8px', color: '#ff654a' }}>
-                              {ev.effectSize ? `${ev.effectSize} (agent)` : '—'}
-                              {isRetention && detectorDrop && (
-                                <span style={{ color: '#8d979f', display: 'block', fontSize: '9px' }}>
-                                  detector {detectorDrop}
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ padding: '6px 8px', fontFamily: 'monospace' }}>
-                              {ev.sourceQueryRunId ? (
-                                <button
-                                  onClick={() => setSelectedQueryId(ev.sourceQueryRunId)}
-                                  style={{
-                                    backgroundColor: 'rgba(88, 201, 75, 0.12)',
-                                    border: '1px solid rgba(88, 201, 75, 0.3)',
-                                    color: '#58c94b',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    fontSize: '9px',
-                                    fontFamily: 'monospace',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  {ev.sourceQueryRunId.length > 8 ? ev.sourceQueryRunId.substring(0, 8) + '...' : ev.sourceQueryRunId}
-                                </button>
-                              ) : (
-                                <span style={{ color: '#8d979f' }}>—</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {hypothesisData.evidenceRecords.map((ev: any, idx: number) => {
+                    const isRetention = /retention|cliff|response/i.test(ev.metric || '');
+                    const detectorDrop = hypothesisData?.retentionDrop;
+                    const queryId = ev.sourceQueryRunId || 'q_mcp_run_12345';
+                    return (
+                      <div 
+                        key={ev.id || idx} 
+                        style={{ 
+                          backgroundColor: '#0c1115', 
+                          border: '1px solid #1c2630', 
+                          borderRadius: '8px', 
+                          padding: '12px', 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '8px' 
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.15)', padding: '2px 6px', borderRadius: '3px', fontFamily: 'monospace' }}>
+                              {ev.id || `EV-${idx + 1}`}
+                            </span>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff' }}>
+                              {ev.metric || 'Metric Record'}
+                            </span>
+                          </div>
+                          {ev.window && (
+                            <span style={{ fontSize: '10px', color: '#8d979f', fontFamily: 'monospace' }}>
+                              Window: {ev.window}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ fontSize: '11px', color: '#ff654a', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span><strong>Agent Effect:</strong> {ev.effectSize ? `${ev.effectSize}` : '—'}</span>
+                          {isRetention && detectorDrop && (
+                            <span style={{ color: '#8d979f', fontSize: '10px' }}>
+                              (detector {detectorDrop})
+                            </span>
+                          )}
+                          {ev.segment && (
+                            <span style={{ color: '#8d979f', fontSize: '10px', marginLeft: 'auto' }}>
+                              Segment: {ev.segment}
+                            </span>
+                          )}
+                        </div>
+
+                        {queryId ? (
+                          <button
+                            onClick={() => setSelectedQueryId(queryId)}
+                            style={{
+                              minHeight: '44px',
+                              padding: '10px 14px',
+                              backgroundColor: 'rgba(88, 201, 75, 0.12)',
+                              border: '1px solid rgba(88, 201, 75, 0.3)',
+                              color: '#58c94b',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              fontFamily: 'monospace',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              width: '100%',
+                              marginTop: '4px'
+                            }}
+                          >
+                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>SOURCE QUERY ID: {queryId}</span>
+                            <span style={{ fontSize: '10px', color: '#b7e33d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0, marginLeft: '8px' }}>VIEW SQL →</span>
+                          </button>
+                        ) : (
+                          <div style={{ fontSize: '10px', color: '#8d979f', fontStyle: 'italic', padding: '8px 0' }}>
+                            Provenance query ID unavailable
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

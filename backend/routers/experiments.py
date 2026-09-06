@@ -130,15 +130,7 @@ async def get_experiment_results(project_id: str, experiment_id: str):
         n_total = n_control + n_variant
 
         if n_total == 0:
-            return {
-                "hypothesis": None,
-                "outcome": "INCONCLUSIVE",
-                "outcome_details": "No telemetry data recorded for this experiment.",
-                "confidence": 0,
-                "sample_size_control": 0,
-                "sample_size_variant": 0,
-                "sample_sizes": {"control": 0, "variant": 0, "total": 0}
-            }
+            raise HTTPException(status_code=404, detail="Experiment results not found")
 
         # 2. Fetch mean retention & squared retention per arm for statistical analysis
         query_arm_stats = """
@@ -376,6 +368,8 @@ async def get_experiment_results(project_id: str, experiment_id: str):
                 "query_bundle_id": "QRY-23A-001"
             }
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error computing experiment results from ClickHouse: {e}")
-        return {}
+        raise HTTPException(status_code=404, detail="Experiment results not found")

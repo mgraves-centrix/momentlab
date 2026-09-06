@@ -6,7 +6,10 @@ set -euo pipefail
 
 PROJECT_ID="${GCP_PROJECT_ID:-momentlab-504305}"
 REGION="${GCP_REGION:-us-central1}"
-GCP_ACCOUNT="${GCP_ACCOUNT:-guarded.ops@gmail.com}"
+if [ -z "${GCP_ACCOUNT:-}" ]; then
+    echo "ERROR: GCP_ACCOUNT environment variable is required (e.g., export GCP_ACCOUNT=<your-gcp-account>)" >&2
+    exit 1
+fi
 SERVICE_NAME="momentlab-web"
 REPO_NAME="momentlab-repo"
 ALLOW_DIRTY=false

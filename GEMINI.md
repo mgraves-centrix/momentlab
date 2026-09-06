@@ -24,7 +24,7 @@ Execute one numbered file under `.agents/workflows/` at a time, starting with `.
 
 ## Prohibited agent technology and terminal denylist
 
-- **Blocked Terminal Operations (BypassSandbox Required)**: Never execute unapproved network commands (`git push`, `git fetch`, `gh`, `curl`, `gcloud`, `bq`), root/system commands (`sudo`, `brew install`), destructive database commands (`DROP DATABASE`, `DROP TABLE`, `TRUNCATE`), or edits outside `/Users/mattgraves/Development/momentlab`.
+- **Blocked Terminal Operations (BypassSandbox Required)**: Never execute unapproved network commands (`git push`, `git fetch`, `gh`, `curl`, `gcloud`, `bq`), root/system commands (`sudo`, `brew install`), destructive database commands (`DROP DATABASE`, `DROP TABLE`, `TRUNCATE`), or edits outside the repository root directory.
 - **Prohibited AI Models & SDKs**: Never use OpenAI, Anthropic, Ollama, HuggingFace, Mistral, Cohere, or local LLMs. Gemini via Vertex AI is mandatory.
 - **Prohibited Agent Frameworks**: Never use LangChain, LlamaIndex, AutoGen, CrewAI, Haystack, or Semantic Kernel. Google ADK (`google-adk`) is mandatory.
 - **Direct AI Studio Keys**: Never use direct Gemini Developer API keys (`GEMINI_API_KEY`) for production inference. Vertex AI on GCP is mandatory.
