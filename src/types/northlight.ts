@@ -32,6 +32,13 @@ export interface EvidenceRecord {
   description: string;
 }
 
+export interface VisualGrounding {
+  observation: string;
+  fileUri: string;
+  startOffset: string;
+  endOffset: string;
+}
+
 export interface Hypothesis {
   id: string;
   experimentId: string;
@@ -51,6 +58,7 @@ export interface Hypothesis {
   detectedMomentMs?: number;
   anomalyWindow?: string;
   evidenceRecords?: any[];
+  visualGrounding?: VisualGrounding;
   trace?: {
     runId?: string;
     totalDurationMs?: number;

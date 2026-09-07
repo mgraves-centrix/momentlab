@@ -57,3 +57,7 @@ def test_discover_veo_models_returns_matrix():
     veo_fast = next(m for m in matrix if m["model"] == "veo-3.1-fast-generate-001" and m["region"] == "us-central1")
     assert veo_fast["invocable"] is None
     assert veo_fast["invocable_source"] == "unverified"
+
+    veo_east4 = next(m for m in matrix if m["model"] == "veo-3.1-generate-001" and m["region"] == "us-east4")
+    assert veo_east4["invocable"] is None
+    assert veo_east4["invocable_source"] == "unverified"

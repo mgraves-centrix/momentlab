@@ -5,6 +5,7 @@ import time
 import sys
 import uuid
 import logging
+from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
@@ -579,6 +580,129 @@ Respond strictly in valid JSON format with the following keys:
                     rec["queryDurationMs"] = None
     parsed_res["evidenceRecords"] = evidence_records
 
+    # 4. Second-stage Gemini 2.5 Pro multimodal video grounding (corroborating observation)
+    grounding_info = _perform_video_grounding(project_id, parsed_res)
+    if grounding_info:
+        parsed_res["visualGrounding"] = grounding_info
+
     return parsed_res
+
+
+def _perform_video_grounding(project_id: str, parsed_res: dict) -> Optional[dict]:
+    """
+    Second-stage Gemini 2.5 Pro multimodal video grounding call.
+    Runs after ClickHouse agent analysis to provide corroborating visual observation.
+    Fails open safely (returning None) if permissions, missing GCS object, model error,
+    safety block, or output token truncation occurs.
+    """
+    try:
+        from backend.routers.projects import PROJECT_MEDIA
+        media_info = PROJECT_MEDIA.get(project_id)
+        if not media_info or not media_info.get("video_url"):
+            logger.info("Video grounding skipped: project_id '%s' has no registered video media.", project_id)
+            return None
+
+        video_url = media_info["video_url"].lstrip("/")
+        bucket_name = os.getenv("GCS_MEDIA_BUCKET", "momentlab-504305-media")
+        gcs_uri = f"gs://{bucket_name}/{video_url}"
+
+        # Extract cliff window from evidence records or anomalyWindow
+        start_sec = 33
+        end_sec = 41
+
+        evidence_records = parsed_res.get("evidenceRecords") or []
+        for rec in evidence_records:
+            w_str = str(rec.get("window") or rec.get("timeRange") or rec.get("timestamp") or "")
+            nums = [int(n) for n in re.findall(r'\d+', w_str)]
+            if len(nums) >= 2:
+                start_sec, end_sec = nums[0], nums[1]
+                break
+            elif len(nums) == 1:
+                start_sec = nums[0]
+                end_sec = start_sec + 8
+                break
+
+        # Pad window by 3 seconds on each side, bounded between 0s and 65s
+        pad_start = max(0, start_sec - 3)
+        pad_end = min(65, end_sec + 3)
+        if pad_end <= pad_start:
+            pad_end = pad_start + 10
+
+        start_offset_str = f"{pad_start}s"
+        end_offset_str = f"{pad_end}s"
+
+        from google.genai import Client
+        client = Client(
+            vertexai=True,
+            project=os.environ.get("GOOGLE_CLOUD_PROJECT", "momentlab-504305"),
+            location=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+        )
+
+        part = types.Part.from_uri(file_uri=gcs_uri, mime_type="video/mp4")
+        part.video_metadata = types.VideoMetadata(start_offset=start_offset_str, end_offset=end_offset_str)
+
+        prompt_text = (
+            f"Provide a short, concrete visual description of what happens in this video clip between {start_offset_str} and {end_offset_str}: "
+            f"what is on screen, what changes, and what a viewer might find confusing or slow."
+        )
+
+        config = types.GenerateContentConfig(
+            safety_settings=[
+                types.SafetySetting(
+                    category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                ),
+                types.SafetySetting(
+                    category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                ),
+                types.SafetySetting(
+                    category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                ),
+                types.SafetySetting(
+                    category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                ),
+            ],
+            max_output_tokens=2048
+        )
+
+        response = client.models.generate_content(
+            model="gemini-2.5-pro",
+            contents=[part, prompt_text],
+            config=config
+        )
+
+        if not response or not getattr(response, "candidates", None):
+            logger.warning("Video grounding returned no candidates.")
+            return None
+
+        candidate = response.candidates[0]
+        finish_reason = getattr(candidate, "finish_reason", None)
+        finish_reason_str = str(finish_reason or "").upper()
+
+        if "MAX_TOKENS" in finish_reason_str:
+            logger.warning("Video grounding output truncated with MAX_TOKENS; discarding incomplete response.")
+            return None
+
+        if finish_reason_str in ("SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT"):
+            logger.warning("Video grounding response was blocked by safety filter (%s).", finish_reason_str)
+            return None
+
+        obs_text = getattr(response, "text", "") or ""
+        if not obs_text.strip():
+            return None
+
+        logger.info("Successfully generated corroborating video grounding for %s window [%s..%s]", gcs_uri, start_offset_str, end_offset_str)
+        return {
+            "observation": obs_text.strip(),
+            "fileUri": gcs_uri,
+            "startOffset": start_offset_str,
+            "endOffset": end_offset_str
+        }
+    except Exception as err:
+        logger.warning("Video grounding stage encountered an error (failing open): %s", err)
+        return None
 
 

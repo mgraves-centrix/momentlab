@@ -5,9 +5,9 @@ This document maps the Agentic Cinema Hackathon judging criteria to concrete evi
 ## 1. Technological Implementation (25%)
 **Does the project use the official ClickHouse MCP server, Google ADK, and Vertex AI as required?**
 
-* **Google ADK & Vertex AI**: We strictly use `google-adk` as validated by our custom CI hook (`check-ai-compliance.py`). The model is accessed exclusively via Vertex AI (`backend/agents/mcp_client.py`).
-* **ClickHouse MCP**: We successfully integrated the official `ClickHouse/mcp-clickhouse` server. The agent uses this MCP to execute analytical queries against the `audience_events` table. The live telemetry of this usage is streamed directly into the right-hand panel of the `Finding` UI.
-* **Architecture Quality**: MomentLab features a production-grade FastAPI backend, a typed React frontend, and Terraform infrastructure as code (`infra/terraform/main.tf`).
+* **Google ADK & Vertex AI**: We strictly use `google-adk` as validated by our custom CI hook (`check-ai-compliance.py`). The model is accessed exclusively via Vertex AI (`backend/agents/mcp_client.py`). We enforce explicit Gemini safety settings (`generate_content_config` with all four `HarmCategory` entries configured at `BLOCK_MEDIUM_AND_ABOVE`). Additionally, a second-stage Gemini 2.5 Pro multimodal video grounding call provides corroborating visual observations of the anomaly window; ClickHouse remains the primary evidence source and the agent queries it first.
+* **ClickHouse MCP**: We successfully integrated the official `ClickHouse/mcp-clickhouse` server connected to live ClickHouse Cloud (running server version `26.4.1.2212` as reported by `/health`). The agent uses this MCP to execute analytical queries against ClickHouse telemetry tables (`audience_events`, `retention_by_second_aggregated`, `reaction_anomalies_aggregated`). The live telemetry of this usage is streamed directly into the right-hand panel of the `Finding` UI.
+* **Architecture Quality & Custom Domain**: MomentLab features a production-grade FastAPI backend, a typed React frontend, and Terraform infrastructure as code (`infra/terraform/main.tf`). The live application is reachable at `https://momentlab.ai` and `https://www.momentlab.ai` via Cloud Run domain mappings (with origin fallback at `https://momentlab-web-qa24oxtrrq-uc.a.run.app`).
 
 ## 2. Design & Usability (25%)
 **Does the application have an intuitive, professional, and accessible user interface?**

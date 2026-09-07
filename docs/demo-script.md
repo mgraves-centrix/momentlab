@@ -12,7 +12,7 @@
 
 ### 0:45–1:25 — Agent Detection (ClickHouse MCP)
 **Visual:** Show the desktop `Finding` workspace. Highlight the "Response Cliff" on the chart. Zoom in on the "ClickHouse MCP" connected activity panel on the right.
-**Narration:** "Here’s where it gets interesting. Our Google ADK agent, powered by Gemini 1.5 Pro, detects an anomaly. Instead of guessing, it uses the official ClickHouse MCP server to query the actual live database, slicing the 18-24 cohort data to investigate a massive 28% drop-off at exactly 00:33."
+**Narration:** "Here’s where it gets interesting. Our Google ADK agent, powered by Gemini 2.5 Pro, detects an anomaly. Instead of guessing, it uses the official ClickHouse MCP server to query the actual live database, slicing the 18-24 cohort data to investigate a massive 28% drop-off at exactly 00:33."
 
 ### 1:25–1:55 — Falsifiable Edit Hypothesis
 **Visual:** Emphasize the "Edit Hypothesis" card. "MOVE REVEAL 6S EARLIER". Show the cited evidence IDs.

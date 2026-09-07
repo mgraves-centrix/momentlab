@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 import { McpActivityPanel } from '../components/McpActivityPanel';
 import { QueryModal } from '../components/QueryModal';
-import { Database, ShieldCheck, Cpu } from 'lucide-react';
+import { Database, ShieldCheck, Cpu, Sparkles } from 'lucide-react';
 import { useMobile } from '../hooks/useMobile';
 import { fetchExperimentHypothesis, fetchRecentQueries, Hypothesis } from '../api/client';
 
@@ -496,6 +496,39 @@ export const MomentEvidencePage: React.FC = () => {
                     <div style={{ fontSize: '11px', color: '#9aa8b2', lineHeight: '1.4' }}>Moderate uncertainty due to cohort variance and limited sample in 18–24 group.</div>
                   </div>
                 </div>
+
+                {/* Gemini Multimodal Visual Grounding Card */}
+                {hypothesisData?.visualGrounding ? (
+                  <div style={{ backgroundColor: '#091218', border: '1px solid #283540', borderRadius: '12px', padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={14} color="#c4a7ff" />
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#c4a7ff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          GEMINI MULTIMODAL VISUAL OBSERVATION
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '10px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '2px 8px', borderRadius: '4px', color: '#8d979f', fontFamily: 'monospace' }}>
+                        CORROBORATING VISUAL EVIDENCE
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#f1f3f2', lineHeight: '1.5', marginBottom: '10px', whiteSpace: 'pre-wrap' }}>
+                      {hypothesisData.visualGrounding.observation}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '10px', fontFamily: 'monospace', color: '#8d979f' }}>
+                      <span style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', padding: '3px 6px', borderRadius: '4px' }}>
+                        URI: {hypothesisData.visualGrounding.fileUri}
+                      </span>
+                      <span style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', padding: '3px 6px', borderRadius: '4px' }}>
+                        WINDOW: {hypothesisData.visualGrounding.startOffset} – {hypothesisData.visualGrounding.endOffset}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '8px', padding: '12px 16px', color: '#8d979f', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={14} color="#56626d" />
+                    <span><strong style={{ color: '#8d979f' }}>VISUAL OBSERVATION:</strong> Grounding clip unavailable or disabled for this experiment. ClickHouse telemetry remains active.</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#0d1318', border: '1px solid #1e2830', padding: '12px 16px', borderRadius: '8px' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em' }}>
                     PROVENANCE RECORDS ({hypothesisData?.evidenceRecords?.length || 0})

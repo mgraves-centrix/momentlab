@@ -295,6 +295,39 @@ export const EditHypothesisPage: React.FC = () => {
               </div>
             </div>
 
+            {/* ROW 3.5: GEMINI MULTIMODAL VISUAL GROUNDING */}
+            {hypothesis.visualGrounding ? (
+              <div style={{ backgroundColor: '#0c1115', border: '1px solid #283540', borderRadius: '8px', padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={14} color="#c4a7ff" />
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#c4a7ff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      GEMINI MULTIMODAL VISUAL OBSERVATION
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '10px', backgroundColor: '#161e25', border: '1px solid #283540', padding: '2px 8px', borderRadius: '4px', color: '#8d979f', fontFamily: 'monospace' }}>
+                    CORROBORATING VISUAL EVIDENCE
+                  </span>
+                </div>
+                <div style={{ fontSize: '13px', color: '#f1f3f2', lineHeight: 1.6, marginBottom: '12px', whiteSpace: 'pre-wrap' }}>
+                  {hypothesis.visualGrounding.observation}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '11px', fontFamily: 'monospace', color: '#8d979f' }}>
+                  <span style={{ backgroundColor: '#131b22', border: '1px solid #1c2630', padding: '3px 8px', borderRadius: '4px' }}>
+                    URI: {hypothesis.visualGrounding.fileUri}
+                  </span>
+                  <span style={{ backgroundColor: '#131b22', border: '1px solid #1c2630', padding: '3px 8px', borderRadius: '4px' }}>
+                    WINDOW: {hypothesis.visualGrounding.startOffset} – {hypothesis.visualGrounding.endOffset}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '8px', padding: '14px 20px', color: '#8d979f', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={14} color="#56626d" />
+                <span><strong style={{ color: '#8d979f' }}>VISUAL OBSERVATION:</strong> Grounding clip unavailable for this experiment. ClickHouse telemetry remains active.</span>
+              </div>
+            )}
+
             {/* ROW 4: SUCCESS METRICS & GUARDRAILS */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '8px', padding: '16px' }}>

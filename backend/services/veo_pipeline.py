@@ -2,7 +2,7 @@ import os
 import uuid
 import logging
 import subprocess
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from backend.services.gcp_config import get_gcp_project_id
 
 logger = logging.getLogger("momentlab.veo")
@@ -18,12 +18,12 @@ VEO_CANDIDATE_MODELS = [
 
 SUPPORTED_REGIONS = ["us-central1", "us-east4", "us-west1"]
 
-VERIFIED_VEO_INVOCABILITY: Dict[str, Dict[str, Any]] = {
-    "veo-3.1-generate-001": {
+VERIFIED_VEO_INVOCABILITY: Dict[Tuple[str, str], Dict[str, Any]] = {
+    ("us-central1", "veo-3.1-generate-001"): {
         "invocable": True,
         "invocable_source": "verified_2026_09_06"
     },
-    "veo-3.0-generate-001": {
+    ("us-central1", "veo-3.0-generate-001"): {
         "invocable": False,
         "invocable_source": "verified_2026_09_06"
     }
@@ -53,7 +53,7 @@ def discover_available_veo_models(project_id: Optional[str] = None) -> List[Dict
             available_names = {m.name.split('/')[-1] for m in client.models.list()}
         except Exception as e:
             for model in VEO_CANDIDATE_MODELS:
-                inv_info = VERIFIED_VEO_INVOCABILITY.get(model, {
+                inv_info = VERIFIED_VEO_INVOCABILITY.get((region, model), {
                     "invocable": None,
                     "invocable_source": "unverified"
                 })
@@ -70,7 +70,7 @@ def discover_available_veo_models(project_id: Optional[str] = None) -> List[Dict
 
         for model in VEO_CANDIDATE_MODELS:
             in_cat = model in available_names
-            inv_info = VERIFIED_VEO_INVOCABILITY.get(model, {
+            inv_info = VERIFIED_VEO_INVOCABILITY.get((region, model), {
                 "invocable": None,
                 "invocable_source": "unverified"
             })

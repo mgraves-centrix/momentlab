@@ -55,6 +55,13 @@ export interface TimelineDataPoint {
   isAnomaly?: boolean;
 }
 
+export interface VisualGrounding {
+  observation: string;
+  fileUri: string;
+  startOffset: string;
+  endOffset: string;
+}
+
 export interface Hypothesis {
   id: string;
   experimentId: string;
@@ -75,6 +82,7 @@ export interface Hypothesis {
     significance: string;
     sourceQueryRunId: string;
   }[];
+  visualGrounding?: VisualGrounding;
   trace: {
     runId: string;
     totalDurationMs: number;
