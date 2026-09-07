@@ -65,7 +65,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
       // 3. Handle File Direct Upload
       if (sourceType === 'upload' && file) {
         setUploadProgress(50);
-        const urlRes = await fetch(`/api/v1/media/upload-url?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`, {
+        const urlRes = await fetch(`/api/v1/projects/${newProj.project_id}/media?filename=${encodeURIComponent(file.name)}&content_type=${encodeURIComponent(file.type)}`, {
           method: 'POST'
         });
         

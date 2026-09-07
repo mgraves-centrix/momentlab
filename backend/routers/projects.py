@@ -6,6 +6,8 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from google.cloud import storage
+import google.auth
+import google.auth.transport.requests
 from backend.services import db
 from backend.schemas.models import Project
 from backend.auth_deps import get_current_reviewer
@@ -220,12 +222,31 @@ def generate_upload_url(project_id: str, filename: str, content_type: str, revie
     blob_name = f"projects/{project_id}/media/{uuid.uuid4().hex[:8]}_{filename}"
     blob = bucket.blob(blob_name)
     
-    url = blob.generate_signed_url(
-        version="v4",
-        expiration=timedelta(minutes=15),
-        method="PUT",
-        content_type=content_type,
-    )
+    try:
+        credentials, _ = google.auth.default()
+        if not credentials.valid:
+            credentials.refresh(google.auth.transport.requests.Request())
+        
+        sa_email = getattr(credentials, "service_account_email", None)
+        if not sa_email or sa_email == "default":
+            sa_email = os.getenv("SERVICE_ACCOUNT_EMAIL", "15885136313-compute@developer.gserviceaccount.com")
+            
+        access_token = getattr(credentials, "token", None)
+        
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(minutes=15),
+            method="PUT",
+            content_type=content_type,
+            service_account_email=sa_email,
+            access_token=access_token,
+        )
+    except Exception as e:
+        logger.error("Failed to generate IAM-signed upload URL for blob %s: %s", blob_name, e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate signed upload URL: {str(e)}"
+        )
     
     return SignedUrlResponse(
         url=url,
@@ -244,11 +265,30 @@ def generate_download_url(project_id: str, blob_name: str):
     bucket = client.bucket(_get_media_bucket_name())
     blob = bucket.blob(blob_name)
     
-    url = blob.generate_signed_url(
-        version="v4",
-        expiration=timedelta(hours=2),
-        method="GET"
-    )
+    try:
+        credentials, _ = google.auth.default()
+        if not credentials.valid:
+            credentials.refresh(google.auth.transport.requests.Request())
+        
+        sa_email = getattr(credentials, "service_account_email", None)
+        if not sa_email or sa_email == "default":
+            sa_email = os.getenv("SERVICE_ACCOUNT_EMAIL", "15885136313-compute@developer.gserviceaccount.com")
+            
+        access_token = getattr(credentials, "token", None)
+        
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(hours=2),
+            method="GET",
+            service_account_email=sa_email,
+            access_token=access_token,
+        )
+    except Exception as e:
+        logger.error("Failed to generate IAM-signed download URL for blob %s: %s", blob_name, e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate signed download URL: {str(e)}"
+        )
     
     return SignedUrlResponse(
         url=url,

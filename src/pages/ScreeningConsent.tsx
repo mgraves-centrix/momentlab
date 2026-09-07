@@ -32,6 +32,7 @@ export const ScreeningConsentPage: React.FC = () => {
   const [hasConsented, setHasConsented] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
+  const [projectVideoUrl, setProjectVideoUrl] = useState<string | null>(null);
   const [lastReaction, setLastReaction] = useState<{ type: string; timestamp: string } | null>(null);
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({ CONFUSED: 0, ENGAGING: 0, BORED: 0, ENGAGED: 0, FUNNY: 0, 'TOO SLOW': 0 });
   const [noteText, setNoteText] = useState('');
@@ -97,6 +98,26 @@ export const ScreeningConsentPage: React.FC = () => {
   const flushPlaybackOnStateChange = useCallback((state: string = 'PAUSED') => {
     sendPlaybackBatch(currentTimeMs, state);
   }, [currentTimeMs, sendPlaybackBatch]);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/v1/projects/proj_northlight_01')
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then((data) => {
+        if (isMounted && data && data.video_url) {
+          setProjectVideoUrl(data.video_url);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch project for screening:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const handleUnload = () => {
@@ -518,7 +539,7 @@ export const ScreeningConsentPage: React.FC = () => {
             </div>
             
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MediaPlayer initialTimecodeMs={currentTimeMs} onTimeUpdate={handleTimeUpdate} />
+              <MediaPlayer initialVideoUrl={projectVideoUrl || undefined} initialTimecodeMs={currentTimeMs} onTimeUpdate={handleTimeUpdate} />
             </div>
 
             <div style={{ padding: '20px 16px', borderTop: '1px solid #1c262e', backgroundColor: '#0c1115' }}>
@@ -570,7 +591,7 @@ export const ScreeningConsentPage: React.FC = () => {
                 {/* Left: Player and Buttons */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   <div style={{ backgroundColor: '#0d1318', borderRadius: '8px', border: '1px solid #1c262e', overflow: 'hidden' }}>
-                    <MediaPlayer initialTimecodeMs={currentTimeMs} onTimeUpdate={handleTimeUpdate} />
+                    <MediaPlayer initialVideoUrl={projectVideoUrl || undefined} initialTimecodeMs={currentTimeMs} onTimeUpdate={handleTimeUpdate} />
                   </div>
                   
                   <div>
