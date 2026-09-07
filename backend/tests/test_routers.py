@@ -1,3 +1,5 @@
+from unittest.mock import patch, MagicMock
+import os
 from fastapi.testclient import TestClient
 from backend.main import app
 
@@ -262,6 +264,98 @@ def test_veo_generation_route_is_absent():
     )
     assert response.status_code not in (200, 401)
     assert response.status_code in (404, 405)
+
+
+def test_get_variant_unauthenticated_ready(isolate_firestore):
+    """Verifies GET .../variant returns 200 READY with NO auth when variant exists in mocked GCS bucket."""
+    isolate_firestore.collection("projects").document("proj_northlight_01").collection("experiments").document("exp_23a").collection("hypotheses").document("current").set({"anomalyWindow": "00:10-00:20"})
+
+    mock_blob = MagicMock()
+    mock_blob.exists.return_value = True
+    mock_blob.generate_signed_url.return_value = "https://storage.googleapis.com/mock-signed-url"
+
+    mock_bucket = MagicMock()
+    mock_bucket.blob.return_value = mock_blob
+
+    mock_storage = MagicMock()
+    mock_storage.bucket.return_value = mock_bucket
+
+    mock_creds = MagicMock()
+    mock_creds.valid = True
+    mock_creds.service_account_email = "test-sa@project.iam.gserviceaccount.com"
+    mock_creds.token = "mock_token"
+
+    with patch("backend.routers.projects._get_storage_client", return_value=mock_storage), \
+         patch("backend.routers.projects._get_asset_bucket_name", return_value="momentlab-504305-media"), \
+         patch("google.auth.default", return_value=(mock_creds, "test-project")), \
+         patch("subprocess.run") as mock_subprocess:
+
+        response = client.get("/api/v1/projects/proj_northlight_01/experiments/exp_23a/variant")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "READY"
+        assert data["variant_url"] == "https://storage.googleapis.com/mock-signed-url"
+        
+        # Assert ffmpeg command was never invoked
+        for call in mock_subprocess.call_args_list:
+            args = call[0][0] if call[0] else []
+            assert "ffmpeg" not in args
+
+
+def test_get_variant_unauthenticated_not_rendered(isolate_firestore):
+    """Verifies GET .../variant returns 200 NOT_RENDERED when variant does not exist."""
+    isolate_firestore.collection("projects").document("proj_northlight_01").collection("experiments").document("exp_23a").collection("hypotheses").document("current").set({"anomalyWindow": "00:10-00:20"})
+
+    mock_blob = MagicMock()
+    mock_blob.exists.return_value = False
+
+    mock_bucket = MagicMock()
+    mock_bucket.blob.return_value = mock_blob
+
+    mock_storage = MagicMock()
+    mock_storage.bucket.return_value = mock_bucket
+
+    mock_creds = MagicMock()
+    mock_creds.valid = True
+    mock_creds.service_account_email = "test-sa@project.iam.gserviceaccount.com"
+
+    orig_exists = os.path.exists
+    def mock_exists(path):
+        if "scene_cut_b.mp4" in str(path):
+            return False
+        return orig_exists(path)
+
+    with patch("backend.routers.projects._get_storage_client", return_value=mock_storage), \
+         patch("backend.routers.projects._get_asset_bucket_name", return_value="momentlab-504305-media"), \
+         patch("google.auth.default", return_value=(mock_creds, "test-project")), \
+         patch("os.path.exists", side_effect=mock_exists), \
+         patch("subprocess.run") as mock_subprocess:
+
+        response = client.get("/api/v1/projects/proj_northlight_01/experiments/exp_23a/variant")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "NOT_RENDERED"
+        assert data["variant_url"] is None
+
+        for call in mock_subprocess.call_args_list:
+            args = call[0][0] if call[0] else []
+            assert "ffmpeg" not in args
+
+
+def test_get_variant_unauthenticated_no_anomaly():
+    """Verifies GET .../variant returns 200 NO_ANOMALY when project has no anomaly window."""
+    with patch("subprocess.run") as mock_subprocess:
+        response = client.get("/api/v1/projects/proj_echoes_02/experiments/exp_23a/variant")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "NO_ANOMALY"
+        assert data["variant_url"] is None
+        
+        for call in mock_subprocess.call_args_list:
+            args = call[0][0] if call[0] else []
+            assert "ffmpeg" not in args
+
+
 
 
 

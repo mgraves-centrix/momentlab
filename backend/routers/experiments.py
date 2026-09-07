@@ -411,6 +411,103 @@ def _derive_slug_from_video_url(video_url: Optional[str]) -> str:
     return "northlight"
 
 
+@router.get("/projects/{project_id}/experiments/{experiment_id}/variant")
+async def get_rendered_variant(
+    project_id: str,
+    experiment_id: str
+):
+    """
+    Public, unauthenticated GET endpoint returning existing rendered Cut B variant URL.
+    Does NOT require reviewer token, does NOT trigger ffmpeg render, does NOT write to GCS bucket.
+    """
+    firestore_db = db.get_db()
+    if not firestore_db:
+        raise HTTPException(status_code=500, detail="Firestore not initialized")
+
+    project_ref = firestore_db.collection('projects').document(project_id)
+    project_doc = project_ref.get()
+    if not project_doc.exists:
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
+
+    project_data = project_doc.to_dict() or {}
+    video_url = project_data.get("video_url", "/frames/northlight/scene.mp4")
+    slug = _derive_slug_from_video_url(video_url)
+
+    # Determine anomaly window from hypothesis or detector
+    hyp_ref = project_ref.collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+    hyp_doc = hyp_ref.get()
+    anomaly_window = None
+    if hyp_doc.exists:
+        anomaly_window = hyp_doc.to_dict().get("anomalyWindow")
+    
+    if not anomaly_window:
+        try:
+            from backend.services.detector import run_anomaly_detector
+            detector_res = run_anomaly_detector(project_id, experiment_id)
+            anomaly_window = detector_res.get("anomalyWindow")
+        except Exception as det_err:
+            logger.warning(f"Failed to run detector for anomaly window: {det_err}")
+
+    if not anomaly_window:
+        return {
+            "status": "NO_ANOMALY",
+            "variant_url": None
+        }
+
+    gcs_blob_name = f"frames/{slug}/scene_cut_b.mp4"
+    local_public_dir = os.path.join(os.getcwd(), "public", "frames", slug)
+    local_cut_b_path = os.path.join(local_public_dir, "scene_cut_b.mp4")
+
+    # Try GCS Storage Client
+    storage_client = None
+    media_bucket_name = "momentlab-504305-media"
+    try:
+        from backend.routers.projects import _get_storage_client, _get_asset_bucket_name
+        storage_client = _get_storage_client()
+        media_bucket_name = _get_asset_bucket_name()
+    except Exception as err:
+        logger.warning(f"Storage client init warning: {err}")
+
+    if storage_client:
+        try:
+            bucket = storage_client.bucket(media_bucket_name)
+            blob = bucket.blob(gcs_blob_name)
+            if blob.exists():
+                import google.auth
+                import google.auth.transport.requests
+                credentials, _ = google.auth.default()
+                if not credentials.valid:
+                    credentials.refresh(google.auth.transport.requests.Request())
+                sa_email = getattr(credentials, "service_account_email", None)
+                if not sa_email or sa_email == "default":
+                    sa_email = os.getenv("SERVICE_ACCOUNT_EMAIL", "15885136313-compute@developer.gserviceaccount.com")
+                access_token = getattr(credentials, "token", None)
+                signed_url = blob.generate_signed_url(
+                    version="v4",
+                    expiration=timedelta(hours=2),
+                    method="GET",
+                    service_account_email=sa_email,
+                    access_token=access_token,
+                )
+                return {
+                    "status": "READY",
+                    "variant_url": signed_url
+                }
+        except Exception as gcs_err:
+            logger.warning(f"GCS variant check failed: {gcs_err}")
+
+    if os.path.exists(local_cut_b_path):
+        return {
+            "status": "READY",
+            "variant_url": f"/frames/{slug}/scene_cut_b.mp4"
+        }
+
+    return {
+        "status": "NOT_RENDERED",
+        "variant_url": None
+    }
+
+
 @router.post("/projects/{project_id}/experiments/{experiment_id}/render-variant")
 async def render_variant(
     project_id: str,

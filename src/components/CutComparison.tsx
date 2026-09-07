@@ -48,12 +48,36 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
   const [variantVideoUrl, setVariantVideoUrl] = useState<string | null>(initialVariantVideoUrl || null);
   const [isRendering, setIsRendering] = useState<boolean>(false);
   const [renderError, setRenderError] = useState<string | null>(null);
+  const [noAnomaly, setNoAnomaly] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialVariantVideoUrl) {
       setVariantVideoUrl(initialVariantVideoUrl);
     }
-  }, [initialVariantVideoUrl]);
+    if (!projectId || !experimentId) return;
+
+    let isMounted = true;
+    const fetchVariantStatus = async () => {
+      try {
+        const res = await fetch(`/api/v1/projects/${projectId}/experiments/${experimentId}/variant`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted) return;
+        if (data.status === 'READY' && data.variant_url) {
+          setVariantVideoUrl(data.variant_url);
+        } else if (data.status === 'NO_ANOMALY') {
+          setNoAnomaly(true);
+        }
+      } catch (err) {
+        console.warn("Failed to check rendered variant status:", err);
+      }
+    };
+
+    fetchVariantStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, [projectId, experimentId, initialVariantVideoUrl]);
 
   const parsedTimes = parseAnomalyWindow(anomalyWindow);
   const controlRevealMs = parsedTimes ? parsedTimes.controlRevealMs : propControlRevealMs;
@@ -110,7 +134,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
     }
   };
 
-  if (!controlRevealMs || !variantRevealMs) {
+  if (!controlRevealMs || !variantRevealMs || noAnomaly) {
     return (
       <div
         style={{
