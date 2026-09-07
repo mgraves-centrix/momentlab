@@ -124,7 +124,7 @@ export const MomentEvidencePage: React.FC = () => {
               <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '16px' }}>
                 EVIDENCE SUMMARY
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '12px', alignItems: 'start' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -159,7 +159,7 @@ export const MomentEvidencePage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', backgroundColor: '#16232c', border: '1px solid #16232c', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '1px', backgroundColor: '#16232c', border: '1px solid #16232c', borderRadius: '8px', overflow: 'hidden' }}>
                 <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
                   <div style={{ fontSize: '11px', color: '#f1f3f2', marginBottom: '8px' }}>ALL</div>
                   <svg width="100%" height="20" viewBox="0 0 50 20" style={{ marginBottom: '8px' }}>
@@ -205,7 +205,7 @@ export const MomentEvidencePage: React.FC = () => {
 
             {/* Hypothesis Preview */}
             <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '55% 45%', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '55% 45%', gap: '16px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <div style={{ width: '28px', height: '28px', borderRadius: '14px', backgroundColor: '#1a103c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -390,7 +390,7 @@ export const MomentEvidencePage: React.FC = () => {
             </div>
 
             {/* 2-Column Workspace (~55% / ~45%) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '55% 43%', gap: '24px', alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '55% 43%', gap: '24px', alignItems: 'start' }}>
               
               {/* Left Column: Query Provenance Records & Charts */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -427,7 +427,7 @@ export const MomentEvidencePage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', backgroundColor: '#16232c', border: '1px solid #16232c', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '1px', backgroundColor: '#16232c', border: '1px solid #16232c', borderRadius: '8px', overflow: 'hidden' }}>
                     <div style={{ backgroundColor: '#091218', padding: '12px 8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '11px', color: '#f1f3f2', marginBottom: '8px' }}>ALL</div>
                       <svg width="100%" height="20" viewBox="0 0 50 20" style={{ marginBottom: '8px' }}>
@@ -473,7 +473,7 @@ export const MomentEvidencePage: React.FC = () => {
                 </div>
 
                 {/* Evidence Summary Blocks */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', alignItems: 'start', backgroundColor: '#091218', padding: '16px', borderRadius: '12px', border: '1px solid #16232c' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '12px', alignItems: 'start', backgroundColor: '#091218', padding: '16px', borderRadius: '12px', border: '1px solid #16232c' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>

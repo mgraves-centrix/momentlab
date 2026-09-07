@@ -191,7 +191,7 @@ export const ResponseTimelinePage: React.FC = () => {
             </div>
 
             <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ height: '200px', margin: '0 -8px' }}>
+              <div style={{ minHeight: '200px', height: 'auto', margin: '0 -8px' }}>
                 <ResponseTimeline
                   data={timelineData}
                   currentTimeMs={selectedTimeMs}

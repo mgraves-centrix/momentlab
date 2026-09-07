@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Film, ChevronDown, Bell, Settings, Check, X, Info } from 'lucide-react';
 import { MobileBottomNavigation } from './MobileBottomNavigation';
 import { useMobile } from '../hooks/useMobile';
@@ -19,13 +19,17 @@ const AVAILABLE_PROJECTS = [
 
 export const AppShell: React.FC<AppShellProps> = ({
   children,
-  projectId = 'proj_northlight_01',
+  projectId,
   experimentId = 'exp_23a'
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams<{ projectId?: string; experimentId?: string }>();
   const isMobile = useMobile();
   const isScreening = location.pathname.startsWith('/screen');
+
+  const activeProjectId = projectId || params.projectId || 'proj_northlight_01';
+  const activeExperimentId = params.experimentId || experimentId;
 
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -58,7 +62,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     };
   }, []);
 
-  const currentProject = AVAILABLE_PROJECTS.find(p => p.id === projectId) || AVAILABLE_PROJECTS[0];
+  const currentProject = AVAILABLE_PROJECTS.find(p => p.id === activeProjectId) || AVAILABLE_PROJECTS[0];
 
   const handleSelectProject = (proj: typeof AVAILABLE_PROJECTS[0]) => {
     setIsProjectMenuOpen(false);
@@ -67,7 +71,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const mainNavItems = [
     { label: 'PROJECTS', path: '/projects' },
-    { label: 'EXPERIMENTS', path: `/projects/${projectId}/experiments/${experimentId}/finding` },
+    { label: 'EXPERIMENTS', path: `/projects/${activeProjectId}/experiments/${activeExperimentId}/finding` },
     { label: 'AUDIENCES', path: `/screen/demo_token_123` },
     { label: 'ASSETS', path: `/admin/demo` }
   ];

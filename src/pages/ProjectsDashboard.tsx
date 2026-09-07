@@ -208,7 +208,7 @@ export const ProjectsDashboard: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '67% 31%', gap: '24px', alignItems: 'start' }}>
           
           {/* LEFT COLUMN: Project Cards List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
             {isLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
                 <Loader2 className="spin" color="#8d979f" size={24} />
@@ -239,7 +239,7 @@ export const ProjectsDashboard: React.FC = () => {
                 if (viewMode === 'list') {
                   return (
                     <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '8px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '220px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: isMobile ? 0 : '220px' }}>
                         <div style={{ width: '48px', height: '48px', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#162029', flexShrink: 0 }}>
                           <img
                             src={project.thumbnail_url || "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80"}
@@ -311,7 +311,7 @@ export const ProjectsDashboard: React.FC = () => {
                 }
 
                 return (
-                  <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '10px', overflow: 'hidden' }}>
+                  <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '10px', overflow: 'hidden', minWidth: 0 }}>
                     <div style={{ padding: isMobile ? '16px' : '20px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px 1fr', gap: '20px' }}>
                       {/* Thumbnail */}
                       <div style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', height: '124px', backgroundColor: '#162029' }}>
@@ -326,11 +326,11 @@ export const ProjectsDashboard: React.FC = () => {
                       </div>
 
                       {/* Details & Metrics */}
-                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', textTransform: 'uppercase', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {project.title}
                               </h2>
                               <Star 
@@ -359,7 +359,7 @@ export const ProjectsDashboard: React.FC = () => {
                         </div>
 
                         {/* 3 Metric Columns */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '70px 110px 1fr', gap: '16px', backgroundColor: '#131b22', padding: '10px 14px', borderRadius: '6px', border: '1px solid #1c2630', marginTop: '12px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '70px 110px 1fr', gap: '16px', backgroundColor: '#131b22', padding: '10px 14px', borderRadius: '6px', border: '1px solid #1c2630', marginTop: '12px' }}>
                           <div>
                             <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">
                               {cutsCount != null ? cutsCount : '—'}
@@ -374,7 +374,7 @@ export const ProjectsDashboard: React.FC = () => {
                             <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respondents</div>
                           </div>
 
-                          <div>
+                          <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Latest Finding</div>
                             <div style={{ fontSize: '11px', fontWeight: 700, color: finding ? '#ff6652' : '#8d979f', marginTop: '2px' }}>
                               {finding || 'No findings yet'}
@@ -446,7 +446,7 @@ export const ProjectsDashboard: React.FC = () => {
           </div>
 
           {/* RIGHT COLUMN: Widgets matching Reference 01 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
             
             {/* Widget 1: ACTIVE EXPERIMENTS */}
             <div style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '10px', padding: '20px' }}>
@@ -465,7 +465,7 @@ export const ProjectsDashboard: React.FC = () => {
                 <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
                   <img src="/northlight_thumb.png" alt="Experiment thumbnail" style={{ width: '64px', height: '48px', objectFit: 'cover', borderRadius: '4px' }} />
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff' }}>NORTHLIGHT A/B TEST</span>
                       <span style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', color: '#58c94b', fontSize: '11px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px' }}>ACTIVE</span>
                       {northlightHypothesis?.grounded === false ? (
@@ -480,7 +480,7 @@ export const ProjectsDashboard: React.FC = () => {
                 </div>
 
                 {/* 3 Metric Boxes */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px', textAlign: 'center' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px', textAlign: 'center' }}>
                   <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
                     <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase' }}>ENGAGEMENT LIFT</div>
                     <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
