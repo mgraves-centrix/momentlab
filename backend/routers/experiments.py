@@ -415,11 +415,13 @@ def _derive_slug_from_video_url(video_url: Optional[str]) -> str:
 async def render_variant(
     project_id: str,
     experiment_id: str,
+    force: bool = False,
     reviewer_id: str = Depends(get_current_reviewer)
 ):
     """
     Renders variant Cut B by trimming out the detected anomaly window from source video using ffmpeg.
-    Idempotent: returns existing signed URL or local asset if cut_b already exists in GCS or local disk.
+    Idempotent: returns existing signed URL or local asset if cut_b already exists in GCS or local disk
+    AND matches both the anomaly window and the source video generation/mtime.
     """
     firestore_db = db.get_db()
     if not firestore_db:
@@ -467,6 +469,7 @@ async def render_variant(
     gcs_blob_name = f"frames/{slug}/scene_cut_b.mp4"
     local_public_dir = os.path.join(os.getcwd(), "public", "frames", slug)
     local_cut_b_path = os.path.join(local_public_dir, "scene_cut_b.mp4")
+    local_meta_path = os.path.join(local_public_dir, "scene_cut_b.json")
 
     # Try GCS Storage Client
     storage_client = None
@@ -479,46 +482,77 @@ async def render_variant(
     except Exception as err:
         logger.warning(f"Storage client init warning: {err}")
 
-    # Check Idempotency - If GCS blob or local file exists, generate signed/local URL directly
+    # Determine source video identifier (generation/etag for GCS, mtime for local file)
+    source_identifier = None
     if storage_client:
+        try:
+            bucket = storage_client.bucket(media_bucket_name)
+            src_blob = bucket.blob(f"frames/{slug}/scene.mp4")
+            if src_blob.exists():
+                src_blob.reload()
+                source_identifier = str(getattr(src_blob, "generation", None) or getattr(src_blob, "etag", None) or getattr(src_blob, "md5_hash", None) or "")
+        except Exception as src_err:
+            logger.warning(f"Failed fetching GCS source blob metadata: {src_err}")
+
+    local_src_path = os.path.join(os.getcwd(), "public", "frames", slug, "scene.mp4")
+    if not source_identifier and os.path.exists(local_src_path):
+        source_identifier = str(os.path.getmtime(local_src_path))
+
+    # Check Idempotency - If GCS blob or local file exists AND matches current source + anomaly window
+    if not force and storage_client:
         try:
             bucket = storage_client.bucket(media_bucket_name)
             blob = bucket.blob(gcs_blob_name)
             if blob.exists():
-                import google.auth
-                import google.auth.transport.requests
-                credentials, _ = google.auth.default()
-                if not credentials.valid:
-                    credentials.refresh(google.auth.transport.requests.Request())
-                sa_email = getattr(credentials, "service_account_email", None)
-                if not sa_email or sa_email == "default":
-                    sa_email = os.getenv("SERVICE_ACCOUNT_EMAIL", "15885136313-compute@developer.gserviceaccount.com")
-                access_token = getattr(credentials, "token", None)
-                signed_url = blob.generate_signed_url(
-                    version="v4",
-                    expiration=timedelta(hours=2),
-                    method="GET",
-                    service_account_email=sa_email,
-                    access_token=access_token,
-                )
+                blob.reload()
+                meta = blob.metadata or {}
+                cached_window = meta.get("anomaly_window")
+                cached_src = meta.get("source_identifier")
+
+                if cached_window == anomaly_window and (not source_identifier or cached_src == source_identifier):
+                    import google.auth
+                    import google.auth.transport.requests
+                    credentials, _ = google.auth.default()
+                    if not credentials.valid:
+                        credentials.refresh(google.auth.transport.requests.Request())
+                    sa_email = getattr(credentials, "service_account_email", None)
+                    if not sa_email or sa_email == "default":
+                        sa_email = os.getenv("SERVICE_ACCOUNT_EMAIL", "15885136313-compute@developer.gserviceaccount.com")
+                    access_token = getattr(credentials, "token", None)
+                    signed_url = blob.generate_signed_url(
+                        version="v4",
+                        expiration=timedelta(hours=2),
+                        method="GET",
+                        service_account_email=sa_email,
+                        access_token=access_token,
+                    )
+                    return {
+                        "status": "SUCCESS",
+                        "rendered": True,
+                        "idempotent": True,
+                        "variant_url": signed_url,
+                        "anomaly_window": anomaly_window
+                    }
+                else:
+                    logger.info(f"Stale variant cache detected for '{slug}'. Cached window: '{cached_window}', current window: '{anomaly_window}'. Cached src: '{cached_src}', current src: '{source_identifier}'. Re-rendering.")
+        except Exception as gcs_err:
+            logger.warning(f"GCS check existing failed: {gcs_err}")
+
+    if not force and os.path.exists(local_cut_b_path) and os.path.exists(local_meta_path):
+        try:
+            import json
+            with open(local_meta_path, "r") as f:
+                meta = json.load(f)
+            if meta.get("anomaly_window") == anomaly_window and (not source_identifier or meta.get("source_identifier") == source_identifier):
                 return {
                     "status": "SUCCESS",
                     "rendered": True,
                     "idempotent": True,
-                    "variant_url": signed_url,
+                    "variant_url": f"/frames/{slug}/scene_cut_b.mp4",
                     "anomaly_window": anomaly_window
                 }
-        except Exception as gcs_err:
-            logger.warning(f"GCS check existing failed: {gcs_err}")
-
-    if os.path.exists(local_cut_b_path):
-        return {
-            "status": "SUCCESS",
-            "rendered": True,
-            "idempotent": True,
-            "variant_url": f"/frames/{slug}/scene_cut_b.mp4",
-            "anomaly_window": anomaly_window
-        }
+        except Exception as json_err:
+            logger.warning(f"Local meta check failed: {json_err}")
 
     # Render variant cut B with ffmpeg
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -567,12 +601,16 @@ async def render_variant(
         except FileNotFoundError:
             raise HTTPException(status_code=500, detail="ffmpeg binary not found on server runtime system.")
 
-        # Upload output to GCS bucket
+        # Upload output to GCS bucket with anomaly window and source identifier metadata
         uploaded_gcs_url = None
         if storage_client:
             try:
                 bucket = storage_client.bucket(media_bucket_name)
                 dest_blob = bucket.blob(gcs_blob_name)
+                dest_blob.metadata = {
+                    "anomaly_window": anomaly_window,
+                    "source_identifier": source_identifier or ""
+                }
                 dest_blob.upload_from_filename(out_path, content_type="video/mp4")
                 
                 import google.auth
@@ -597,8 +635,14 @@ async def render_variant(
         # Also save to local public folder if possible for local development
         if os.path.exists(local_public_dir):
             import shutil
+            import json
             try:
                 shutil.copyfile(out_path, local_cut_b_path)
+                with open(local_meta_path, "w") as f:
+                    json.dump({
+                        "anomaly_window": anomaly_window,
+                        "source_identifier": source_identifier or ""
+                    }, f)
             except Exception as local_copy_err:
                 logger.warning(f"Failed local cut_b copy: {local_copy_err}")
 
@@ -611,4 +655,5 @@ async def render_variant(
             "variant_url": final_url,
             "anomaly_window": anomaly_window
         }
+
 

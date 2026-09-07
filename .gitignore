@@ -34,3 +34,6 @@ tmp/
 temp/
 data/*.db
 public/media/
+public/frames/*/scene_cut_b.mp4
+public/frames/*/scene_cut_b.json
+

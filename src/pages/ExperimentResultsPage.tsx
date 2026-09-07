@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
-import { fetchRecentQueries } from '../api/client';
+import { fetchRecentQueries, fetchProject, Project } from '../api/client';
 import { StatePanel } from '../components/StatePanel';
 import { useMobile } from '../hooks/useMobile';
 import { plural } from '../utils/format';
@@ -24,7 +24,7 @@ const VideoPlayerWithTimeline: React.FC<{
   revealTime: number; 
   simulatedDuration: number;
   highlightColor?: string; 
-}> = ({ src, poster = "/northlight_thumb.png", revealTime, simulatedDuration, highlightColor }) => {
+}> = ({ src, poster, revealTime, simulatedDuration, highlightColor }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
@@ -154,6 +154,7 @@ export const ExperimentResultsPage: React.FC = () => {
   const { projectId, experimentId } = useParams<{ projectId?: string; experimentId?: string }>();
   const navigate = useNavigate();
 
+  const [project, setProject] = useState<Project | null>(null);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [recentQueries, setRecentQueries] = useState<any[]>([]);
@@ -172,17 +173,14 @@ export const ExperimentResultsPage: React.FC = () => {
     );
   }
 
-  const sampleVideoUrl = projectId === 'proj_echoes_02' 
-    ? "/frames/echoes_of_salt/scene.mp4" 
-    : "/frames/northlight/scene.mp4";
-  const posterControl = projectId === 'proj_echoes_02'
-    ? "/frames/echoes_of_salt/poster.png"
-    : "/frames/cut_a_control.png";
-  const posterVariant = projectId === 'proj_echoes_02'
-    ? "/frames/echoes_of_salt/poster.png"
-    : "/frames/cut_b_variant.png";
+  const sampleVideoUrl = project?.video_url || "/frames/northlight/scene.mp4";
+  const posterControl = project?.thumbnail_url;
+  const posterVariant = project?.thumbnail_url;
 
   useEffect(() => {
+    if (projectId) {
+      fetchProject(projectId).then(setProject).catch(console.error);
+    }
     const fetchResults = async () => {
       try {
         const res = await fetch(`/api/v1/projects/${projectId}/experiments/${experimentId}/results`);
@@ -199,6 +197,7 @@ export const ExperimentResultsPage: React.FC = () => {
     fetchResults();
     fetchRecentQueries().then(setRecentQueries).catch(console.error);
   }, [projectId, experimentId]);
+
 
   const handleInfoHover = (e: React.MouseEvent, text: string) => {
     const rect = e.currentTarget.getBoundingClientRect();
