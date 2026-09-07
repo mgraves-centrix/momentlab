@@ -1,5 +1,6 @@
 import os
 import uuid
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends
@@ -8,6 +9,8 @@ from google.cloud import storage
 from backend.services import db
 from backend.schemas.models import Project
 from backend.auth_deps import get_current_reviewer
+
+logger = logging.getLogger("momentlab.routers.projects")
 
 router = APIRouter(prefix="/api/v1/projects", tags=["Projects"])
 
@@ -42,22 +45,21 @@ DEFAULT_EXPERIMENTS = {
     "proj_below_03": "exp_01c",
 }
 
-def derive_latest_finding(project_id: str, total_resp: int, experiment_id: Optional[str] = None) -> Optional[str]:
-    """Derives latest_finding dynamically from real detector output for each project."""
+def derive_latest_finding(project_id: str, total_resp: int, persisted_finding: Optional[str] = None) -> Optional[str]:
+    """Reads the persisted latest_finding from the project document."""
     if not total_resp or total_resp < 100:
         return None
     try:
-        from backend.services.detector import run_anomaly_detector
-        exp_id = experiment_id or DEFAULT_EXPERIMENTS.get(project_id, "exp_01")
-        det = run_anomaly_detector(project_id, exp_id)
-        if det.get("retentionDrop") and det.get("detectedMoment"):
-            return f"Retention cliff {det['retentionDrop']} at {det['detectedMoment']}"
-        elif det.get("confusionSpikeMagnitude") and det.get("confusionSpikeMoment"):
-            return f"Confusion spike {det['confusionSpikeMagnitude']} at {det['confusionSpikeMoment']}"
-        else:
-            return "No anomaly detected"
-    except Exception:
-        return "No anomaly detected"
+        if persisted_finding is not None:
+            return persisted_finding
+        client = db.get_db()
+        doc = client.collection('projects').document(project_id).get()
+        if doc.exists:
+            return doc.to_dict().get("latest_finding")
+        return None
+    except Exception as e:
+        logger.error("Failed to read latest_finding for project %s: %s", project_id, e)
+        return None
 
 @router.get("", response_model=List[Project])
 def list_projects():
@@ -96,8 +98,7 @@ def list_projects():
             data["status"] = "ACTIVE"
             data["screening_progress"] = min(100, int((total_resp / 500) * 100)) if total_resp >= 100 else int((total_resp / 100) * 100)
             data["analysis_status"] = "ANALYSIS READY" if total_resp >= 100 else "COLLECTING"
-            exp_id = experiments_by_project.get(pid)
-            data["latest_finding"] = derive_latest_finding(pid, total_resp, exp_id)
+            data["latest_finding"] = derive_latest_finding(pid, total_resp, data.get("latest_finding"))
         else:
             # Honest empty state for projects with no screening data
             data["scene_count"] = None
@@ -167,7 +168,7 @@ def get_project(project_id: str):
         data["status"] = "ACTIVE"
         data["screening_progress"] = min(100, int((total_resp / 500) * 100)) if total_resp >= 100 else int((total_resp / 100) * 100)
         data["analysis_status"] = "ANALYSIS READY" if total_resp >= 100 else "COLLECTING"
-        data["latest_finding"] = derive_latest_finding(project_id, total_resp, exp_id)
+        data["latest_finding"] = derive_latest_finding(project_id, total_resp, data.get("latest_finding"))
     else:
         data["scene_count"] = None
         data["total_respondents"] = None

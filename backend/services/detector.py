@@ -1,5 +1,6 @@
 import logging
 from typing import Optional, Dict, Any
+from datetime import datetime, timezone
 from backend.services.clickhouse import get_client, get_db_name
 from backend.services import db
 
@@ -156,6 +157,20 @@ def compute_and_persist_detector(project_id: str, experiment_id: str) -> Dict[st
             })
             doc_ref.set(data, merge=True)
             logger.info("Persisted detector metrics for %s/%s: %s", project_id, experiment_id, detector_result)
+
+            if detector_result.get("retentionDrop") and detector_result.get("detectedMoment"):
+                latest_finding = f"Retention cliff {detector_result['retentionDrop']} at {detector_result['detectedMoment']}"
+            elif detector_result.get("confusionSpikeMagnitude") and detector_result.get("confusionSpikeMoment"):
+                latest_finding = f"Confusion spike {detector_result['confusionSpikeMagnitude']} at {detector_result['confusionSpikeMoment']}"
+            else:
+                latest_finding = "No anomaly detected"
+
+            project_ref = firestore_db.collection('projects').document(project_id)
+            project_ref.set({
+                "latest_finding": latest_finding,
+                "latest_finding_at": datetime.now(timezone.utc).isoformat(),
+            }, merge=True)
+            logger.info("Persisted latest_finding for project %s: %s", project_id, latest_finding)
     except Exception as e:
         logger.error("Failed to persist detector metrics to Firestore: %s", e)
     return detector_result
