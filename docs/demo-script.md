@@ -23,8 +23,8 @@
 **Narration:** "AI shouldn't deploy changes unilaterally. We implemented a cryptographically secure Human Approval Gate. An authenticated editor reviews the Cut B draft, clicks approve, and launches the test."
 
 ### 2:15–2:40 — Evaluation
-**Visual:** Flash the evaluation output from the terminal `evaluation-report.md` showing an +18% engagement lift.
-**Narration:** "Once Variant B results are in, the system statistically evaluates the outcome. In our seeded simulation, the 6-second shift achieved an 18% engagement lift."
+**Visual:** Flash the evaluation output from the terminal `evaluation-report.md` showing a measured +11.1% engagement lift at 99% confidence (versus +18% forecast).
+**Narration:** "Once Variant B results are in, the system statistically evaluates the outcome. While the agent forecast an +18% lift, the measured result in ClickHouse is +11.1% at 99% confidence—confirming the hypothesis is supported while proving our predictions are falsifiable."
 
 ### 2:40–3:00 — Conclusion
 **Visual:** Show the architecture diagram or the Cloud Run deployment log.

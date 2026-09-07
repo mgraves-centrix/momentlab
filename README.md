@@ -30,7 +30,7 @@ consent → stream telemetry → detect → investigate with ClickHouse MCP → 
 3. **Detect & Investigate**: Server-side detector identifies retention cliffs; Google ADK agent queries ClickHouse Cloud via official `ClickHouse/mcp-clickhouse` MCP server.
 4. **Hypothesize**: Gemini 2.5 Pro (via Vertex AI) explains evidence and proposes a falsifiable edit hypothesis (`MOVE REVEAL 6S EARLIER`).
 5. **Human Approval Gate**: Mandatory server-signed human approval (authenticated via `REVIEWER_TOKENS`) before initiating Cut B screening.
-6. **Evaluate**: Statistical evaluation of Variant B vs Control A (+18.2% engagement lift).
+6. **Evaluate**: Statistical evaluation of Variant B vs Control A confirms hypothesis supported with +11.1% measured engagement lift at 99% confidence (versus the +18% initial agent forecast).
 
 ---
 

@@ -152,7 +152,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     Switch Active Project
                   </div>
                   {AVAILABLE_PROJECTS.map(proj => {
-                    const isSelected = proj.id === projectId;
+                    const isSelected = proj.id === activeProjectId;
                     return (
                       <div
                         key={proj.id}
@@ -345,11 +345,11 @@ export const AppShell: React.FC<AppShellProps> = ({
         <div style={{ backgroundColor: '#090a0c', borderBottom: '1px solid #1c262e', padding: '0 24px', display: 'flex', alignItems: 'center' }}>
           <nav style={{ display: 'flex', gap: '32px' }}>
             {[
-              { label: 'Finding', path: `/projects/${projectId}/experiments/${experimentId}/finding` },
-              { label: 'Evidence', path: `/projects/${projectId}/experiments/${experimentId}/evidence` },
-              { label: 'Hypothesis', path: `/projects/${projectId}/experiments/${experimentId}/hypothesis` },
-              { label: 'A/B Test', path: `/projects/${projectId}/experiments/${experimentId}/test` },
-              { label: 'Results', path: `/projects/${projectId}/experiments/${experimentId}/results` }
+              { label: 'Finding', path: `/projects/${activeProjectId}/experiments/${activeExperimentId}/finding` },
+              { label: 'Evidence', path: `/projects/${activeProjectId}/experiments/${activeExperimentId}/evidence` },
+              { label: 'Hypothesis', path: `/projects/${activeProjectId}/experiments/${activeExperimentId}/hypothesis` },
+              { label: 'A/B Test', path: `/projects/${activeProjectId}/experiments/${activeExperimentId}/test` },
+              { label: 'Results', path: `/projects/${activeProjectId}/experiments/${activeExperimentId}/results` }
             ].map(tab => {
               const isTabActive = location.pathname.includes(tab.path);
               return (
@@ -386,7 +386,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       {/* Mobile Navigation */}
       {!isScreening && (
         <div style={{ display: isMobile ? 'block' : 'none' }}>
-          <MobileBottomNavigation projectId={projectId} experimentId={experimentId} />
+          <MobileBottomNavigation projectId={activeProjectId} experimentId={activeExperimentId} />
         </div>
       )}
     </div>
