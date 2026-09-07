@@ -163,7 +163,7 @@ export const ProjectsDashboard: React.FC = () => {
             </span>
           </div>
           <p style={{ fontSize: '12px', color: '#8d979f', margin: 0, lineHeight: '1.5' }}>
-            Built for short-form video editors and filmmakers who cannot afford \$10k+ traditional test screenings. MomentLab analyzes second-by-second audience reactions across <strong style={{ color: '#ffffff' }}>{totalRespCount.toLocaleString()} consented viewers</strong>, proposes targeted edit points, and measures actual retention lift (<strong style={{ color: '#58c94b' }}>{primaryLiftStr} lift</strong>) with full query-level ClickHouse execution traces.
+            Built for short-form video editors and filmmakers who cannot afford $10k+ traditional test screenings. MomentLab analyzes second-by-second audience reactions across <strong style={{ color: '#ffffff' }}>{totalRespCount.toLocaleString()} consented viewers</strong>, proposes targeted edit points, and measures actual retention lift (<strong style={{ color: '#58c94b' }}>{primaryLiftStr} lift</strong>) with full query-level ClickHouse execution traces.
           </p>
         </div>
 
@@ -238,8 +238,8 @@ export const ProjectsDashboard: React.FC = () => {
 
                 if (viewMode === 'list') {
                   return (
-                    <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '8px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: isMobile ? 0 : '220px' }}>
+                    <div key={project.project_id} style={{ backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '8px', padding: '14px 18px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: '16px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, width: isMobile ? '100%' : undefined, minWidth: isMobile ? 0 : '220px' }}>
                         <div style={{ width: '48px', height: '48px', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#162029', flexShrink: 0 }}>
                           <img
                             src={project.thumbnail_url || "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80"}
@@ -247,8 +247,8 @@ export const ProjectsDashboard: React.FC = () => {
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
                         </div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
                             <h2 style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.02em', textTransform: 'uppercase', margin: 0 }}>
                               {project.title}
                             </h2>
@@ -277,8 +277,8 @@ export const ProjectsDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
-                        <div style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'space-between' : undefined, flexShrink: isMobile ? undefined : 0 }}>
+                        <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
                           <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }} className="tabular-nums">
                             {cutsCount != null ? cutsCount : '—'} cuts / {respCount != null ? respCount.toLocaleString() : '0'} resp
                           </div>
