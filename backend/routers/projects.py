@@ -36,6 +36,29 @@ PROJECT_MEDIA = {
     }
 }
 
+DEFAULT_EXPERIMENTS = {
+    "proj_northlight_01": "exp_23a",
+    "proj_echoes_02": "exp_01b",
+    "proj_below_03": "exp_01c",
+}
+
+def derive_latest_finding(project_id: str, total_resp: int, experiment_id: Optional[str] = None) -> Optional[str]:
+    """Derives latest_finding dynamically from real detector output for each project."""
+    if not total_resp or total_resp < 100:
+        return None
+    try:
+        from backend.services.detector import run_anomaly_detector
+        exp_id = experiment_id or DEFAULT_EXPERIMENTS.get(project_id, "exp_01")
+        det = run_anomaly_detector(project_id, exp_id)
+        if det.get("retentionDrop") and det.get("detectedMoment"):
+            return f"Retention cliff {det['retentionDrop']} at {det['detectedMoment']}"
+        elif det.get("confusionSpikeMagnitude") and det.get("confusionSpikeMoment"):
+            return f"Confusion spike {det['confusionSpikeMagnitude']} at {det['confusionSpikeMoment']}"
+        else:
+            return "No anomaly detected"
+    except Exception:
+        return "No anomaly detected"
+
 @router.get("", response_model=List[Project])
 def list_projects():
     """Lists all active projects with canonical demo projects ordered first."""
@@ -43,17 +66,20 @@ def list_projects():
     projects_ref = client.collection('projects')
     docs = projects_ref.stream()
     
-    # Query ClickHouse for distinct respondents and scenes per project if available
+    # Query ClickHouse for distinct respondents, scenes, and experiment_id per project if available
     respondents_by_project = {}
     scenes_by_project = {}
+    experiments_by_project = {}
     try:
         from backend.services.clickhouse import get_client
         ch_client = get_client()
-        res = ch_client.query("SELECT project_id, count(DISTINCT session_id), count(DISTINCT scene_id) FROM momentlab.screening_sessions WHERE session_id != '00000000-0000-0000-0000-000000000000' GROUP BY project_id")
+        res = ch_client.query("SELECT project_id, count(DISTINCT session_id), count(DISTINCT scene_id), any(experiment_id) FROM momentlab.screening_sessions WHERE session_id != '00000000-0000-0000-0000-000000000000' GROUP BY project_id")
         for row in res.result_rows:
             if row[0] and row[1] > 0:
                 respondents_by_project[row[0]] = int(row[1])
                 scenes_by_project[row[0]] = int(row[2]) if row[2] > 0 else 1
+                if len(row) >= 4 and row[3]:
+                    experiments_by_project[row[0]] = str(row[3])
     except Exception:
         pass
 
@@ -70,8 +96,8 @@ def list_projects():
             data["status"] = "ACTIVE"
             data["screening_progress"] = min(100, int((total_resp / 500) * 100)) if total_resp >= 100 else int((total_resp / 100) * 100)
             data["analysis_status"] = "ANALYSIS READY" if total_resp >= 100 else "COLLECTING"
-            if total_resp >= 100:
-                data["latest_finding"] = data.get("latest_finding") or "Response cliff detected"
+            exp_id = experiments_by_project.get(pid)
+            data["latest_finding"] = derive_latest_finding(pid, total_resp, exp_id)
         else:
             # Honest empty state for projects with no screening data
             data["scene_count"] = None
@@ -122,13 +148,16 @@ def get_project(project_id: str):
     data = doc.to_dict()
     total_resp = 0
     scene_cnt = 0
+    exp_id = None
     try:
         from backend.services.clickhouse import get_client
         ch_client = get_client()
-        res = ch_client.query("SELECT count(DISTINCT session_id), count(DISTINCT scene_id) FROM momentlab.audience_events WHERE project_id = {project_id:String}", parameters={'project_id': project_id})
+        res = ch_client.query("SELECT count(DISTINCT session_id), count(DISTINCT scene_id), any(experiment_id) FROM momentlab.audience_events WHERE project_id = {project_id:String}", parameters={'project_id': project_id})
         if res.result_rows and res.result_rows[0][0] > 0:
             total_resp = int(res.result_rows[0][0])
             scene_cnt = int(res.result_rows[0][1]) if res.result_rows[0][1] > 0 else 1
+            if len(res.result_rows[0]) >= 3 and res.result_rows[0][2]:
+                exp_id = str(res.result_rows[0][2])
     except Exception:
         pass
 
@@ -138,8 +167,7 @@ def get_project(project_id: str):
         data["status"] = "ACTIVE"
         data["screening_progress"] = min(100, int((total_resp / 500) * 100)) if total_resp >= 100 else int((total_resp / 100) * 100)
         data["analysis_status"] = "ANALYSIS READY" if total_resp >= 100 else "COLLECTING"
-        if total_resp >= 100:
-            data["latest_finding"] = data.get("latest_finding") or "Response cliff detected"
+        data["latest_finding"] = derive_latest_finding(project_id, total_resp, exp_id)
     else:
         data["scene_count"] = None
         data["total_respondents"] = None

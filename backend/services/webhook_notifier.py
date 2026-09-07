@@ -15,7 +15,7 @@ class WebhookNotifier:
 
     async def notify_anomaly_detected(self, project_name: str, scene_id: str, timecode: str, drop_pct: float):
         payload = {
-            "text": f"🚨 *MomentLab Alert*: Response cliff detected in *{project_name}* ({scene_id}) at timecode `{timecode}`!\nRetention dropped by *{drop_pct:.1f}%*.",
+            "text": f"🚨 *MomentLab Alert*: Retention cliff detected in *{project_name}* ({scene_id}) at timecode `{timecode}`!\nRetention dropped by *{drop_pct:.1f}%*.",
             "blocks": [
                 {
                     "type": "section",

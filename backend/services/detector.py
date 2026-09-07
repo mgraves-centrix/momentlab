@@ -26,6 +26,9 @@ def run_anomaly_detector(project_id: str, experiment_id: str) -> Dict[str, Any]:
                 "detectedMomentMs": None,
                 "retentionDrop": None,
                 "anomalyWindow": None,
+                "confusionSpikeMoment": None,
+                "confusionSpikeMagnitude": None,
+                "confusionWindow": None,
             }
 
         q_timeline = f"""
@@ -64,12 +67,63 @@ def run_anomaly_detector(project_id: str, experiment_id: str) -> Dict[str, Any]:
                     st_sec, en_sec = start_ms // 1000, end_ms // 1000
                     anomaly_window = f"{st_sec // 60:02d}:{st_sec % 60:02d}–{en_sec // 60:02d}:{en_sec % 60:02d}"
 
+        # Confusion Spike Detection (Fail-open)
+        confusion_spike_moment = None
+        confusion_spike_magnitude = None
+        confusion_window = None
+
+        try:
+            q_conf = f"""
+                SELECT media_time_ms as time_bucket, sum(confused_count) as confused_cnt
+                FROM {db_name}.reaction_anomalies_aggregated
+                WHERE project_id = {{project_id:String}}
+                GROUP BY time_bucket
+                ORDER BY time_bucket
+            """
+            c_res = client.query(q_conf, parameters={'project_id': project_id})
+            if c_res.result_rows:
+                conf_by_bucket = {int(r[0]): int(r[1]) for r in c_res.result_rows}
+                
+                ret_samples_by_bucket = {}
+                if t_res.result_rows:
+                    for r in t_res.result_rows:
+                        ret_samples_by_bucket[int(r[0])] = int(r[2]) if (len(r) >= 3 and r[2] is not None) else total_respondents
+                
+                all_buckets = sorted(set(list(ret_samples_by_bucket.keys()) + list(conf_by_bucket.keys())))
+                min_sample_threshold = max(10, int(total_respondents * 0.02))
+                
+                c_pts = []
+                for b in all_buckets:
+                    samp = ret_samples_by_bucket.get(b, total_respondents)
+                    if samp >= min_sample_threshold:
+                        cnt = conf_by_bucket.get(b, 0)
+                        rate = (cnt / float(total_respondents)) * 100.0
+                        c_pts.append((b, rate))
+                
+                if c_pts and len(c_pts) >= 5:
+                    c_baseline = sum(p[1] for p in c_pts[:min(10, len(c_pts))]) / min(10, len(c_pts))
+                    max_c_pt = max(c_pts, key=lambda p: p[1])
+                    spike_val = max_c_pt[1] - c_baseline
+                    if spike_val >= 3.0:
+                        spike_ms = max_c_pt[0]
+                        c_s_sec = spike_ms // 1000
+                        c_st_sec = max(0, spike_ms - 4000) // 1000
+                        c_en_sec = (spike_ms + 4000) // 1000
+                        confusion_spike_moment = f"{c_s_sec // 60:02d}:{c_s_sec % 60:02d}"
+                        confusion_spike_magnitude = f"+{round(spike_val, 1)}%"
+                        confusion_window = f"{c_st_sec // 60:02d}:{c_st_sec % 60:02d}–{c_en_sec // 60:02d}:{c_en_sec % 60:02d}"
+        except Exception as conf_err:
+            logger.warning("Failed to run confusion detector for %s: %s", project_id, conf_err)
+
         return {
             "sampleSize": total_respondents,
             "detectedMoment": detected_moment,
             "detectedMomentMs": detected_moment_ms,
             "retentionDrop": retention_drop,
             "anomalyWindow": anomaly_window,
+            "confusionSpikeMoment": confusion_spike_moment,
+            "confusionSpikeMagnitude": confusion_spike_magnitude,
+            "confusionWindow": confusion_window,
         }
     except Exception as e:
         logger.error("Error running anomaly detector for %s/%s: %s", project_id, experiment_id, e)
@@ -79,6 +133,9 @@ def run_anomaly_detector(project_id: str, experiment_id: str) -> Dict[str, Any]:
             "detectedMomentMs": None,
             "retentionDrop": None,
             "anomalyWindow": None,
+            "confusionSpikeMoment": None,
+            "confusionSpikeMagnitude": None,
+            "confusionWindow": None,
         }
 
 def compute_and_persist_detector(project_id: str, experiment_id: str) -> Dict[str, Any]:
