@@ -35,6 +35,7 @@ export const EditHypothesisPage: React.FC = () => {
   const { projectId, experimentId } = useParams();
   const [hypothesis, setHypothesis] = useState<Hypothesis | null>(null);
   const [summaryData, setSummaryData] = useState<ExperimentSummary | null>(null);
+  const [projectData, setProjectData] = useState<{ video_url?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -46,10 +47,12 @@ export const EditHypothesisPage: React.FC = () => {
       setLoading(true);
       Promise.all([
         fetchExperimentHypothesis(projectId, experimentId).catch(() => null),
-        fetchExperimentSummary(projectId, experimentId).catch(() => null)
-      ]).then(([hyp, summary]) => {
+        fetchExperimentSummary(projectId, experimentId).catch(() => null),
+        fetch(`/api/v1/projects/${projectId}`).then(r => r.ok ? r.json() : null).catch(() => null)
+      ]).then(([hyp, summary, proj]) => {
         setHypothesis(hyp);
         setSummaryData(summary);
+        setProjectData(proj);
       }).finally(() => setLoading(false));
     }
   }, [projectId, experimentId]);
@@ -280,9 +283,11 @@ export const EditHypothesisPage: React.FC = () => {
                 {hypothesis.proposedChange}
               </div>
               <CutComparison 
-                controlRevealMs={43000} 
-                variantRevealMs={37000} 
+                anomalyWindow={hypothesis.anomalyWindow}
                 hypothesis={hypothesis.proposedChange}
+                controlVideoUrl={projectData?.video_url}
+                projectId={projectId}
+                experimentId={experimentId}
               />
             </div>
 

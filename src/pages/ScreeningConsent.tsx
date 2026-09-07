@@ -286,7 +286,7 @@ export const ScreeningConsentPage: React.FC = () => {
                     Audience Screening Consent
                   </h1>
                   <p style={{ fontSize: '14px', color: '#8d979f', lineHeight: 1.5 }}>
-                    You have been selected to screen <span style={{ color: '#f1f3f2', fontWeight: 600 }}>Project Northlight · Scene 12 Cut A</span>. 
+                    You have been selected to screen <span style={{ color: '#f1f3f2', fontWeight: 600 }}>{projectTitle.startsWith('Project') ? projectTitle : `Project ${projectTitle}`} · Cut A</span>. 
                     Before we begin, please review how we collect and use your data.
                   </p>
                 </div>
@@ -354,12 +354,12 @@ export const ScreeningConsentPage: React.FC = () => {
                   aria-label="Switch Project"
                   style={{ backgroundColor: 'transparent', border: '1px solid #1c262e', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 700, color: '#8d979f', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.05em', cursor: 'pointer' }}
                 >
-                  <span>PROJECT NORTHLIGHT</span>
+                  <span>{projectTitle.toUpperCase().startsWith('PROJECT') ? projectTitle.toUpperCase() : `PROJECT ${projectTitle.toUpperCase()}`}</span>
                   <ChevronDown size={14} />
                 </button>
                 
                 <span style={{ fontSize: '12px', color: '#f1f3f2', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  SCENE 12 · INT. APARTMENT — NIGHT
+                  CUT A · ORIGINAL
                 </span>
               </div>
 
@@ -614,7 +614,7 @@ export const ScreeningConsentPage: React.FC = () => {
                 </Link>
                 
                 <span style={{ fontSize: '12px', color: '#f1f3f2', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  PROJECT NORTHLIGHT <span style={{ color: '#455564', margin: '0 8px' }}>|</span> CUT A · ORIGINAL
+                  {projectTitle.toUpperCase().startsWith('PROJECT') ? projectTitle.toUpperCase() : `PROJECT ${projectTitle.toUpperCase()}`} <span style={{ color: '#455564', margin: '0 8px' }}>|</span> CUT A · ORIGINAL
                 </span>
                 <ShieldCheck size={16} color="#8d979f" />
               </div>

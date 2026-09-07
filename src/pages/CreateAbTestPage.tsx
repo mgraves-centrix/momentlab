@@ -29,11 +29,15 @@ export const CreateAbTestPage: React.FC = () => {
   const { projectId, experimentId } = useParams();
   const [hypothesis, setHypothesis] = useState<Hypothesis | null>(null);
   const [summaryData, setSummaryData] = useState<ExperimentSummary | null>(null);
+  const [projectData, setProjectData] = useState<{ video_url?: string } | null>(null);
 
   useEffect(() => {
     if (projectId && experimentId) {
       fetchExperimentHypothesis(projectId, experimentId).then(setHypothesis);
       fetchExperimentSummary(projectId, experimentId).then(setSummaryData);
+    }
+    if (projectId) {
+      fetch(`/api/v1/projects/${projectId}`).then(r => r.ok ? r.json() : null).then(setProjectData);
     }
   }, [projectId, experimentId]);
 
@@ -150,9 +154,11 @@ export const CreateAbTestPage: React.FC = () => {
               </div>
               
               <CutComparison
-                controlRevealMs={43000}
-                variantRevealMs={37000}
+                anomalyWindow={hypothesis?.anomalyWindow}
                 hypothesis={hypothesis?.proposedChange || "unavailable"}
+                controlVideoUrl={projectData?.video_url}
+                projectId={projectId}
+                experimentId={experimentId}
                 onSelectVariant={(v) => setSelectedVariant(v)}
               />
             </div>

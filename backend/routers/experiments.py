@@ -1,11 +1,18 @@
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 import datetime
+from datetime import timedelta
 import uuid
+import re
+import subprocess
+import tempfile
+import logging
 from fastapi import APIRouter, HTTPException, Request, Depends
 # pyrefly: ignore [missing-import]
 from backend.services import db
 from backend.auth_deps import get_current_reviewer
+
+logger = logging.getLogger("momentlab.routers.experiments")
 
 router = APIRouter()
 
@@ -373,3 +380,233 @@ async def get_experiment_results(project_id: str, experiment_id: str):
     except Exception as e:
         print(f"Error computing experiment results from ClickHouse: {e}")
         raise HTTPException(status_code=404, detail="Experiment results not found")
+
+
+def _parse_anomaly_window_seconds(window_str: Optional[str]) -> Optional[tuple[float, float]]:
+    """Parses anomaly window string like '00:33-00:41' or '00:33–00:41' into (start_sec, end_sec)."""
+    if not window_str:
+        return None
+    match = re.search(r'(\d+):(\d+)\s*[-–—]\s*(\d+):(\d+)', window_str)
+    if not match:
+        return None
+    st_m, st_s, en_m, en_s = map(int, match.groups())
+    start_sec = st_m * 60.0 + st_s
+    end_sec = en_m * 60.0 + en_s
+    if end_sec <= start_sec:
+        return None
+    return start_sec, end_sec
+
+
+def _derive_slug_from_video_url(video_url: Optional[str]) -> str:
+    """Extracts project video slug from video_url like '/frames/northlight/scene.mp4' -> 'northlight'."""
+    if not video_url:
+        return "northlight"
+    match = re.search(r'/frames/([^/]+)/scene\.mp4', video_url)
+    if match:
+        return match.group(1)
+    parts = [p for p in video_url.strip('/').split('/') if p]
+    if len(parts) >= 2:
+        return parts[-2]
+    return "northlight"
+
+
+@router.post("/projects/{project_id}/experiments/{experiment_id}/render-variant")
+async def render_variant(
+    project_id: str,
+    experiment_id: str,
+    reviewer_id: str = Depends(get_current_reviewer)
+):
+    """
+    Renders variant Cut B by trimming out the detected anomaly window from source video using ffmpeg.
+    Idempotent: returns existing signed URL or local asset if cut_b already exists in GCS or local disk.
+    """
+    firestore_db = db.get_db()
+    if not firestore_db:
+        raise HTTPException(status_code=500, detail="Firestore not initialized")
+
+    project_ref = firestore_db.collection('projects').document(project_id)
+    project_doc = project_ref.get()
+    if not project_doc.exists:
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
+    
+    project_data = project_doc.to_dict() or {}
+    video_url = project_data.get("video_url", "/frames/northlight/scene.mp4")
+    slug = _derive_slug_from_video_url(video_url)
+
+    # Determine anomaly window from hypothesis or detector
+    hyp_ref = project_ref.collection('experiments').document(experiment_id).collection('hypotheses').document('current')
+    hyp_doc = hyp_ref.get()
+    anomaly_window = None
+    if hyp_doc.exists:
+        anomaly_window = hyp_doc.to_dict().get("anomalyWindow")
+    
+    if not anomaly_window:
+        try:
+            from backend.services.detector import run_anomaly_detector
+            detector_res = run_anomaly_detector(project_id, experiment_id)
+            anomaly_window = detector_res.get("anomalyWindow")
+        except Exception as det_err:
+            logger.warning(f"Failed to run detector for anomaly window: {det_err}")
+
+    if not anomaly_window:
+        return {
+            "status": "NO_ANOMALY",
+            "message": f"No anomaly window exists for project '{project_id}'. Cannot render variant.",
+            "rendered": False,
+            "variant_url": None
+        }
+
+    parsed = _parse_anomaly_window_seconds(anomaly_window)
+    if not parsed:
+        raise HTTPException(status_code=400, detail=f"Invalid anomaly window format: '{anomaly_window}'")
+    
+    start_sec, end_sec = parsed
+
+    # GCS Blob Names & Local Fallback Paths
+    gcs_blob_name = f"frames/{slug}/scene_cut_b.mp4"
+    local_public_dir = os.path.join(os.getcwd(), "public", "frames", slug)
+    local_cut_b_path = os.path.join(local_public_dir, "scene_cut_b.mp4")
+
+    # Try GCS Storage Client
+    storage_client = None
+    media_bucket_name = "momentlab-504305-media"
+    try:
+        from backend.routers.projects import _get_storage_client, _get_media_bucket_name
+        storage_client = _get_storage_client()
+        media_bucket_name = _get_media_bucket_name()
+    except Exception as err:
+        logger.warning(f"Storage client init warning: {err}")
+
+    # Check Idempotency - If GCS blob or local file exists, generate signed/local URL directly
+    if storage_client:
+        try:
+            bucket = storage_client.bucket(media_bucket_name)
+            blob = bucket.blob(gcs_blob_name)
+            if blob.exists():
+                import google.auth
+                import google.auth.transport.requests
+                credentials, _ = google.auth.default()
+                if not credentials.valid:
+                    credentials.refresh(google.auth.transport.requests.Request())
+                sa_email = getattr(credentials, "service_account_email", None)
+                if not sa_email or sa_email == "default":
+                    sa_email = os.getenv("SERVICE_ACCOUNT_EMAIL", "15885136313-compute@developer.gserviceaccount.com")
+                access_token = getattr(credentials, "token", None)
+                signed_url = blob.generate_signed_url(
+                    version="v4",
+                    expiration=timedelta(hours=2),
+                    method="GET",
+                    service_account_email=sa_email,
+                    access_token=access_token,
+                )
+                return {
+                    "status": "SUCCESS",
+                    "rendered": True,
+                    "idempotent": True,
+                    "variant_url": signed_url,
+                    "anomaly_window": anomaly_window
+                }
+        except Exception as gcs_err:
+            logger.warning(f"GCS check existing failed: {gcs_err}")
+
+    if os.path.exists(local_cut_b_path):
+        return {
+            "status": "SUCCESS",
+            "rendered": True,
+            "idempotent": True,
+            "variant_url": f"/frames/{slug}/scene_cut_b.mp4",
+            "anomaly_window": anomaly_window
+        }
+
+    # Render variant cut B with ffmpeg
+    with tempfile.TemporaryDirectory() as tmpdir:
+        src_path = os.path.join(tmpdir, "scene.mp4")
+        out_path = os.path.join(tmpdir, "scene_cut_b.mp4")
+
+        # Download source video from GCS or copy local file
+        downloaded = False
+        if storage_client:
+            try:
+                bucket = storage_client.bucket(media_bucket_name)
+                src_blob = bucket.blob(f"frames/{slug}/scene.mp4")
+                if src_blob.exists():
+                    src_blob.download_to_filename(src_path)
+                    downloaded = True
+            except Exception as dl_err:
+                logger.warning(f"Failed GCS source download: {dl_err}")
+
+        if not downloaded:
+            local_src = os.path.join(os.getcwd(), "public", "frames", slug, "scene.mp4")
+            if os.path.exists(local_src):
+                import shutil
+                shutil.copyfile(local_src, src_path)
+                downloaded = True
+            else:
+                raise HTTPException(status_code=404, detail=f"Source video for '{slug}' not found.")
+
+        # Execute ffmpeg trim command
+        cmd = [
+            "ffmpeg", "-y", "-i", src_path,
+            "-filter_complex",
+            f"[0:v]trim=0:{start_sec},setpts=PTS-STARTPTS[v1];[0:a]atrim=0:{start_sec},asetpts=PTS-STARTPTS[a1];"
+            f"[0:v]trim={end_sec},setpts=PTS-STARTPTS[v2];[0:a]atrim={end_sec},asetpts=PTS-STARTPTS[a2];"
+            f"[v1][a1][v2][a2]concat=n=2:v=1:a=1[v][a]",
+            "-map", "[v]", "-map", "[a]",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "24",
+            "-c:a", "aac", "-movflags", "+faststart",
+            out_path
+        ]
+
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        except subprocess.CalledProcessError as ffmpeg_err:
+            logger.error(f"ffmpeg render failed: {ffmpeg_err.stderr}")
+            raise HTTPException(status_code=500, detail=f"ffmpeg render error: {ffmpeg_err.stderr[:200]}")
+        except FileNotFoundError:
+            raise HTTPException(status_code=500, detail="ffmpeg binary not found on server runtime system.")
+
+        # Upload output to GCS bucket
+        uploaded_gcs_url = None
+        if storage_client:
+            try:
+                bucket = storage_client.bucket(media_bucket_name)
+                dest_blob = bucket.blob(gcs_blob_name)
+                dest_blob.upload_from_filename(out_path, content_type="video/mp4")
+                
+                import google.auth
+                import google.auth.transport.requests
+                credentials, _ = google.auth.default()
+                if not credentials.valid:
+                    credentials.refresh(google.auth.transport.requests.Request())
+                sa_email = getattr(credentials, "service_account_email", None)
+                if not sa_email or sa_email == "default":
+                    sa_email = os.getenv("SERVICE_ACCOUNT_EMAIL", "15885136313-compute@developer.gserviceaccount.com")
+                access_token = getattr(credentials, "token", None)
+                uploaded_gcs_url = dest_blob.generate_signed_url(
+                    version="v4",
+                    expiration=timedelta(hours=2),
+                    method="GET",
+                    service_account_email=sa_email,
+                    access_token=access_token,
+                )
+            except Exception as up_err:
+                logger.warning(f"Failed uploading cut_b to GCS: {up_err}")
+
+        # Also save to local public folder if possible for local development
+        if os.path.exists(local_public_dir):
+            import shutil
+            try:
+                shutil.copyfile(out_path, local_cut_b_path)
+            except Exception as local_copy_err:
+                logger.warning(f"Failed local cut_b copy: {local_copy_err}")
+
+        final_url = uploaded_gcs_url or f"/frames/{slug}/scene_cut_b.mp4"
+
+        return {
+            "status": "SUCCESS",
+            "rendered": True,
+            "idempotent": False,
+            "variant_url": final_url,
+            "anomaly_window": anomaly_window
+        }
+

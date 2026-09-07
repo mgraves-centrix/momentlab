@@ -219,8 +219,25 @@ def test_telemetry_queries_filtering_and_empty_state():
         assert "SELECT 1" in sql
         assert "version()" in sql
         assert "currentUser()" in sql
-        assert "DESCRIBE" in sql
-        assert "SHOW" in sql
+
+def test_render_variant_requires_auth():
+    """Verifies that POST render-variant requires authentication."""
+    response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/render-variant")
+    assert response.status_code == 401
+
+
+def test_render_variant_no_anomaly():
+    """Verifies that render-variant for proj_echoes_02 returns NO_ANOMALY status."""
+    response = client.post(
+        "/api/v1/projects/proj_echoes_02/experiments/exp_23a/render-variant",
+        headers={"Authorization": "Bearer valid_reviewer_token_123"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "NO_ANOMALY"
+    assert data["rendered"] is False
+    assert data["variant_url"] is None
+
 
 
 

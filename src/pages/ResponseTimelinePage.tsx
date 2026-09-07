@@ -366,10 +366,12 @@ export const ResponseTimelinePage: React.FC = () => {
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
                   <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: '0 0 12px 0' }}>Proposed Experiment / Edit Comparison</h3>
                   <CutComparison 
-                    controlRevealMs={43000} 
-                    variantRevealMs={37000} 
+                    anomalyWindow={(hypothesisData as any)?.anomalyWindow ?? (summaryData as any)?.anomaly_window}
                     hypothesis={hypothesisData?.proposedChange}
-                    controlPoster={projectData?.thumbnail_url || "/frames/cut_a_control.png"}
+                    controlPoster={projectData?.thumbnail_url || "/frames/northlight/poster.png"}
+                    controlVideoUrl={projectData?.video_url}
+                    projectId={projectId}
+                    experimentId={experimentId}
                   />
                 </div>
 
