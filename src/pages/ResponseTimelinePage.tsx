@@ -35,6 +35,32 @@ export const ResponseTimelinePage: React.FC = () => {
   const [mcpStatus, setMcpStatus] = React.useState<'CONNECTED' | 'CONNECTING' | 'DISCONNECTED'>('CONNECTING');
   const [isLoading, setIsLoading] = React.useState(true);
 
+  const getAnomalyWindowCenter = (windowStr?: string | null): number | undefined => {
+    if (!windowStr) return undefined;
+    const parts = windowStr.split(/[–-]/).map(s => s.trim());
+    if (parts.length === 2) {
+      const parseTs = (ts: string) => {
+        const p = ts.split(':').map(Number);
+        if (p.length === 2 && !isNaN(p[0]) && !isNaN(p[1])) {
+          return (p[0] * 60 + p[1]) * 1000;
+        }
+        return undefined;
+      };
+      const t1 = parseTs(parts[0]);
+      const t2 = parseTs(parts[1]);
+      if (t1 !== undefined && t2 !== undefined) {
+        return Math.round((t1 + t2) / 2);
+      }
+    }
+    return undefined;
+  };
+
+  const focusMs = summaryData?.detected_moment_ms
+    ?? getAnomalyWindowCenter(summaryData?.anomaly_window)
+    ?? (hypothesisData as any)?.detectedMomentMs
+    ?? getAnomalyWindowCenter((hypothesisData as any)?.anomalyWindow)
+    ?? selectedTimeMs;
+
   React.useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
@@ -199,6 +225,8 @@ export const ResponseTimelinePage: React.FC = () => {
                   onTimeSelect={(t) => updateQueryParams({ media_time_ms: t })}
                   selectedCohort={selectedCohort}
                   error={timelineError}
+                  selectedWindow={selectedWindow}
+                  focusMs={focusMs}
                 />
               </div>
             </div>
@@ -361,6 +389,8 @@ export const ResponseTimelinePage: React.FC = () => {
                   error={timelineError}
                   mvDurationMs={(timelineData as any)?.mvDurationMs ?? (summaryData as any)?.mv_duration_ms}
                   rawDurationMs={(timelineData as any)?.rawDurationMs ?? (summaryData as any)?.raw_duration_ms}
+                  selectedWindow={selectedWindow}
+                  focusMs={focusMs}
                 />
 
                 <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TimelineDataPoint } from '../types/northlight';
 import { AlertTriangle, Database } from 'lucide-react';
+import { formatTimecodeMs } from '../utils/format';
 
 interface ResponseTimelineProps {
   data: TimelineDataPoint[];
@@ -11,6 +12,9 @@ interface ResponseTimelineProps {
   onRetry?: () => void;
   mvDurationMs?: number;
   rawDurationMs?: number;
+  selectedWindow?: '10s' | '30s' | '1m';
+  windowMode?: '10s' | '30s' | '1m';
+  focusMs?: number;
 }
 
 export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
@@ -21,7 +25,10 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
   error = null,
   onRetry,
   mvDurationMs,
-  rawDurationMs
+  rawDurationMs,
+  selectedWindow,
+  windowMode,
+  focusMs
 }) => {
   const [hoveredPoint, setHoveredPoint] = useState<TimelineDataPoint | null>(null);
   const [showTableView, setShowTableView] = useState(false);
@@ -99,13 +106,36 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
     );
   }
 
-  const maxTime = Math.max(1, ...validData.map((d) => d.timeMs)) || 60000;
+  const sceneMin = Math.min(0, ...validData.map((d) => d.timeMs));
+  const sceneMax = Math.max(60000, ...validData.map((d) => d.timeMs));
+
+  const activeWindow = selectedWindow || windowMode || '30s';
+  let domainMin = sceneMin;
+  let domainMax = sceneMax;
+
+  if (activeWindow === '10s' || activeWindow === '30s') {
+    const spanMs = activeWindow === '10s' ? 10000 : 30000;
+    const center = focusMs ?? ((sceneMin + sceneMax) / 2);
+    domainMin = center - spanMs / 2;
+    domainMax = center + spanMs / 2;
+
+    if (domainMin < sceneMin) {
+      domainMin = sceneMin;
+      domainMax = Math.min(sceneMax, sceneMin + spanMs);
+    }
+    if (domainMax > sceneMax) {
+      domainMax = sceneMax;
+      domainMin = Math.max(sceneMin, sceneMax - spanMs);
+    }
+  }
+
+  const domainSpan = Math.max(1, domainMax - domainMin);
   const minScore = 30;
   const maxScore = 100;
 
   const getX = (timeMs: number) => {
-    const t = isNaN(timeMs) ? 0 : Math.max(0, Math.min(maxTime, timeMs));
-    return padding.left + (t / maxTime) * chartWidth;
+    const t = isNaN(timeMs) ? domainMin : timeMs;
+    return padding.left + ((t - domainMin) / domainSpan) * chartWidth;
   };
 
   const getY = (score: number) => {
@@ -199,6 +229,12 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
         /* SVG Chart View */
         <div style={{ position: 'relative' }}>
           <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+            <defs>
+              <clipPath id="timeline-chart-clip">
+                <rect x={padding.left} y={padding.top} width={chartWidth} height={chartHeight} />
+              </clipPath>
+            </defs>
+
             {/* Grid lines */}
             {[40, 60, 80, 100].map((val) => (
               <g key={val}>
@@ -209,36 +245,61 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
               </g>
             ))}
 
-            {/* Anomaly Cliff Highlight Region (Rendered only when anomaly exists in data) */}
-            {hasAnomaly && (
-              <rect
-                x={anomalyStartX}
-                y={padding.top}
-                width={Math.max(4, anomalyEndX - anomalyStartX)}
-                height={chartHeight}
-                fill="rgba(255, 102, 82, 0.12)"
-                stroke="var(--coral)"
-                strokeDasharray="4 4"
-                strokeWidth="1"
-              />
-            )}
+            {/* Clipped chart layers: Anomaly Highlight, Uncertainty Band, Main Line */}
+            <g clipPath="url(#timeline-chart-clip)">
+              {hasAnomaly && (
+                <rect
+                  x={anomalyStartX}
+                  y={padding.top}
+                  width={Math.max(4, anomalyEndX - anomalyStartX)}
+                  height={chartHeight}
+                  fill="rgba(255, 102, 82, 0.12)"
+                  stroke="var(--coral)"
+                  strokeDasharray="4 4"
+                  strokeWidth="1"
+                />
+              )}
 
-            {/* Uncertainty Band */}
-            {uncertaintyPath && <path d={uncertaintyPath} fill="rgba(139, 92, 246, 0.1)" />}
+              {uncertaintyPath && <path d={uncertaintyPath} fill="rgba(139, 92, 246, 0.1)" />}
+              {lineActivePath && <path d={lineActivePath} fill="none" stroke="var(--violet)" strokeWidth="3" />}
+            </g>
 
-            {/* Main Active Line from ClickHouse (broken over nulls) */}
-            {lineActivePath && <path d={lineActivePath} fill="none" stroke="var(--violet)" strokeWidth="3" />}
+            {/* X-axis timecode ticks */}
+            {(() => {
+              const tickCount = 5;
+              const ticks = [];
+              for (let i = 0; i < tickCount; i++) {
+                const t = domainMin + (i / (tickCount - 1)) * domainSpan;
+                const tx = getX(t);
+                ticks.push(
+                  <g key={`xtick_${i}`}>
+                    <line x1={tx} y1={height - padding.bottom} x2={tx} y2={height - padding.bottom + 4} stroke="var(--border)" />
+                    <text
+                      x={tx}
+                      y={height - padding.bottom + 16}
+                      fill="var(--muted)"
+                      fontSize="9"
+                      textAnchor={i === 0 ? 'start' : i === tickCount - 1 ? 'end' : 'middle'}
+                      className="tabular-nums"
+                    >
+                      {formatTimecodeMs(t)}
+                    </text>
+                  </g>
+                );
+              }
+              return ticks;
+            })()}
 
             {/* Data Points */}
             {validData.map((d, idx) => {
               const val = getCohortVal(d);
               if (typeof val !== 'number' || isNaN(val)) return null;
               const cx = getX(d.timeMs);
+              if (cx < padding.left - 2 || cx > width - padding.right + 2) return null;
               const cy = getY(val);
               const isCliff = d.isAnomaly;
 
-              // In dense mode, only render prominent points or anomaly points to keep DOM light
-              if (validData.length > 20 && !isCliff && idx % 3 !== 0) return null;
+              if (activeWindow === '1m' && validData.length > 20 && !isCliff && idx % 3 !== 0) return null;
 
               return (
                 <circle
@@ -280,7 +341,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                 const rect = e.currentTarget.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left;
                 const ratio = Math.max(0, Math.min(1, mouseX / chartWidth));
-                const targetTime = ratio * maxTime;
+                const targetTime = domainMin + ratio * domainSpan;
                 const closest = validData.reduce((prev, curr) => (Math.abs(curr.timeMs - targetTime) < Math.abs(prev.timeMs - targetTime) ? curr : prev));
                 setHoveredPoint(closest);
               }}
@@ -289,73 +350,91 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                 const rect = e.currentTarget.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left;
                 const ratio = Math.max(0, Math.min(1, mouseX / chartWidth));
-                const targetTime = Math.round(ratio * maxTime);
+                const targetTime = Math.round(domainMin + ratio * domainSpan);
                 if (onTimeSelect) onTimeSelect(targetTime);
               }}
             />
 
             {/* Active Playhead Line */}
             {currentTimeMs !== undefined && !isNaN(currentTimeMs) && (
-              <line
-                x1={getX(currentTimeMs)}
-                y1={padding.top}
-                x2={getX(currentTimeMs)}
-                y2={height - padding.bottom}
-                stroke="var(--lime)"
-                strokeWidth="2"
-                pointerEvents="none"
-              />
+              (() => {
+                const playheadX = getX(currentTimeMs);
+                if (playheadX < padding.left || playheadX > width - padding.right) return null;
+                return (
+                  <line
+                    x1={playheadX}
+                    y1={padding.top}
+                    x2={playheadX}
+                    y2={height - padding.bottom}
+                    stroke="var(--lime)"
+                    strokeWidth="2"
+                    pointerEvents="none"
+                  />
+                );
+              })()
             )}
 
             {/* Hovered Point Marker */}
             {hoveredPoint && typeof getCohortVal(hoveredPoint) === 'number' && !isNaN(getCohortVal(hoveredPoint)!) && (
-              <g pointerEvents="none">
-                <line
-                  x1={getX(hoveredPoint.timeMs)}
-                  y1={padding.top}
-                  x2={getX(hoveredPoint.timeMs)}
-                  y2={height - padding.bottom}
-                  stroke="rgba(255,255,255,0.4)"
-                  strokeDasharray="2 2"
-                />
-                <circle
-                  cx={getX(hoveredPoint.timeMs)}
-                  cy={getY(getCohortVal(hoveredPoint)!)}
-                  r={6}
-                  fill="var(--lime)"
-                  stroke="var(--canvas)"
-                  strokeWidth="2"
-                />
-              </g>
+              (() => {
+                const hx = getX(hoveredPoint.timeMs);
+                if (hx < padding.left || hx > width - padding.right) return null;
+                return (
+                  <g pointerEvents="none">
+                    <line
+                      x1={hx}
+                      y1={padding.top}
+                      x2={hx}
+                      y2={height - padding.bottom}
+                      stroke="rgba(255,255,255,0.4)"
+                      strokeDasharray="2 2"
+                    />
+                    <circle
+                      cx={hx}
+                      cy={getY(getCohortVal(hoveredPoint)!)}
+                      r={6}
+                      fill="var(--lime)"
+                      stroke="var(--canvas)"
+                      strokeWidth="2"
+                    />
+                  </g>
+                );
+              })()
             )}
           </svg>
 
           {/* Hover Tooltip Card */}
           {hoveredPoint && (
-            <div
-              style={{
-                position: 'absolute',
-                top: `${getCohortVal(hoveredPoint) !== null ? getY(getCohortVal(hoveredPoint)!) - 40 : padding.top}px`,
-                left: `${getX(hoveredPoint.timeMs)}px`,
-                transform: 'translate(-50%, -100%)',
-                backgroundColor: 'var(--surface-3)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '6px 10px',
-                pointerEvents: 'none',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                zIndex: 10,
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }} className="tabular-nums">
-                {hoveredPoint.timecode}
-              </div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: hoveredPoint.isAnomaly ? 'var(--coral)' : 'var(--text)' }} className="tabular-nums">
-                {getCohortVal(hoveredPoint) !== null ? `${getCohortVal(hoveredPoint)}%` : 'Insufficient Sample'}
-                {hoveredPoint.isAnomaly && <span style={{ fontSize: '11px', marginLeft: '4px' }}>CLIFF</span>}
-              </div>
-            </div>
+            (() => {
+              const hx = getX(hoveredPoint.timeMs);
+              if (hx < padding.left || hx > width - padding.right) return null;
+              return (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: `${getCohortVal(hoveredPoint) !== null ? getY(getCohortVal(hoveredPoint)!) - 40 : padding.top}px`,
+                    left: `${hx}px`,
+                    transform: 'translate(-50%, -100%)',
+                    backgroundColor: 'var(--surface-3)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '6px 10px',
+                    pointerEvents: 'none',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                    zIndex: 10,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }} className="tabular-nums">
+                    {hoveredPoint.timecode}
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: hoveredPoint.isAnomaly ? 'var(--coral)' : 'var(--text)' }} className="tabular-nums">
+                    {getCohortVal(hoveredPoint) !== null ? `${getCohortVal(hoveredPoint)}%` : 'Insufficient Sample'}
+                    {hoveredPoint.isAnomaly && <span style={{ fontSize: '11px', marginLeft: '4px' }}>CLIFF</span>}
+                  </div>
+                </div>
+              );
+            })()
           )}
         </div>
       ) : (
