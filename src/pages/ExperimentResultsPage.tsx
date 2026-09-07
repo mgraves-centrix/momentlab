@@ -7,6 +7,8 @@ import { useMobile } from '../hooks/useMobile';
 import { 
   Download, ChevronRight, Sparkles, Calendar, Info, AlertTriangle, Play, Pause 
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, ComposedChart, Bar, Cell } from 'recharts';
 
 interface HoverInfo {
@@ -220,6 +222,298 @@ export const ExperimentResultsPage: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const handleExportPDF = () => {
+    if (!data || !data.cohort_breakdown || data.cohort_breakdown.length === 0) return;
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    let y = 15;
+
+    // 1. Header
+    doc.setFillColor('#8b5cf6');
+    doc.rect(14, y, 182, 3, 'F');
+    y += 10;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor('#8b5cf6');
+    doc.text('MomentLab', 14, y);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor('#8d979f');
+    const genTime = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+    doc.text(`Generated: ${genTime}`, 196, y, { align: 'right' });
+    y += 7;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor('#1c2630');
+    doc.text('EXPERIMENT RESULTS REPORT', 14, y);
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor('#8d979f');
+    doc.text(`Project ID: ${projectId}   |   Experiment ID: ${experimentId}`, 14, y);
+    y += 8;
+
+    doc.setDrawColor('#8b5cf6');
+    doc.setLineWidth(0.5);
+    doc.line(14, y, 196, y);
+    y += 10;
+
+    // 2. Verdict Block
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor('#8b5cf6');
+    doc.text('VERDICT & HYPOTHESIS', 14, y);
+    y += 6;
+
+    const verdictBoxY = y;
+    doc.setFillColor('#f8fafc');
+    doc.setDrawColor('#e2e8f0');
+    doc.roundedRect(14, verdictBoxY, 182, 36, 2, 2, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor('#8d979f');
+    doc.text('HYPOTHESIS', 20, verdictBoxY + 8);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor('#1c2630');
+    const splitHypothesis = doc.splitTextToSize(data.hypothesis || 'N/A', 100);
+    doc.text(splitHypothesis, 20, verdictBoxY + 15);
+
+    if (data.outcome_details) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor('#8d979f');
+      const splitDetails = doc.splitTextToSize(data.outcome_details, 100);
+      doc.text(splitDetails, 20, verdictBoxY + 28);
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor('#8d979f');
+    doc.text('OUTCOME', 130, verdictBoxY + 8);
+
+    const outcomeText = String(data.outcome || 'UNKNOWN').toUpperCase();
+    let badgeBg = '#f2b84b';
+    let badgeTextColor = '#ffffff';
+
+    if (outcomeText === 'SUPPORTED') {
+      badgeBg = '#b7e33d';
+      badgeTextColor = '#1c2630';
+    } else if (outcomeText === 'NOT SUPPORTED' || outcomeText === 'REJECTED') {
+      badgeBg = '#ff6652';
+      badgeTextColor = '#ffffff';
+    } else {
+      badgeBg = '#f2b84b';
+      badgeTextColor = '#1c2630';
+    }
+
+    doc.setFillColor(badgeBg);
+    doc.roundedRect(130, verdictBoxY + 10, 52, 8, 2, 2, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(badgeTextColor);
+    doc.text(outcomeText, 156, verdictBoxY + 15.5, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor('#8d979f');
+    doc.text('CONFIDENCE LEVEL', 130, verdictBoxY + 24);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor('#58c94b');
+    doc.text(`${data.confidence ?? 'N/A'}%`, 130, verdictBoxY + 30);
+
+    y = verdictBoxY + 44;
+
+    // 3. Test Configuration
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor('#8b5cf6');
+    doc.text('TEST CONFIGURATION & SAMPLE SIZES', 14, y);
+    y += 6;
+
+    const configBoxY = y;
+    doc.setFillColor('#ffffff');
+    doc.setDrawColor('#e2e8f0');
+    doc.roundedRect(14, configBoxY, 182, 24, 2, 2, 'FD');
+
+    const colWidth = 182 / 3;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor('#8d979f');
+    doc.text('TEST PERIOD', 20, configBoxY + 7);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor('#1c2630');
+    doc.text(`${data.test_period_start || '-'} to ${data.test_period_end || '-'}`, 20, configBoxY + 13);
+    doc.setFontSize(8);
+    doc.setTextColor('#8d979f');
+    doc.text(`${data.test_duration_days || '-'} days`, 20, configBoxY + 18);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor('#8d979f');
+    doc.text('ALLOCATION SPLIT', 20 + colWidth, configBoxY + 7);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor('#1c2630');
+    const allocStr = data.allocation_split || `${data.allocation_control ?? 50}/${data.allocation_variant ?? 50}`;
+    doc.text(allocStr, 20 + colWidth, configBoxY + 13);
+
+    const controlN = (data.sample_size_control ?? data.sample_sizes?.control)?.toLocaleString() || '-';
+    const variantN = (data.sample_size_variant ?? data.sample_sizes?.variant)?.toLocaleString() || '-';
+    const totalN = (data.sample_sizes?.total ?? ((data.sample_size_control || 0) + (data.sample_size_variant || 0)))?.toLocaleString() || '-';
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor('#8d979f');
+    doc.text('SAMPLE SIZES', 20 + colWidth * 2, configBoxY + 7);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor('#1c2630');
+    doc.text(`Control: ${controlN}  |  Variant: ${variantN}`, 20 + colWidth * 2, configBoxY + 13);
+    doc.setFontSize(8);
+    doc.setTextColor('#8d979f');
+    doc.text(`Total: ${totalN}`, 20 + colWidth * 2, configBoxY + 18);
+
+    y = configBoxY + 32;
+
+    // 4. Cohort Results Table
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor('#8b5cf6');
+    doc.text('COHORT BREAKDOWN', 14, y);
+    y += 4;
+
+    const tableHead = [['Cohort', 'Cut A', 'Cut B', 'Lift', '95% CI', 'Confidence']];
+    const tableData = data.cohort_breakdown.map((c: any) => [
+      c.cohort || '-',
+      c.cut_a != null ? `${c.cut_a}%` : '-',
+      c.cut_b != null ? `${c.cut_b}%` : '-',
+      c.lift != null ? `${c.lift > 0 ? '+' : ''}${c.lift}%` : '-',
+      c.ci || '-',
+      c.confidence != null ? `${c.confidence}%` : '-'
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: tableHead,
+      body: tableData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: '#8b5cf6',
+        textColor: '#ffffff',
+        fontStyle: 'bold',
+        fontSize: 9,
+        halign: 'left'
+      },
+      bodyStyles: {
+        fontSize: 8.5,
+        textColor: '#1c2630'
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', halign: 'left' },
+        1: { halign: 'center' },
+        2: { halign: 'center' },
+        3: { halign: 'center', fontStyle: 'bold' },
+        4: { halign: 'center' },
+        5: { halign: 'center', fontStyle: 'bold' }
+      },
+      didParseCell: (dataCell) => {
+        if (dataCell.section === 'body' && dataCell.column.index === 3) {
+          const strVal = dataCell.cell.text.join('');
+          if (strVal.startsWith('+') || parseFloat(strVal) > 0) {
+            dataCell.cell.styles.textColor = '#b7e33d';
+          } else if (strVal.startsWith('-') || parseFloat(strVal) < 0) {
+            dataCell.cell.styles.textColor = '#ff6652';
+          }
+        }
+      },
+      margin: { left: 14, right: 14 }
+    });
+
+    y = (doc as any).lastAutoTable.finalY + 12;
+
+    if (y > 230) {
+      doc.addPage();
+      y = 20;
+    }
+
+    // 5. ClickHouse Query Provenance Table
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor('#8b5cf6');
+    doc.text('CLICKHOUSE QUERY PROVENANCE', 14, y);
+    y += 6;
+
+    const validQueries = recentQueries && recentQueries.length > 0 ? recentQueries.slice(0, 5) : [];
+
+    if (validQueries.length === 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor('#8d979f');
+      doc.text('No queries recorded', 14, y);
+      y += 10;
+    } else {
+      const provHead = [['Query ID', 'Rows Read', 'Duration (ms)']];
+      const provData = validQueries.map((q: any) => [
+        q.query_id || '-',
+        q.rows != null ? q.rows.toLocaleString() : (q.rows_read != null ? q.rows_read.toLocaleString() : '-'),
+        q.duration_ms != null ? `${q.duration_ms} ms` : '-'
+      ]);
+
+      autoTable(doc, {
+        startY: y,
+        head: provHead,
+        body: provData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: '#64748b',
+          textColor: '#ffffff',
+          fontStyle: 'bold',
+          fontSize: 8.5,
+          halign: 'left'
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: '#1c2630'
+        },
+        columnStyles: {
+          0: { fontStyle: 'bold', halign: 'left' },
+          1: { halign: 'center' },
+          2: { halign: 'center' }
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 12;
+    }
+
+    // 6. Footer on every page
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor('#8d979f');
+      doc.setDrawColor('#e2e8f0');
+      doc.line(14, 282, 196, 282);
+      doc.text('Generated by MomentLab', 14, 287);
+      doc.text(`Page ${i} of ${pageCount}`, 196, 287, { align: 'right' });
+    }
+
+    doc.save(`${projectId}_${experimentId}_results.pdf`);
+  };
+
   const handleCreateFollowUp = () => {
     navigate(`/projects/${projectId}/experiments/${experimentId}/finding?follow_up=1`);
   };
@@ -291,9 +585,47 @@ export const ExperimentResultsPage: React.FC = () => {
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <button onClick={handleExportCSV} style={{ backgroundColor: 'transparent', border: '1px solid #283540', color: '#8d979f', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+            <button 
+              onClick={handleExportCSV} 
+              disabled={!data || !data.cohort_breakdown || data.cohort_breakdown.length === 0}
+              style={{ 
+                backgroundColor: 'transparent', 
+                border: '1px solid #283540', 
+                color: (!data || !data.cohort_breakdown || data.cohort_breakdown.length === 0) ? '#4a5568' : '#8d979f', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '10px 16px', 
+                borderRadius: '4px', 
+                fontSize: '12px', 
+                fontWeight: 600, 
+                cursor: (!data || !data.cohort_breakdown || data.cohort_breakdown.length === 0) ? 'not-allowed' : 'pointer',
+                opacity: (!data || !data.cohort_breakdown || data.cohort_breakdown.length === 0) ? 0.5 : 1
+              }}
+            >
               <Download size={16} />
-              EXPORT REPORT
+              EXPORT CSV
+            </button>
+            <button 
+              onClick={handleExportPDF} 
+              disabled={!data || !data.cohort_breakdown || data.cohort_breakdown.length === 0}
+              style={{ 
+                backgroundColor: 'transparent', 
+                border: '1px solid #283540', 
+                color: (!data || !data.cohort_breakdown || data.cohort_breakdown.length === 0) ? '#4a5568' : '#8d979f', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '10px 16px', 
+                borderRadius: '4px', 
+                fontSize: '12px', 
+                fontWeight: 600, 
+                cursor: (!data || !data.cohort_breakdown || data.cohort_breakdown.length === 0) ? 'not-allowed' : 'pointer',
+                opacity: (!data || !data.cohort_breakdown || data.cohort_breakdown.length === 0) ? 0.5 : 1
+              }}
+            >
+              <Download size={16} />
+              EXPORT PDF
             </button>
             <button onClick={handleCreateFollowUp} style={{ backgroundColor: '#b7e33d', border: 'none', color: '#000', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
               CREATE FOLLOW-UP
