@@ -1,3 +1,4 @@
+import hashlib
 import os
 import secrets
 from fastapi import HTTPException, status, Security
@@ -26,4 +27,4 @@ def get_current_reviewer(credentials: HTTPAuthorizationCredentials = Security(se
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authorization token."
         )
-    return f"reviewer_{token[:8]}"
+    return f"reviewer_{hashlib.sha256(token.encode()).hexdigest()[:8]}"
