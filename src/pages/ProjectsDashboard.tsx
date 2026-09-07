@@ -16,6 +16,7 @@ import {
   HealthStatus
 } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
+import { plural } from '../utils/format';
 
 export const ProjectsDashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -163,7 +164,7 @@ export const ProjectsDashboard: React.FC = () => {
             </span>
           </div>
           <p style={{ fontSize: '12px', color: '#8d979f', margin: 0, lineHeight: '1.5' }}>
-            Built for short-form video editors and filmmakers who cannot afford $10k+ traditional test screenings. MomentLab analyzes second-by-second audience reactions across <strong style={{ color: '#ffffff' }}>{totalRespCount.toLocaleString()} consented viewers</strong>, proposes targeted edit points, and measures actual retention lift (<strong style={{ color: '#58c94b' }}>{primaryLiftStr} lift</strong>) with full query-level ClickHouse execution traces.
+            Built for short-form video editors and filmmakers who cannot afford $10k+ traditional test screenings. MomentLab analyzes second-by-second audience reactions across <strong style={{ color: '#ffffff' }}>{totalRespCount.toLocaleString()} {plural(totalRespCount, 'consented viewer')}</strong>, proposes targeted edit points, and measures actual retention lift (<strong style={{ color: '#58c94b' }}>{primaryLiftStr} lift</strong>) with full query-level ClickHouse execution traces.
           </p>
         </div>
 
@@ -172,7 +173,7 @@ export const ProjectsDashboard: React.FC = () => {
         {/* Sub-bar Filter & Controls */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', fontSize: '12px', color: '#8d979f' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span style={{ fontWeight: 600, color: '#f1f3f2' }}>{projects.length} PROJECTS</span>
+            <span style={{ fontWeight: 600, color: '#f1f3f2' }}>{projects.length} {plural(projects.length, 'PROJECT')}</span>
             <span style={{ color: '#283540' }}>|</span>
             <div 
               onClick={handleSortToggle}
@@ -280,7 +281,7 @@ export const ProjectsDashboard: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', width: isMobile ? '100%' : undefined, justifyContent: isMobile ? 'space-between' : undefined, flexShrink: isMobile ? undefined : 0 }}>
                         <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
                           <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }} className="tabular-nums">
-                            {cutsCount != null ? cutsCount : '—'} cuts / {respCount != null ? respCount.toLocaleString() : '0'} resp
+                            {cutsCount != null ? cutsCount : '—'} {cutsCount != null ? plural(cutsCount, 'cut') : 'cuts'} / {respCount != null ? respCount.toLocaleString() : '0'} {plural(respCount ?? 0, 'respondent')}
                           </div>
                           <div style={{ fontSize: '11px', color: isReady ? '#c4a7ff' : '#8d979f' }}>
                             {isReady ? 'ANALYSIS READY' : 'DRAFT'}
@@ -364,20 +365,20 @@ export const ProjectsDashboard: React.FC = () => {
                             <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">
                               {cutsCount != null ? cutsCount : '—'}
                             </div>
-                            <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cuts</div>
+                            <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{plural(cutsCount ?? 0, 'CUT')}</div>
                           </div>
 
                           <div>
                             <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff' }} className="tabular-nums">
                               {respCount != null ? respCount.toLocaleString() : '0'}
                             </div>
-                            <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respondents</div>
+                            <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{plural(respCount ?? 0, 'RESPONDENT')}</div>
                           </div>
 
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Latest Finding</div>
                             <div style={{ fontSize: '11px', fontWeight: 700, color: finding ? '#ff6652' : '#8d979f', marginTop: '2px' }}>
-                              {finding || 'No findings yet'}
+                              {finding || 'None yet'}
                             </div>
                           </div>
                         </div>
@@ -580,7 +581,7 @@ export const ProjectsDashboard: React.FC = () => {
                     const durationStr = run.duration_ms != null
                       ? (run.duration_ms < 1000 ? `${run.duration_ms}ms` : `${(run.duration_ms / 1000).toFixed(1)}s`)
                       : '0ms';
-                    const rowsStr = run.rows != null ? `${run.rows} rows` : '';
+                    const rowsStr = run.rows != null ? `${run.rows} ${plural(run.rows, 'row')}` : '';
 
                     return (
                       <div key={run.query_id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'monospace', color: '#8d979f', gap: '12px' }}>

@@ -4,6 +4,7 @@ import { AppShell } from '../components/AppShell';
 import { fetchRecentQueries } from '../api/client';
 import { StatePanel } from '../components/StatePanel';
 import { useMobile } from '../hooks/useMobile';
+import { plural } from '../utils/format';
 import { 
   Download, ChevronRight, Sparkles, Calendar, Info, AlertTriangle, Play, Pause 
 } from 'lucide-react';
@@ -65,7 +66,7 @@ const VideoPlayerWithTimeline: React.FC<{
   const segments = Array.from({ length: 40 });
 
   return (
-    <div style={{ position: 'relative', height: '160px', backgroundColor: '#000', borderRadius: '4px', border: '1px solid #1c2630', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'relative', height: '160px', backgroundColor: '#000', borderRadius: '4px', border: '1px solid #1c2630', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <video 
           ref={videoRef} 
@@ -357,7 +358,7 @@ export const ExperimentResultsPage: React.FC = () => {
     doc.text(`${data.test_period_start || '-'} to ${data.test_period_end || '-'}`, 20, configBoxY + 13);
     doc.setFontSize(8);
     doc.setTextColor('#8d979f');
-    doc.text(`${data.test_duration_days || '-'} days`, 20, configBoxY + 18);
+    doc.text(`${data.test_duration_days || '-'} ${plural(data.test_duration_days || 0, 'day')}`, 20, configBoxY + 18);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
@@ -688,7 +689,7 @@ export const ExperimentResultsPage: React.FC = () => {
               {test_period_start} — {test_period_end}
             </div>
             <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '6px' }}>
-              {test_duration_days} days
+              {test_duration_days} {plural(test_duration_days, 'day')}
             </div>
           </div>
 

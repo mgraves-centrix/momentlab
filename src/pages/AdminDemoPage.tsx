@@ -3,6 +3,7 @@ import { AppShell } from '../components/AppShell';
 import { StatePanel, StateType } from '../components/StatePanel';
 import { Activity, RefreshCw, AlertTriangle, CheckCircle, Database, Server, Check } from 'lucide-react';
 import { useMobile } from '../hooks/useMobile';
+import { plural } from '../utils/format';
 
 interface HealthData {
   status: string;
@@ -89,7 +90,7 @@ export const AdminDemoPage: React.FC = () => {
         throw new Error(`Reset failed with HTTP status ${res.status}`);
       }
       const data = await res.json();
-      setResetMessage(`Success: Reseeded ${data.reseeded_respondents} respondents (${data.total_events_inserted} events).`);
+      setResetMessage(`Success: Reseeded ${data.reseeded_respondents} ${plural(data.reseeded_respondents, 'respondent')} (${data.total_events_inserted} ${plural(data.total_events_inserted, 'event')}).`);
       setResetConfirmed(false);
       fetchHealth();
     } catch (e: any) {
@@ -207,7 +208,7 @@ export const AdminDemoPage: React.FC = () => {
               <div style={{ backgroundColor: 'var(--surface-2)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
                 <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>TIMELINE BUCKETS</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--lime)' }}>
-                  {health?.timelineRows ?? 0} rows (00:00–01:00)
+                  {health?.timelineRows ?? 0} {plural(health?.timelineRows ?? 0, 'row')} (00:00–01:00)
                 </div>
               </div>
             </div>

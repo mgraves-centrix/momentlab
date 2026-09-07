@@ -49,7 +49,7 @@ def list_projects():
     try:
         from backend.services.clickhouse import get_client
         ch_client = get_client()
-        res = ch_client.query("SELECT project_id, count(DISTINCT session_id), count(DISTINCT scene_id) FROM momentlab.audience_events GROUP BY project_id")
+        res = ch_client.query("SELECT project_id, count(DISTINCT session_id), count(DISTINCT scene_id) FROM momentlab.screening_sessions WHERE session_id != '00000000-0000-0000-0000-000000000000' GROUP BY project_id")
         for row in res.result_rows:
             if row[0] and row[1] > 0:
                 respondents_by_project[row[0]] = int(row[1])

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, CheckCircle, Clock } from 'lucide-react';
 import { McpActivity } from '../types/northlight';
+import { plural } from '../utils/format';
 
 interface McpActivityPanelProps {
   activities: McpActivity[];
@@ -47,7 +48,7 @@ export const McpActivityPanel: React.FC<McpActivityPanelProps> = ({
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--success)' }}>
                     <CheckCircle size={11} />
-                    <span className="tabular-nums">{act.rowCount} rows</span>
+                    <span className="tabular-nums">{act.rowCount} {plural(act.rowCount, 'row')}</span>
                   </span>
                 </div>
               </div>

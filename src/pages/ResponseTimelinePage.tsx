@@ -13,6 +13,7 @@ import { McpActivityPanel } from '../components/McpActivityPanel';
 import { fetchExperimentTimeline, fetchExperimentHypothesis, fetchExperimentSummary, fetchRecentQueries, fetchProject, Project, TimelineDataPoint, Hypothesis, ExperimentSummary, generateHypothesis } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 
+import { plural } from '../utils/format';
 import { StatePanel } from '../components/StatePanel';
 
 export const ResponseTimelinePage: React.FC = () => {
@@ -153,7 +154,7 @@ export const ResponseTimelinePage: React.FC = () => {
             <StatePanel 
               type="insufficient_sample" 
               message={totalRespondents > 0 
-                ? `Observed ${totalRespondents} respondents (< 100 threshold). Minimum 100 consented completions required before anomaly detection activates.` 
+                ? `Observed ${totalRespondents} ${plural(totalRespondents, 'respondent')} (< 100 threshold). Minimum 100 consented completions required before anomaly detection activates.` 
                 : 'No screening data collected for this project yet (0 respondents). Minimum 100 consented completions required before anomaly detection activates.'} 
             />
 
@@ -248,7 +249,7 @@ export const ResponseTimelinePage: React.FC = () => {
               <div>
                 <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Screening Sample Size</div>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-display)' }} className="tabular-nums">
-                  {totalRespondents.toLocaleString()} <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 400 }}>respondents</span>
+                  {totalRespondents.toLocaleString()} <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 400 }}>{plural(totalRespondents, 'respondent')}</span>
                 </div>
               </div>
 

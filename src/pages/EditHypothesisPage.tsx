@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 
 import { useMobile } from '../hooks/useMobile';
+import { plural } from '../utils/format';
 
 import { StatePanel } from '../components/StatePanel';
 
@@ -377,7 +378,7 @@ export const EditHypothesisPage: React.FC = () => {
                 <div style={{ padding: '12px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
                   <div style={{ color: '#c4a7ff', fontWeight: 700, marginBottom: '4px' }}>Uncertainty & Sample Size</div>
                   <div style={{ color: '#8d979f', lineHeight: 1.4 }}>
-                    Observed N={summaryData?.total_respondents || 0} respondents with 95% CI on retention dip. p &lt; 0.001 against baseline.
+                    Observed N={summaryData?.total_respondents || 0} {plural(summaryData?.total_respondents || 0, 'respondent')} with 95% CI on retention dip. p &lt; 0.001 against baseline.
                   </div>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
