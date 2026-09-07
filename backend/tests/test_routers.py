@@ -239,6 +239,22 @@ def test_render_variant_no_anomaly():
     assert data["variant_url"] is None
 
 
+def test_render_variant_anomaly_window_resolves_os_names(isolate_firestore):
+    """Verifies that render_variant executes os module code paths when an anomaly window exists without NameError."""
+    isolate_firestore.collection("projects").document("proj_northlight_01").collection("experiments").document("exp_23a").collection("hypotheses").document("current").set({"anomalyWindow": "00:10-00:20"})
+    response = client.post(
+        "/api/v1/projects/proj_northlight_01/experiments/exp_23a/render-variant",
+        headers={"Authorization": "Bearer valid_reviewer_token_123"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "SUCCESS"
+    assert data["rendered"] is True
+    assert data["variant_url"] is not None
+
+
+
+
 
 
 
