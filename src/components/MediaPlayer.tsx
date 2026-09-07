@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Upload, Film, Sparkles, Youtube } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Upload, Film, Youtube } from 'lucide-react';
 import { useMobile } from '../hooks/useMobile';
 import { formatTimecodeSec } from '../utils/format';
 
@@ -29,14 +29,11 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   const [videoSrc, setVideoSrc] = useState<string | null>(initialVideoUrl || null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isGeneratingVeo, setIsGeneratingVeo] = useState(false);
   const [currentTimeSec, setCurrentTimeSec] = useState(initialTimecodeMs / 1000);
   const [durationSec, setDurationSec] = useState(0);
   const isYouTube = Boolean(videoSrc && (videoSrc.includes('youtube.com') || videoSrc.includes('youtu.be')));
   const [showYoutubeInput, setShowYoutubeInput] = useState(false);
   const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
-
-  const [veoStatusMessage, setVeoStatusMessage] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const ytPlayerRef = useRef<any>(null);
@@ -191,31 +188,6 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
     setShowYoutubeInput(false);
   };
 
-  const handleGenerateVeo = async () => {
-    setIsGeneratingVeo(true);
-    setVeoStatusMessage(null);
-    try {
-      const res = await fetch('/api/v1/media/veo-generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: sceneTitle })
-      });
-      const data = await res.json();
-      if (data.status === 'COMPLETED' && data.video_url) {
-        setVideoSrc(data.video_url);
-        setIsPlaying(true);
-        setVeoStatusMessage('Synthetic Veo scene generated successfully.');
-      } else if (data.status === 'BLOCKED') {
-        setVeoStatusMessage(`Veo Generation Blocked: ${data.reason}`);
-      }
-    } catch (err) {
-      console.error('Veo generation call failed:', err);
-      setVeoStatusMessage('Veo generation endpoint unavailable.');
-    } finally {
-      setIsGeneratingVeo(false);
-    }
-  };
-
   return (
     <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
       {/* Top Bar with Title and Action Buttons */}
@@ -250,27 +222,6 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
               <span>YouTube URL</span>
             </button>
 
-            <button
-              onClick={handleGenerateVeo}
-              disabled={isGeneratingVeo}
-              style={{
-                backgroundColor: 'rgba(139, 92, 246, 0.15)',
-                border: '1px solid var(--violet)',
-                color: 'var(--violet-soft)',
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '11px',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              <Sparkles size={12} color="var(--violet)" />
-              <span>{isGeneratingVeo ? 'Generating Veo...' : 'Google Veo'}</span>
-            </button>
-
             <input
               type="file"
               ref={fileInputRef}
@@ -300,13 +251,6 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
           </div>
         )}
       </div>
-
-      {veoStatusMessage && (
-        <div style={{ backgroundColor: '#131b22', border: '1px solid #283540', borderRadius: '4px', padding: '8px 12px', fontSize: '11px', color: '#ffb86c', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>{veoStatusMessage}</span>
-          <button onClick={() => setVeoStatusMessage(null)} style={{ background: 'none', border: 'none', color: '#8d979f', cursor: 'pointer', fontSize: '12px' }}>✕</button>
-        </div>
-      )}
 
       {showYoutubeInput && (
         <form onSubmit={handleYouTubeSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
@@ -390,7 +334,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
                 No Media Attached
               </div>
               <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
-                This project has no active scene footage. Upload video or generate via Google Veo.
+                This project has no active scene footage. Upload video.
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>

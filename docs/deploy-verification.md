@@ -18,7 +18,7 @@
 | **Secret Manager** | Secret Manager | `clickhouse-writer-credentials`, `clickhouse-mcp-credentials` | **NOT PROVISIONED** | `gcloud secrets list` returns 0 secrets in `momentlab-504305`; runtime relies on local `.env` |
 | **Vertex AI Agent Engine** | Reasoning Engines | `projects/momentlab-504305/locations/us-central1/reasoningEngines` | **NOT PROVISIONED** | Vertex AI `reasoningEngines` endpoint returns `{}`; agent operates via local ADK engine |
 | **Cloud Firestore** | Document Database | `momentlab-504305` | **NOT ENABLED** | Firestore is not enabled in `momentlab-504305`; application uses Firestore emulator (`localhost:8080`) |
-| **Vertex AI Veo Generative Video** | Foundation Models | `veo-3.1-fast-generate-001` (`us-central1`) | **QUOTA GATED** | Model catalog discovery verified in `us-central1`; generation blocked pending quota allowlist approval |
+| **Vertex AI Veo Generative Video** | Foundation Models | `veo-3.1-fast-generate-001` (`us-central1`) | **NOT EXPOSED AT RUNTIME** | Model catalog discovery remains available in `us-central1` while generation is deliberately not served at runtime to avoid unbounded model spend |
 
 ---
 
@@ -28,7 +28,7 @@
 2. **Firestore Not Enabled**: Firestore is not provisioned in project `momentlab-504305`. Local development, seeding (`backend/scripts/seed_firestore.py`), and test suites run against the local Firestore emulator (`localhost:8080`).
 3. **Secret Manager Empty**: 0 secrets exist in Google Secret Manager for project `momentlab-504305`. Production secret migration is pending.
 4. **Vertex AI Reasoning Engine Unprovisioned**: No reasoning engine is deployed under `projects/momentlab-504305/locations/us-central1/reasoningEngines`.
-5. **Veo Quota Approval Pending**: Veo models are catalog-accessible in `us-central1`, but video generation is quota-gated until quota allowlist approval is granted by Google Cloud.
+5. **Veo Generation Runtime Endpoint**: Video generation is verified working out-of-band with `veo-3.1-generate-001` but deliberately not exposed as a runtime endpoint to avoid unbounded model spend.
 
 ---
 

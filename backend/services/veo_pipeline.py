@@ -1,5 +1,4 @@
 import os
-import uuid
 import logging
 import subprocess
 from typing import List, Dict, Any, Optional, Tuple
@@ -169,74 +168,3 @@ def stitch_video_clips(clip_paths: List[str], output_path: str, ffmpeg_bin: str 
         return False
 
     return True
-
-def generate_multi_clip_veo_sequence(
-    prompt: str,
-    target_duration_sec: int = 61,
-    project_id: Optional[str] = None,
-    location: str = "us-central1"
-) -> Dict[str, Any]:
-    """
-    Generates a continuous multi-clip sequence using Vertex AI Veo models,
-    stitching the clips server-side to match the target scene duration.
-    """
-    proj = get_gcp_project_id(project_id)
-    
-    try:
-        from google.genai import Client
-        client = Client(vertexai=True, project=proj, location=location)
-        
-        # Determine best available model
-        selected_model = "veo-3.1-fast-generate-001"
-        
-        # Number of 8-second clips needed to cover target duration
-        num_clips = max(1, (target_duration_sec + 7) // 8)
-        generated_clips = []
-        
-        output_dir = os.path.join(os.path.dirname(__file__), "..", "..", "public", "media", "synthetic")
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Generate sequence clips
-        for clip_idx in range(num_clips):
-            clip_prompt = f"{prompt}. Segment {clip_idx + 1} of {num_clips}. Continuous 35mm film photography shot."
-            operation = client.models.generate_videos(
-                model=selected_model,
-                prompt=clip_prompt
-            )
-            
-            # If immediate result available
-            if hasattr(operation, 'result') and operation.result and hasattr(operation.result, 'generated_videos'):
-                clip_bytes = operation.result.generated_videos[0].video.video_bytes
-                clip_file = os.path.join(output_dir, f"clip_{uuid.uuid4().hex[:6]}_{clip_idx}.mp4")
-                with open(clip_file, "wb") as f:
-                    f.write(clip_bytes)
-                generated_clips.append(clip_file)
-
-        if generated_clips:
-            final_id = f"synth_seq_{uuid.uuid4().hex[:8]}"
-            final_path = os.path.join(output_dir, f"{final_id}.mp4")
-            if stitch_video_clips(generated_clips, final_path) and os.path.exists(final_path) and os.path.getsize(final_path) > 0:
-                return {
-                    "status": "COMPLETED",
-                    "model": selected_model,
-                    "media_type": "SYNTHETIC",
-                    "asset_id": final_id,
-                    "video_url": f"/media/synthetic/{final_id}.mp4",
-                    "duration_sec": target_duration_sec,
-                    "clips_stitched": len(generated_clips)
-                }
-
-        return {
-            "status": "BLOCKED",
-            "reason": f"Vertex AI Veo video generation for model '{selected_model}' requires active Veo quota in region {location}. Action required: enable model in Vertex AI Model Garden (https://console.cloud.google.com/vertex-ai/model-garden?project={proj}) and run 'gcloud services enable aiplatform.googleapis.com --project {proj}'.",
-            "media_type": "SYNTHETIC",
-            "model": selected_model
-        }
-    except Exception as e:
-        logger.info("Veo generation exception: %s", e)
-        return {
-            "status": "BLOCKED",
-            "reason": f"Vertex AI Veo video generation requires active Veo quota on project '{proj}' in region {location}. Error: {str(e)}. Action required: enable model in Vertex AI Model Garden (https://console.cloud.google.com/vertex-ai/model-garden?project={proj}) and run 'gcloud services enable aiplatform.googleapis.com --project {proj}'.",
-            "media_type": "SYNTHETIC",
-            "model": "veo-3.1-fast-generate-001"
-        }

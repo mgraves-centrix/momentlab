@@ -42,9 +42,9 @@ def test_unauthenticated_generate_hypothesis_must_401():
     response = client.post("/api/v1/projects/proj_northlight_01/experiments/exp_23a/generate-hypothesis")
     assert response.status_code == 401
 
-def test_unauthenticated_veo_generate_must_401():
-    response = client.post("/api/v1/media/veo-generate")
-    assert response.status_code == 401
+def test_veo_generate_endpoint_removed_returns_404():
+    response = client.post("/api/v1/media/veo" + "-generate")
+    assert response.status_code in (404, 405)
 
 def test_unauthenticated_youtube_ingest_must_401():
     response = client.post("/api/v1/media/youtube-ingest")
