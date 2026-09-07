@@ -219,6 +219,18 @@ Respond strictly in valid JSON format with the following keys:
 - isSimulated: Must be true.
 """
     
+    from google.adk.workflow import RetryConfig
+    from google.genai.errors import ClientError
+
+    retry_config = RetryConfig(
+        max_attempts=3,
+        initial_delay=2.0,
+        backoff_factor=2.0,
+        max_delay=10.0,
+        jitter=1.0,
+        exceptions=[ClientError],
+    )
+
     # Safety settings are explicit and deliberate, not defaults
     generate_content_config = types.GenerateContentConfig(
         safety_settings=[
@@ -238,7 +250,17 @@ Respond strictly in valid JSON format with the following keys:
                 category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
                 threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
             ),
-        ]
+        ],
+        http_options=types.HttpOptions(
+            retry_options=types.HttpRetryOptions(
+                attempts=3,
+                initial_delay=2.0,
+                exp_base=2.0,
+                max_delay=10.0,
+                jitter=1.0,
+                http_status_codes=[429, 503],
+            )
+        ),
     )
 
     # Initialize agent
@@ -248,6 +270,7 @@ Respond strictly in valid JSON format with the following keys:
         tools=[clickhouse_mcp],
         instruction=instruction,
         generate_content_config=generate_content_config,
+        retry_config=retry_config,
     )
     
     session_service = InMemorySessionService()
@@ -706,7 +729,17 @@ def _perform_video_grounding(project_id: str, parsed_res: dict) -> Optional[dict
         client = Client(
             vertexai=True,
             project=os.environ.get("GOOGLE_CLOUD_PROJECT", "momentlab-504305"),
-            location=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+            location=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
+            http_options=types.HttpOptions(
+                retry_options=types.HttpRetryOptions(
+                    attempts=3,
+                    initial_delay=2.0,
+                    exp_base=2.0,
+                    max_delay=10.0,
+                    jitter=1.0,
+                    http_status_codes=[429, 503],
+                )
+            ),
         )
 
         part = types.Part.from_uri(file_uri=gcs_uri, mime_type="video/mp4")

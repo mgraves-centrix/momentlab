@@ -80,3 +80,107 @@ async def test_agent_hypothesis_succeeds_even_when_grounding_fails(monkeypatch):
     assert hyp.get("visualGrounding") is None
     assert len(hyp.get("evidenceRecords", [])) > 0
 
+
+def test_video_grounding_client_retry_configuration(monkeypatch):
+    """Verifies P34: _perform_video_grounding configures Client with HttpOptions status-code targeting for 429 and 503."""
+    from unittest.mock import MagicMock
+    captured_client_args = {}
+
+    class MockModels:
+        def generate_content(self, model, contents, config):
+            mock_resp = MagicMock()
+            mock_resp.candidates = [MagicMock(finish_reason="STOP")]
+            mock_resp.text = "A video clip observation."
+            return mock_resp
+
+    class MockClient:
+        def __init__(self, vertexai, project, location, http_options=None):
+            captured_client_args["vertexai"] = vertexai
+            captured_client_args["project"] = project
+            captured_client_args["location"] = location
+            captured_client_args["http_options"] = http_options
+            self.models = MockModels()
+
+    monkeypatch.setattr("google.genai.Client", MockClient)
+    res = _perform_video_grounding("proj_northlight_01", {"evidenceRecords": [{"window": "00:33-00:41"}]})
+
+    assert res is not None
+    assert captured_client_args["http_options"] is not None
+    retry_opts = captured_client_args["http_options"].retry_options
+    assert retry_opts is not None
+    assert retry_opts.attempts == 3
+    assert retry_opts.initial_delay == 2.0
+    assert retry_opts.exp_base == 2.0
+    assert retry_opts.max_delay == 10.0
+    assert set(retry_opts.http_status_codes) == {429, 503}
+
+
+def test_video_grounding_simulated_429_retries_and_succeeds(monkeypatch):
+    """Verifies P34: Grounding call simulates 429 on 1st invocation, retries via HttpOptions, and succeeds on 2nd invocation."""
+    import httpx
+    from google.genai import Client as RealClient
+
+    call_count = 0
+
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return httpx.Response(429, json={'error': {'code': 429, 'message': 'Resource exhausted', 'status': 'RESOURCE_EXHAUSTED'}})
+        return httpx.Response(200, json={
+            'candidates': [{
+                'content': {'parts': [{'text': 'Visual observation after retry.'}]},
+                'finishReason': 'STOP'
+            }]
+        })
+
+    mock_httpx_client = httpx.Client(transport=httpx.MockTransport(mock_handler))
+    orig_init = RealClient.__init__
+
+    def mock_client_init(self, *args, **kwargs):
+        http_options = kwargs.get("http_options")
+        if http_options:
+            http_options.httpx_client = mock_httpx_client
+            http_options.retry_options.initial_delay = 0.05
+            http_options.retry_options.max_delay = 0.1
+        orig_init(self, *args, **kwargs)
+
+    monkeypatch.setattr("google.genai.Client.__init__", mock_client_init)
+    res = _perform_video_grounding("proj_northlight_01", {"evidenceRecords": [{"window": "00:33-00:41"}]})
+
+    assert res is not None
+    assert res["observation"] == "Visual observation after retry."
+    assert call_count == 2
+
+
+def test_video_grounding_non_retryable_error_fails_open_without_infinite_loop(monkeypatch):
+    """Verifies P34: Deterministic non-retryable 403 error fails open safely without retrying."""
+    import httpx
+    from google.genai import Client as RealClient
+
+    call_count = 0
+
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        call_count += 1
+        return httpx.Response(403, json={'error': {'code': 403, 'message': 'Permission denied', 'status': 'PERMISSION_DENIED'}})
+
+    mock_httpx_client = httpx.Client(transport=httpx.MockTransport(mock_handler))
+    orig_init = RealClient.__init__
+
+    def mock_client_init(self, *args, **kwargs):
+        http_options = kwargs.get("http_options")
+        if http_options:
+            http_options.httpx_client = mock_httpx_client
+            http_options.retry_options.initial_delay = 0.05
+            http_options.retry_options.max_delay = 0.1
+        orig_init(self, *args, **kwargs)
+
+    monkeypatch.setattr("google.genai.Client.__init__", mock_client_init)
+    res = _perform_video_grounding("proj_northlight_01", {"evidenceRecords": [{"window": "00:33-00:41"}]})
+
+    assert res is None
+    assert call_count == 1
+
+
+
