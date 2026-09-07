@@ -18,9 +18,25 @@ VEO_CANDIDATE_MODELS = [
 
 SUPPORTED_REGIONS = ["us-central1", "us-east4", "us-west1"]
 
+VERIFIED_VEO_INVOCABILITY: Dict[str, Dict[str, Any]] = {
+    "veo-3.1-generate-001": {
+        "invocable": True,
+        "invocable_source": "verified_2026_09_06"
+    },
+    "veo-3.0-generate-001": {
+        "invocable": False,
+        "invocable_source": "verified_2026_09_06"
+    }
+}
+
 def discover_available_veo_models(project_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    Queries live Vertex AI across supported regions to probe Veo availability.
+    Queries live Vertex AI across supported regions to probe Veo availability in the publisher catalog.
+
+    Note: Invocability status is recorded from out-of-band empirical verification rather than
+    probed at request time. Live invocability probing requires executing a billable video generation
+    request (predictLongRunning), as standard GET requests on publisher model resources return 404 even
+    for invocable models.
     """
     proj = get_gcp_project_id(project_id)
     matrix = []
@@ -37,24 +53,34 @@ def discover_available_veo_models(project_id: Optional[str] = None) -> List[Dict
             available_names = {m.name.split('/')[-1] for m in client.models.list()}
         except Exception as e:
             for model in VEO_CANDIDATE_MODELS:
+                inv_info = VERIFIED_VEO_INVOCABILITY.get(model, {
+                    "invocable": None,
+                    "invocable_source": "unverified"
+                })
                 matrix.append({
                     "region": region,
                     "model": model,
                     "in_catalog": False,
                     "status": "NOT_IN_CATALOG",
-                    "invocable": False,
+                    "invocable": inv_info["invocable"],
+                    "invocable_source": inv_info["invocable_source"],
                     "error": str(e)
                 })
             continue
 
         for model in VEO_CANDIDATE_MODELS:
             in_cat = model in available_names
+            inv_info = VERIFIED_VEO_INVOCABILITY.get(model, {
+                "invocable": None,
+                "invocable_source": "unverified"
+            })
             matrix.append({
                 "region": region,
                 "model": model,
                 "in_catalog": in_cat,
                 "status": "IN_CATALOG" if in_cat else "NOT_IN_CATALOG",
-                "invocable": False,  # Model generation requires active Vertex AI Veo quota
+                "invocable": inv_info["invocable"],
+                "invocable_source": inv_info["invocable_source"],
                 "error": None if in_cat else "Model not in publisher catalog for region"
             })
             

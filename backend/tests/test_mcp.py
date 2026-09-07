@@ -110,3 +110,20 @@ def test_mcp_query_correlation_invariants():
     assert "real_q_ids[" not in seed_content
     assert '"effectSize": "' not in seed_content
 
+
+def test_agent_has_explicit_safety_settings():
+    """Verifies P29 requirement: explicit Gemini safety settings for 4 harm categories with BLOCK_MEDIUM_AND_ABOVE on Agent."""
+    with open("backend/agents/mcp_client.py", "r") as f:
+        content = f.read()
+
+    assert "generate_content_config" in content
+    assert "HARM_CATEGORY_HARASSMENT" in content
+    assert "HARM_CATEGORY_HATE_SPEECH" in content
+    assert "HARM_CATEGORY_SEXUALLY_EXPLICIT" in content
+    assert "HARM_CATEGORY_DANGEROUS_CONTENT" in content
+    assert "BLOCK_MEDIUM_AND_ABOVE" in content
+    assert "BLOCK_NONE" not in content
+    assert "types.SafetySetting" in content
+    assert "finish_reason_str in (" in content or "finish_reason" in content
+
+

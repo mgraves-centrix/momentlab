@@ -45,3 +45,15 @@ def test_discover_veo_models_returns_matrix():
     assert isinstance(matrix, list)
     assert len(matrix) >= 1
     assert any(m["region"] == "us-central1" for m in matrix)
+
+    veo_31 = next(m for m in matrix if m["model"] == "veo-3.1-generate-001" and m["region"] == "us-central1")
+    assert veo_31["invocable"] is True
+    assert veo_31["invocable_source"] == "verified_2026_09_06"
+
+    veo_30 = next(m for m in matrix if m["model"] == "veo-3.0-generate-001" and m["region"] == "us-central1")
+    assert veo_30["invocable"] is False
+    assert veo_30["invocable_source"] == "verified_2026_09_06"
+
+    veo_fast = next(m for m in matrix if m["model"] == "veo-3.1-fast-generate-001" and m["region"] == "us-central1")
+    assert veo_fast["invocable"] is None
+    assert veo_fast["invocable_source"] == "unverified"

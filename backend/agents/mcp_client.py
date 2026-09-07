@@ -51,6 +51,7 @@ except ImportError:
 
 from google.adk import Agent, Runner
 from google.adk.sessions import InMemorySessionService
+from google.genai import types
 from google.genai.types import Content, Part
 from google.adk.events import Event
 
@@ -217,12 +218,35 @@ Respond strictly in valid JSON format with the following keys:
 - isSimulated: Must be true.
 """
     
+    # Safety settings are explicit and deliberate, not defaults
+    generate_content_config = types.GenerateContentConfig(
+        safety_settings=[
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            ),
+        ]
+    )
+
     # Initialize agent
     agent = Agent(
         name="momentlab_agent",
         model="gemini-2.5-pro",
         tools=[clickhouse_mcp],
-        instruction=instruction
+        instruction=instruction,
+        generate_content_config=generate_content_config,
     )
     
     session_service = InMemorySessionService()
@@ -244,6 +268,13 @@ Respond strictly in valid JSON format with the following keys:
     async for event in runner.run_async(user_id="default", session_id=session_id, new_message=content):
         now = time.time()
         duration_ms = int((now - step_start_time) * 1000)
+
+        # Check for safety filter blocks or errors
+        finish_reason_str = str(getattr(event, "finish_reason", "") or "").upper()
+        if finish_reason_str in ("SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT"):
+            raise RuntimeError(f"Agent response was blocked by safety filter (finish_reason={finish_reason_str}).")
+        if getattr(event, "error_message", None) and "safety" in str(event.error_message).lower():
+            raise RuntimeError(f"Agent response was blocked by safety filter: {event.error_message}")
         
         # Track tool calls
         function_calls = event.get_function_calls()
