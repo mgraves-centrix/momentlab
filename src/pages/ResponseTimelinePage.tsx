@@ -217,7 +217,13 @@ export const ResponseTimelinePage: React.FC = () => {
               />
             </div>
 
-            <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px' }}>
+            <div style={{ backgroundColor: '#091218', border: '1px solid #16232c', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                <TimeWindowSelector
+                  selectedWindow={selectedWindow}
+                  onWindowChange={(w) => updateQueryParams({ window: w })}
+                />
+              </div>
               <div style={{ minHeight: '200px', height: 'auto', margin: '0 -8px' }}>
                 <ResponseTimeline
                   data={timelineData}
@@ -225,6 +231,8 @@ export const ResponseTimelinePage: React.FC = () => {
                   onTimeSelect={(t) => updateQueryParams({ media_time_ms: t })}
                   selectedCohort={selectedCohort}
                   error={timelineError}
+                  mvDurationMs={(timelineData as any)?.mvDurationMs ?? (summaryData as any)?.mv_duration_ms}
+                  rawDurationMs={(timelineData as any)?.rawDurationMs ?? (summaryData as any)?.raw_duration_ms}
                   selectedWindow={selectedWindow}
                   focusMs={focusMs}
                 />

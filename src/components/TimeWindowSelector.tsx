@@ -26,7 +26,10 @@ export const TimeWindowSelector: React.FC<TimeWindowSelectorProps> = ({
         backgroundColor: 'var(--surface-1)',
         padding: '6px 10px',
         borderRadius: 'var(--radius-sm)',
-        border: '1px solid var(--border)'
+        border: '1px solid var(--border)',
+        flexWrap: 'wrap',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
       }}
       role="radiogroup"
       aria-label="Timeline window selector"
