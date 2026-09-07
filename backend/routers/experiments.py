@@ -469,11 +469,12 @@ async def render_variant(
 
     # Try GCS Storage Client
     storage_client = None
+    # Variant rendering reads source and writes cuts using the asset bucket (momentlab-504305-media), NOT the upload bucket (momentlab-media-demo)
     media_bucket_name = "momentlab-504305-media"
     try:
-        from backend.routers.projects import _get_storage_client, _get_media_bucket_name
+        from backend.routers.projects import _get_storage_client, _get_asset_bucket_name
         storage_client = _get_storage_client()
-        media_bucket_name = _get_media_bucket_name()
+        media_bucket_name = _get_asset_bucket_name()
     except Exception as err:
         logger.warning(f"Storage client init warning: {err}")
 

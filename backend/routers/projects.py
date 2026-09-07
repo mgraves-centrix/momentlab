@@ -205,7 +205,12 @@ def _get_storage_client():
     return storage.Client()
 
 def _get_media_bucket_name():
+    # Target bucket for user project media uploads (momentlab-media-demo)
     return os.getenv("MEDIA_BUCKET_NAME", "momentlab-media-demo")
+
+def _get_asset_bucket_name():
+    # Media asset bucket for scene video sources and rendered variant cuts (momentlab-504305-media)
+    return os.getenv("ASSET_BUCKET_NAME", "momentlab-504305-media")
 
 @router.post("/{project_id}/media", response_model=SignedUrlResponse)
 def generate_upload_url(project_id: str, filename: str, content_type: str, reviewer_id: str = Depends(get_current_reviewer)):
@@ -215,6 +220,7 @@ def generate_upload_url(project_id: str, filename: str, content_type: str, revie
         raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found.")
 
     client = _get_storage_client()
+    # Uploads target the upload bucket (momentlab-media-demo)
     bucket_name = _get_media_bucket_name()
     bucket = client.bucket(bucket_name)
     
