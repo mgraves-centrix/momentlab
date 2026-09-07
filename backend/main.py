@@ -209,11 +209,13 @@ def serve_spa(full_path: str):
     
     # Direct static file check (e.g. media files, images)
     if full_path:
-        file_path = os.path.join(static_dir, full_path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
+        base = os.path.realpath(static_dir)
+        target = os.path.realpath(os.path.join(base, full_path))
+        if (target == base or target.startswith(base + os.sep)) and os.path.isfile(target):
+            return FileResponse(target)
     
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {"status": "MomentLab Backend API Live", "message": "Build frontend with 'npm run build' to render React UI."}
+

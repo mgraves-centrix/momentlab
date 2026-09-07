@@ -119,3 +119,25 @@ def test_rate_limiting_burst_exceeded(monkeypatch):
         statuses.append(res.status_code)
     assert 429 in statuses
 
+
+def test_path_traversal_refused():
+    traversal_paths = [
+        "/../backend/main.py",
+        "/%2e%2e%2fbackend%2fmain.py",
+        "/../../.env",
+    ]
+    for path in traversal_paths:
+        response = client.get(path)
+        assert "from fastapi import" not in response.text, f"Path traversal succeeded for {path}"
+        assert "REVIEWER_TOKENS" not in response.text, f"Path traversal leaked env for {path}"
+        assert "def serve_spa" not in response.text, f"Path traversal leaked source for {path}"
+
+
+def test_spa_normal_route_and_asset_serving():
+    response = client.get("/projects")
+    assert response.status_code == 200
+
+    response_asset = client.get("/northlight_thumb.png")
+    assert response_asset.status_code == 200
+
+
