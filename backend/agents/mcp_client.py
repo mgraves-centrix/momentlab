@@ -588,6 +588,100 @@ Respond strictly in valid JSON format with the following keys:
     return parsed_res
 
 
+# All three registered demo scenes are 65 seconds
+SCENE_DURATION_SEC = 65
+
+
+def _parse_timecode_token(token: str) -> Optional[int]:
+    """Converts a timecode string ('HH:MM:SS', 'MM:SS', or bare seconds) to total seconds."""
+    if not token:
+        return None
+    t = token.strip().rstrip('sS').strip()
+    if ':' in t:
+        parts = t.split(':')
+        if len(parts) == 2 and all(p.isdigit() for p in parts):
+            return int(parts[0]) * 60 + int(parts[1])
+        elif len(parts) == 3 and all(p.isdigit() for p in parts):
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+    elif t.isdigit():
+        return int(t)
+    return None
+
+
+def _parse_window_string(w_str: str) -> tuple[Optional[int], Optional[int]]:
+    """
+    Parses timecodes from a window/timestamp string.
+    Supports HH:MM:SS, MM:SS, bare seconds, and en-dash (–) or hyphen (-) separators.
+    Returns (start_sec, end_sec).
+    """
+    if not w_str:
+        return None, None
+
+    # Range pattern: e.g. "00:33-00:41", "00:33–00:41", "33-41", "00:01:30-00:02:10"
+    range_match = re.search(
+        r'(\d{1,2}:\d{2}:\d{2}|\d{1,2}:\d{2}|\d+)\s*[-–—]\s*(\d{1,2}:\d{2}:\d{2}|\d{1,2}:\d{2}|\d+)',
+        w_str
+    )
+    if range_match:
+        s = _parse_timecode_token(range_match.group(1))
+        e = _parse_timecode_token(range_match.group(2))
+        if s is not None and e is not None:
+            return s, e
+
+    # Single timecode pattern: e.g. "00:33", "01:05", "33"
+    single_match = re.search(r'(\d{1,2}:\d{2}:\d{2}|\d{1,2}:\d{2}|\d+)', w_str)
+    if single_match:
+        s = _parse_timecode_token(single_match.group(1))
+        if s is not None:
+            return s, s + 8
+
+    return None, None
+
+
+def _derive_grounding_window(parsed_res: Any) -> tuple[str, str]:
+    """
+    Derives the video clip grounding window (start_offset, end_offset) from parsed hypothesis results.
+    Pads by 3 seconds on each side, clamps to [0, SCENE_DURATION_SEC], and falls back to ('30s', '44s')
+    if no valid range is found or if the range is inverted/zero-length.
+    """
+    start_sec = None
+    end_sec = None
+
+    candidate_strings = []
+    if isinstance(parsed_res, str):
+        candidate_strings.append(parsed_res)
+    elif isinstance(parsed_res, dict):
+        evidence_records = parsed_res.get("evidenceRecords")
+        if isinstance(evidence_records, list):
+            for rec in evidence_records:
+                if isinstance(rec, dict):
+                    for key in ("window", "timeRange", "timestamp"):
+                        val = rec.get(key)
+                        if val:
+                            candidate_strings.append(str(val))
+
+        for key in ("window", "timeRange", "timestamp", "anomalyWindow"):
+            val = parsed_res.get(key)
+            if val:
+                candidate_strings.append(str(val))
+
+    for c_str in candidate_strings:
+        s, e = _parse_window_string(c_str)
+        if s is not None and e is not None and e > s:
+            start_sec, end_sec = s, e
+            break
+
+    if start_sec is None or end_sec is None or end_sec <= start_sec:
+        start_sec, end_sec = 33, 41
+
+    pad_start = max(0, start_sec - 3)
+    pad_end = min(SCENE_DURATION_SEC, end_sec + 3)
+    if pad_end <= pad_start:
+        pad_end = pad_start + 10
+
+    return f"{pad_start}s", f"{pad_end}s"
+
+
 def _perform_video_grounding(project_id: str, parsed_res: dict) -> Optional[dict]:
     """
     Second-stage Gemini 2.5 Pro multimodal video grounding call.
@@ -606,30 +700,7 @@ def _perform_video_grounding(project_id: str, parsed_res: dict) -> Optional[dict
         bucket_name = os.getenv("GCS_MEDIA_BUCKET", "momentlab-504305-media")
         gcs_uri = f"gs://{bucket_name}/{video_url}"
 
-        # Extract cliff window from evidence records or anomalyWindow
-        start_sec = 33
-        end_sec = 41
-
-        evidence_records = parsed_res.get("evidenceRecords") or []
-        for rec in evidence_records:
-            w_str = str(rec.get("window") or rec.get("timeRange") or rec.get("timestamp") or "")
-            nums = [int(n) for n in re.findall(r'\d+', w_str)]
-            if len(nums) >= 2:
-                start_sec, end_sec = nums[0], nums[1]
-                break
-            elif len(nums) == 1:
-                start_sec = nums[0]
-                end_sec = start_sec + 8
-                break
-
-        # Pad window by 3 seconds on each side, bounded between 0s and 65s
-        pad_start = max(0, start_sec - 3)
-        pad_end = min(65, end_sec + 3)
-        if pad_end <= pad_start:
-            pad_end = pad_start + 10
-
-        start_offset_str = f"{pad_start}s"
-        end_offset_str = f"{pad_end}s"
+        start_offset_str, end_offset_str = _derive_grounding_window(parsed_res)
 
         from google.genai import Client
         client = Client(

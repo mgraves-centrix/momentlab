@@ -1,5 +1,5 @@
 import pytest
-from backend.agents.mcp_client import _perform_video_grounding, generate_hypothesis
+from backend.agents.mcp_client import _perform_video_grounding, generate_hypothesis, _derive_grounding_window
 from backend.routers.projects import PROJECT_MEDIA
 
 def test_project_media_gcs_mapping():
@@ -10,6 +10,45 @@ def test_project_media_gcs_mapping():
     assert PROJECT_MEDIA["proj_echoes_02"]["video_url"] == "/frames/echoes_of_salt/scene.mp4"
     assert "proj_below_03" in PROJECT_MEDIA
     assert PROJECT_MEDIA["proj_below_03"]["video_url"] == "/frames/below_the_surface/scene.mp4"
+
+
+def test_derive_grounding_window_parsing():
+    """Verifies P31: _derive_grounding_window correctly parses timecodes and window strings."""
+    # "00:33-00:41" -> ("30s", "44s")
+    assert _derive_grounding_window({"evidenceRecords": [{"window": "00:33-00:41"}]}) == ("30s", "44s")
+    assert _derive_grounding_window("00:33-00:41") == ("30s", "44s")
+
+    # "00:33" -> ("30s", "44s")
+    assert _derive_grounding_window({"evidenceRecords": [{"timestamp": "00:33"}]}) == ("30s", "44s")
+    assert _derive_grounding_window("00:33") == ("30s", "44s")
+
+    # "33-41" -> ("30s", "44s")
+    assert _derive_grounding_window({"evidenceRecords": [{"window": "33-41"}]}) == ("30s", "44s")
+    assert _derive_grounding_window("33-41") == ("30s", "44s")
+
+    # En dash separator U+2013: "00:33–00:41" -> ("30s", "44s")
+    assert _derive_grounding_window("00:33–00:41") == ("30s", "44s")
+
+    # "01:05" -> start 62s, correctly clamped at scene end (65s)
+    assert _derive_grounding_window({"evidenceRecords": [{"window": "01:05"}]}) == ("62s", "65s")
+    assert _derive_grounding_window("01:05") == ("62s", "65s")
+
+    # "00:02" -> start clamped to "0s", not negative
+    assert _derive_grounding_window({"evidenceRecords": [{"window": "00:02"}]}) == ("0s", "13s")
+    assert _derive_grounding_window("00:02") == ("0s", "13s")
+
+    # "" / None -> default window ("30s", "44s")
+    assert _derive_grounding_window("") == ("30s", "44s")
+    assert _derive_grounding_window(None) == ("30s", "44s")
+    assert _derive_grounding_window({"evidenceRecords": []}) == ("30s", "44s")
+
+    # inverted range -> default window ("30s", "44s")
+    assert _derive_grounding_window({"evidenceRecords": [{"window": "00:41-00:33"}]}) == ("30s", "44s")
+    assert _derive_grounding_window("00:41-00:33") == ("30s", "44s")
+    assert _derive_grounding_window("41-33") == ("30s", "44s")
+
+    # HH:MM:SS test: "00:00:33-00:00:41" -> ("30s", "44s")
+    assert _derive_grounding_window("00:00:33-00:00:41") == ("30s", "44s")
 
 
 def test_video_grounding_fails_open_on_nonexistent_project():
@@ -40,3 +79,4 @@ async def test_agent_hypothesis_succeeds_even_when_grounding_fails(monkeypatch):
     assert "proposedChange" in hyp
     assert hyp.get("visualGrounding") is None
     assert len(hyp.get("evidenceRecords", [])) > 0
+
