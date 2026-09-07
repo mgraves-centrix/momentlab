@@ -229,9 +229,9 @@ export const ProjectsDashboard: React.FC = () => {
                 const experimentId = project.project_id === 'proj_northlight_01'
                   ? 'exp_23a'
                   : project.project_id === 'proj_echoes_02'
-                  ? 'exp_echoes_01'
+                  ? 'exp_01b'
                   : project.project_id === 'proj_below_03'
-                  ? 'exp_below_01'
+                  ? 'exp_01c'
                   : `exp_${project.project_id.replace('proj_', '')}`;
 
                 const experimentUrl = `/projects/${project.project_id}/experiments/${experimentId}/finding`;

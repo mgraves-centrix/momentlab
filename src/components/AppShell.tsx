@@ -13,8 +13,8 @@ interface AppShellProps {
 
 const AVAILABLE_PROJECTS = [
   { id: 'proj_northlight_01', name: 'PROJECT NORTHLIGHT', expId: 'exp_23a', badge: 'ACTIVE' },
-  { id: 'proj_echoes_02', name: 'PROJECT ECHOES', expId: 'exp_echoes_01', badge: 'ACTIVE' },
-  { id: 'proj_below_03', name: 'PROJECT BELOW THE SURFACE', expId: 'exp_below_01', badge: 'DRAFT' }
+  { id: 'proj_echoes_02', name: 'PROJECT ECHOES', expId: 'exp_01b', badge: 'ACTIVE' },
+  { id: 'proj_below_03', name: 'PROJECT BELOW THE SURFACE', expId: 'exp_01c', badge: 'DRAFT' }
 ];
 
 export const AppShell: React.FC<AppShellProps> = ({
