@@ -29,6 +29,11 @@ export const ScreeningConsentPage: React.FC = () => {
   const { screeningToken } = useParams<{ screeningToken?: string }>();
   const effectiveToken = screeningToken?.trim();
 
+  const [screeningMeta, setScreeningMeta] = useState<{ project_id: string; experiment_id: string; scene_id: string } | null>(null);
+  const [projectTitle, setProjectTitle] = useState<string>('Project Screening');
+  const [isLoadingToken, setIsLoadingToken] = useState<boolean>(true);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+
   const [hasConsented, setHasConsented] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
@@ -48,7 +53,51 @@ export const ScreeningConsentPage: React.FC = () => {
   const sentPlaybackKeys = useRef<Set<string>>(new Set());
   const lastEmittedSecRef = useRef<number>(-1);
 
+  useEffect(() => {
+    if (!effectiveToken) {
+      setIsLoadingToken(false);
+      return;
+    }
+    let isMounted = true;
+    setIsLoadingToken(true);
+    fetch(`/api/v1/screenings/${effectiveToken}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Token validation failed (${res.status})`);
+        return res.json();
+      })
+      .then((meta) => {
+        if (isMounted && meta && meta.project_id) {
+          setScreeningMeta(meta);
+          setTokenError(null);
+          fetch(`/api/v1/projects/${meta.project_id}`)
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+              if (isMounted && data) {
+                if (data.video_url) setProjectVideoUrl(data.video_url);
+                if (data.title) setProjectTitle(data.title);
+              }
+            })
+            .catch((err) => {
+              console.error('Failed to fetch project for screening:', err);
+            });
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error('Failed to resolve screening token:', err);
+          setTokenError('Invalid or expired screening token.');
+        }
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingToken(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [effectiveToken]);
+
   const sendPlaybackBatch = useCallback((timeMs: number, state: string = 'PLAYING', useBeacon: boolean = false) => {
+    if (!screeningMeta) return;
     const sec = Math.floor(timeMs / 1000);
     const idempKey = `${sessionId}:${sec}`;
 
@@ -57,9 +106,9 @@ export const ScreeningConsentPage: React.FC = () => {
 
     const payload = {
       session_id: sessionId,
-      project_id: 'proj_northlight_01',
-      experiment_id: 'exp_23a',
-      scene_id: 'sc_12',
+      project_id: screeningMeta.project_id,
+      experiment_id: screeningMeta.experiment_id,
+      scene_id: screeningMeta.scene_id,
       media_time_ms: sec * 1000,
       playback_state: state,
       idempotency_key: idempKey
@@ -83,7 +132,7 @@ export const ScreeningConsentPage: React.FC = () => {
     }).catch((err) => {
       console.error('Playback telemetry batch dispatch failed:', err);
     });
-  }, [sessionId]);
+  }, [sessionId, screeningMeta]);
 
   const handleTimeUpdate = useCallback((timeMs: number) => {
     setCurrentTimeMs(timeMs);
@@ -98,26 +147,6 @@ export const ScreeningConsentPage: React.FC = () => {
   const flushPlaybackOnStateChange = useCallback((state: string = 'PAUSED') => {
     sendPlaybackBatch(currentTimeMs, state);
   }, [currentTimeMs, sendPlaybackBatch]);
-
-  useEffect(() => {
-    let isMounted = true;
-    fetch('/api/v1/projects/proj_northlight_01')
-      .then((res) => {
-        if (res.ok) return res.json();
-        return null;
-      })
-      .then((data) => {
-        if (isMounted && data && data.video_url) {
-          setProjectVideoUrl(data.video_url);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to fetch project for screening:', err);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     const handleUnload = () => {
@@ -135,6 +164,7 @@ export const ScreeningConsentPage: React.FC = () => {
   }, [currentTimeMs, sendPlaybackBatch, flushPlaybackOnStateChange]);
 
   const handleRegisterConsent = async (cohortVal: string) => {
+    if (!screeningMeta || !effectiveToken) return;
     setConsentError(null);
     try {
       const res = await fetch('/api/v1/screenings/consent', {
@@ -143,9 +173,9 @@ export const ScreeningConsentPage: React.FC = () => {
         body: JSON.stringify({
           session_id: sessionId,
           screening_token: effectiveToken,
-          project_id: 'proj_northlight_01',
-          experiment_id: 'exp_23a',
-          scene_id: 'sc_12',
+          project_id: screeningMeta.project_id,
+          experiment_id: screeningMeta.experiment_id,
+          scene_id: screeningMeta.scene_id,
           respondent_cohort: cohortVal,
           consent_given: true
         })
@@ -163,6 +193,7 @@ export const ScreeningConsentPage: React.FC = () => {
   };
 
   const handleSendReaction = async (reactionType: 'CONFUSED' | 'ENGAGING' | 'ENGAGED' | 'BORED' | 'FUNNY' | 'TOO SLOW') => {
+    if (!screeningMeta) return;
     const seconds = Math.floor(currentTimeMs / 1000);
     const timecode = `00:${String(seconds).padStart(2, '0')}`;
     
@@ -176,8 +207,9 @@ export const ScreeningConsentPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify([{
           session_id: sessionId,
-          project_id: 'proj_northlight_01',
-          experiment_id: 'exp_23a',
+          project_id: screeningMeta.project_id,
+          experiment_id: screeningMeta.experiment_id,
+          scene_id: screeningMeta.scene_id,
           media_time_ms: currentTimeMs,
           event_type: reactionType,
           value: reactionType === 'ENGAGING' ? 0.95 : reactionType === 'CONFUSED' ? 0.45 : 0.50
@@ -194,7 +226,15 @@ export const ScreeningConsentPage: React.FC = () => {
     }
   };
 
-  if (!effectiveToken) {
+  if (isLoadingToken) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#090a0c', color: '#f1f3f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontSize: '14px', color: '#8d979f' }}>Validating screening token...</div>
+      </div>
+    );
+  }
+
+  if (!effectiveToken || tokenError || !screeningMeta) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#090a0c', color: '#f1f3f2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
         <div style={{ maxWidth: '480px', width: '100%', backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '12px', padding: '32px', textAlign: 'center' }}>
@@ -524,14 +564,14 @@ export const ScreeningConsentPage: React.FC = () => {
             <div style={{ height: '56px', backgroundColor: '#0c1115', borderBottom: '1px solid #1c262e', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '11px', color: '#8d979f', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  Project Northlight
+                  {projectTitle}
                 </span>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#f1f3f2' }}>
-                  Northlight · Scene 12 Cut A
+                  {projectTitle} · Screening
                 </span>
               </div>
               <button 
-                onClick={() => navigate('/projects/proj_northlight_01/experiments/exp_23a/finding')}
+                onClick={() => navigate(screeningMeta ? `/projects/${screeningMeta.project_id}/experiments/${screeningMeta.experiment_id}/finding` : '/projects')}
                 style={{ backgroundColor: 'transparent', border: '1px solid #1c262e', borderRadius: '4px', padding: '6px 12px', fontSize: '11px', fontWeight: 700, color: '#8d979f', cursor: 'pointer' }}
               >
                 DONE
@@ -691,7 +731,7 @@ export const ScreeningConsentPage: React.FC = () => {
                     </div>
                   </div>
                   <button 
-                    onClick={() => navigate('/projects/proj_northlight_01/experiments/exp_23a/finding')}
+                    onClick={() => navigate(screeningMeta ? `/projects/${screeningMeta.project_id}/experiments/${screeningMeta.experiment_id}/finding` : '/projects')}
                     style={{ backgroundColor: 'transparent', border: '1px solid #202b35', color: '#f1f3f2', padding: '12px 24px', borderRadius: '6px', fontWeight: 600, fontSize: '12px', cursor: 'pointer', letterSpacing: '0.05em' }}
                   >
                     EXIT SCREENING

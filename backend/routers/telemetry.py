@@ -11,9 +11,11 @@ from backend.schemas.events import CANONICAL_REACTION_TYPES, ReactionType
 router = APIRouter()
 
 class TelemetryResetRequest(BaseModel):
-    project_id: str = "proj_northlight_01"
-    experiment_id: str = "exp_23a"
-    sample_size: int = 525
+    project_id: Optional[str] = "proj_northlight_01"
+    experiment_id: Optional[str] = "exp_23a"
+    scene_id: Optional[str] = None
+    sample_size: Optional[int] = 525
+    cliff_second: Optional[int] = 37
 
 class ReactionEventPayload(BaseModel):
     session_id: str
@@ -482,32 +484,51 @@ async def get_summary(project_id: str, experiment_id: str):
 @router.post("/reset")
 async def reset_telemetry(req: Optional[TelemetryResetRequest] = None, reviewer_id: str = Depends(get_current_reviewer)):
     """
-    Clears existing audience telemetry for the experiment and re-seeds dense second-by-second data.
-    Authenticated, idempotent, and safe.
+    Clears existing audience telemetry for the specific target project/experiment and re-seeds dense second-by-second data.
+    Authenticated, idempotent, and safe. Never touches unrelated projects.
     """
-    project_id = req.project_id if req else "proj_northlight_01"
-    experiment_id = req.experiment_id if req else "exp_23a"
-    sample_size = req.sample_size if req else 525
+    project_id = (req.project_id if req and req.project_id else None) or "proj_northlight_01"
+    experiment_id = (req.experiment_id if req and req.experiment_id else None) or "exp_23a"
+    sample_size = req.sample_size if (req and req.sample_size is not None) else 525
+    cliff_second = req.cliff_second if (req and req.cliff_second is not None) else 37
+    scene_id = (req.scene_id if req and req.scene_id else None) or ("sc_12" if project_id == "proj_northlight_01" else "sc_01")
     
     from backend.services.clickhouse import get_client, get_db_name
-    from backend.simulator.fixtures import generate_northlight_events_and_sessions
+    from backend.simulator.fixtures import generate_generic_simulated_events
     from backend.ingestion.batch_writer import ClickHouseBatchWriter
     
     client = get_client()
     db_name = get_db_name()
-    # 1. Clear previous events and sessions for target experiment
+    # 1. Clear previous events and sessions strictly for target project_id and experiment_id
     try:
-        client.query(f"DELETE FROM {db_name}.audience_events WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}", parameters={'project_id': project_id, 'experiment_id': experiment_id})
-        client.query(f"DELETE FROM {db_name}.screening_sessions WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}", parameters={'project_id': project_id, 'experiment_id': experiment_id})
+        client.query(
+            f"DELETE FROM {db_name}.audience_events WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}",
+            parameters={'project_id': project_id, 'experiment_id': experiment_id}
+        )
+        client.query(
+            f"DELETE FROM {db_name}.screening_sessions WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}",
+            parameters={'project_id': project_id, 'experiment_id': experiment_id}
+        )
     except Exception as e:
-        print(f"Error clearing ClickHouse tables: {e}")
+        print(f"Error clearing ClickHouse tables for project {project_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to reset telemetry: {str(e)}")
     
-    # 2. Re-seed dense second-by-second events & sessions
-    events, sessions = generate_northlight_events_and_sessions(count=sample_size)
+    # 2. Re-seed dense second-by-second events & sessions for target project
+    events, sessions = generate_generic_simulated_events(
+        project_id=project_id,
+        experiment_id=experiment_id,
+        scene_id=scene_id,
+        count=sample_size,
+        cliff_second=cliff_second,
+        seed=42
+    )
     writer = ClickHouseBatchWriter()
     writer.insert_screening_sessions(sessions)
     res = writer.insert_playback_events(events)
+    
+    # 3. Calculate dynamic detected cliff moment instead of returning hardcoded "00:37"
+    summary_data = await get_summary(project_id, experiment_id)
+    actual_moment = summary_data.get("detected_moment")
     
     return {
         "status": "RESET_SUCCESS",
@@ -516,5 +537,7 @@ async def reset_telemetry(req: Optional[TelemetryResetRequest] = None, reviewer_
         "reseeded_respondents": sample_size,
         "total_events_inserted": res.get("inserted_count", len(events)),
         "timeline_duration_seconds": 61,
-        "detected_cliff_moment": "00:37"
+        "detected_cliff_moment": actual_moment,
+        "is_simulated": True,
+        "isSimulated": True
     }

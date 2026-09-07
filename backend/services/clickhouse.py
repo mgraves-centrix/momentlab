@@ -280,28 +280,47 @@ def check_connection(timeout: int = 3) -> Dict[str, Any]:
             "error": err_msg,
         }
 
+KNOWN_TOKENS: Dict[str, Dict[str, str]] = {
+    "demo_token_123": {
+        "project_id": "proj_northlight_01",
+        "experiment_id": "exp_23a",
+        "scene_id": "sc_12",
+    },
+    "demo_token_echoes": {
+        "project_id": "proj_echoes_02",
+        "experiment_id": "exp_01b",
+        "scene_id": "sc_01",
+    },
+    "demo_token_below": {
+        "project_id": "proj_below_03",
+        "experiment_id": "exp_01c",
+        "scene_id": "sc_01",
+    },
+}
+
 def init_db():
     client = get_client()
     logger.info("ClickHouse initialized with %s", type(client).__name__)
     try:
         db = get_db_name()
-        res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = 'demo_token_123' AND consent_given = 0")
-        if not res or not res.result_rows or res.result_rows[0][0] == 0:
-            from backend.ingestion.batch_writer import ClickHouseBatchWriter
-            writer = ClickHouseBatchWriter()
-            writer.insert_screening_sessions([{
-                "session_id": "00000000-0000-0000-0000-000000000000",
-                "screening_token": "demo_token_123",
-                "project_id": "proj_northlight_01",
-                "experiment_id": "exp_23a",
-                "scene_id": "sc_12",
-                "respondent_cohort": "25_34",
-                "consent_given": 0,
-                "consent_timestamp": datetime.now(timezone.utc),
-                "created_at": datetime.now(timezone.utc)
-            }])
-            writer.flush()
-            logger.info("Seeded default demo_token_123 invite row into screening_sessions")
+        from backend.ingestion.batch_writer import ClickHouseBatchWriter
+        writer = ClickHouseBatchWriter()
+        for token, meta in KNOWN_TOKENS.items():
+            res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = {{tok:String}} AND consent_given = 0", parameters={"tok": token})
+            if not res or not res.result_rows or res.result_rows[0][0] == 0:
+                writer.insert_screening_sessions([{
+                    "session_id": str(uuid.uuid5(uuid.NAMESPACE_DNS, token)),
+                    "screening_token": token,
+                    "project_id": meta["project_id"],
+                    "experiment_id": meta["experiment_id"],
+                    "scene_id": meta["scene_id"],
+                    "respondent_cohort": "25_34",
+                    "consent_given": 0,
+                    "consent_timestamp": datetime.now(timezone.utc),
+                    "created_at": datetime.now(timezone.utc)
+                }])
+                logger.info("Seeded default %s invite row into screening_sessions", token)
+        writer.flush()
     except Exception as e:
         logger.warning("ClickHouse demo invite seed warning: %s", e)
 
@@ -336,18 +355,34 @@ def is_session_consented(session_id: str) -> bool:
         logger.warning("Consent check ClickHouse lookup warning for session %s: %s", session_id, e)
     return False
 
-def is_valid_screening_token(token: str) -> bool:
+def resolve_screening_token(token: str) -> Optional[Dict[str, str]]:
     if not token or not isinstance(token, str):
-        return False
+        return None
     clean = token.strip()
+    if clean in KNOWN_TOKENS:
+        return {
+            "screening_token": clean,
+            **KNOWN_TOKENS[clean]
+        }
     try:
         client = get_client()
         db = get_db_name()
-        res = client.query(f"SELECT count() FROM {db}.screening_sessions WHERE screening_token = {{tok:String}} AND consent_given = 0", parameters={"tok": clean})
-        if res and res.result_rows and res.result_rows[0][0] > 0:
-            return True
+        res = client.query(f"SELECT project_id, experiment_id, scene_id FROM {db}.screening_sessions WHERE screening_token = {{tok:String}} LIMIT 1", parameters={"tok": clean})
+        if res and res.result_rows:
+            p_id, e_id, s_id = res.result_rows[0]
+            if p_id:
+                return {
+                    "screening_token": clean,
+                    "project_id": str(p_id),
+                    "experiment_id": str(e_id or "exp_23a"),
+                    "scene_id": str(s_id or "sc_12"),
+                }
     except Exception as e:
-        logger.warning("Token validation ClickHouse lookup warning for token %s: %s", token, e)
-    return False
+        logger.warning("Token resolution ClickHouse lookup warning for token %s: %s", token, e)
+    return None
+
+def is_valid_screening_token(token: str) -> bool:
+    return resolve_screening_token(token) is not None
+
 
 

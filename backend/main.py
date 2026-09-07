@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from typing import List, Dict, Any
 from datetime import datetime, timezone
+from pydantic import BaseModel
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 from backend.rate_limiter import limiter
@@ -24,7 +25,13 @@ root_logger.setLevel(logging.INFO)
 from backend.schemas.events import ConsentRecord, PlaybackEvent, ReactionEvent, IngestionResponse
 from backend.ingestion.batch_writer import ClickHouseBatchWriter
 from backend.routers import projects, analytics, export, telemetry
-from backend.services.clickhouse import init_db, check_connection, is_session_consented, record_session_consent_cache, is_valid_screening_token
+from backend.services.clickhouse import init_db, check_connection, is_session_consented, record_session_consent_cache, is_valid_screening_token, resolve_screening_token
+
+class ScreeningTokenInfo(BaseModel):
+    screening_token: str
+    project_id: str
+    experiment_id: str
+    scene_id: str
 
 app = FastAPI(
     title="MomentLab API Engine",
@@ -84,8 +91,6 @@ app.include_router(experiments.router, prefix="/api/v1", tags=["experiments"])
 writer = ClickHouseBatchWriter()
 
 
-
-
 # Mount static assets if build exists
 static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
 if os.path.exists(static_dir):
@@ -110,6 +115,17 @@ def health_check():
         res["error"] = db_health["error"]
     return res
 
+@app.get("/api/v1/screenings/{screening_token}", response_model=ScreeningTokenInfo)
+@limiter.limit("60/minute")
+def get_screening_token_info(request: Request, screening_token: str):
+    info = resolve_screening_token(screening_token)
+    if not info:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unknown or expired screening token: '{screening_token}'"
+        )
+    return info
+
 @app.post("/api/v1/screenings/consent", response_model=ConsentRecord)
 @limiter.limit("60/minute")
 def register_screening_consent(request: Request, consent: ConsentRecord):
@@ -124,11 +140,17 @@ def register_screening_consent(request: Request, consent: ConsentRecord):
             detail="Consent is required before audience screening playback can initiate."
         )
 
-    if not is_valid_screening_token(consent.screening_token):
+    info = resolve_screening_token(consent.screening_token)
+    if not info:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Unknown or expired screening token: '{consent.screening_token}'"
         )
+
+    # Bind project, experiment, and scene from verified token
+    consent.project_id = info["project_id"]
+    consent.experiment_id = info["experiment_id"]
+    consent.scene_id = info["scene_id"]
 
     writer.insert_screening_sessions([{
         "session_id": consent.session_id,
