@@ -89,13 +89,13 @@ npm install
 Create `.env` in the repository root:
 
 ```env
-GCP_PROJECT_ID=momentlab-504305
+GCP_PROJECT_ID=<your-gcp-project>
 GCP_LOCATION=us-central1
-GOOGLE_CLOUD_PROJECT=momentlab-504305
+GOOGLE_CLOUD_PROJECT=<your-gcp-project>
 GOOGLE_CLOUD_LOCATION=us-central1
 GOOGLE_GENAI_USE_VERTEXAI=true
 
-CLICKHOUSE_HOST=nk8zetjq1w.us-east1.gcp.clickhouse.cloud
+CLICKHOUSE_HOST=<your-clickhouse-host>.clickhouse.cloud
 CLICKHOUSE_PORT=8443
 CLICKHOUSE_USER=momentlab_writer
 CLICKHOUSE_PASSWORD=<YOUR_CLICKHOUSE_PASSWORD>
@@ -112,8 +112,8 @@ CLICKHOUSE_MCP_USER=momentlab_mcp_reader
 CLICKHOUSE_MCP_PASSWORD=<YOUR_CLICKHOUSE_MCP_PASSWORD>
 
 # Reviewer authentication bearer tokens (comma-separated list for gating approval/reset APIs)
-# Can be generated locally via `openssl rand -hex 16`
-REVIEWER_TOKENS=rev_demo_token_123,rev_p11_token_456
+# Generate with: openssl rand -hex 24
+REVIEWER_TOKENS=<GENERATE_A_SECRET_TOKEN>
 ```
 
 #### Note on `REVIEWER_TOKENS`

@@ -101,7 +101,7 @@ class LocalClickHouseClient:
         conn.commit()
         conn.close()
 
-    def insert(self, table: str, data: List[List[Any]], column_names: Optional[List[str]] = None):
+    def insert(self, table: str, data: List[List[Any]], column_names: Optional[List[str]] = None, database: Optional[str] = None, settings: Optional[Dict[str, Any]] = None):
         clean_table = table.replace("momentlab.", "")
         if not data:
             return
@@ -119,7 +119,7 @@ class LocalClickHouseClient:
         conn.commit()
         conn.close()
 
-    def query(self, query_str: str, parameters: Optional[Dict[str, Any]] = None) -> LocalQueryResult:
+    def query(self, query_str: str, parameters: Optional[Dict[str, Any]] = None, settings: Optional[Dict[str, Any]] = None) -> LocalQueryResult:
         start_time = time.time()
         # Translate common ClickHouse SQL functions to SQLite equivalents
         translated_sql = query_str
@@ -147,7 +147,7 @@ class LocalClickHouseClient:
         translated_sql = re.sub(r'reaction_anomalies_aggregated', r'reaction_events', translated_sql)
         translated_sql = re.sub(r'quantile\([0-9\.]+\)\(([a-zA-Z0-9_]+)\)', r'avg(\1)', translated_sql)
         translated_sql = re.sub(r'count\(\)', 'count(*)', translated_sql)
-        if "DROP DATABASE" in translated_sql.upper():
+        if "DROP DATABASE" in translated_sql.upper() or "CREATE DATABASE" in translated_sql.upper():
             return LocalQueryResult([])
 
         conn = self._get_conn()

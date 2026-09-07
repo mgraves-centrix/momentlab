@@ -101,7 +101,7 @@ def insert_batch(table, data):
     ndjson = "\n".join([json.dumps(row) for row in data])
     resp = requests.post(
         CLICKHOUSE_URL,
-        auth=("momentlab_writer", "momentlab_writer_secret_change_me"),
+        auth=(os.environ.get("CLICKHOUSE_WRITER_USER", "momentlab_writer"), os.environ.get("CLICKHOUSE_WRITER_PASSWORD", "")),
         params={"query": f"INSERT INTO momentlab.{table} FORMAT JSONEachRow"},
         data=ndjson
     )

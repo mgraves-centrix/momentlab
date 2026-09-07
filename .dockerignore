@@ -7,3 +7,12 @@ __pycache__
 .coverage
 playwright-report
 test-results
+
+# Environment & secret files
+.env
+.env.*
+!.env.example
+*.pw
+*.key
+*.pem
+*credentials*.json

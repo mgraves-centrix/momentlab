@@ -82,7 +82,11 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
     setIsRendering(true);
     setRenderError(null);
     try {
-      const token = sessionStorage.getItem('reviewer_token')?.trim() || 'valid_reviewer_token_123';
+      const token = sessionStorage.getItem('reviewer_token')?.trim() || '';
+      if (!token) {
+        setRenderError("Reviewer authorization token required.");
+        return;
+      }
       const res = await fetch(`/api/v1/projects/${projectId}/experiments/${experimentId}/render-variant`, {
         method: 'POST',
         headers: {

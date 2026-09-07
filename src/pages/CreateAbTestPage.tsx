@@ -19,7 +19,7 @@ export const CreateAbTestPage: React.FC = () => {
   const [selectedVariant, setSelectedVariant] = useState<'A' | 'B'>('B');
   const [allocation, setAllocation] = useState<number>(50); // 50/50
   const [consentAcknowledged, setConsentAcknowledged] = useState<boolean>(false);
-  const [reviewerToken, setReviewerToken] = useState<string>(() => sessionStorage.getItem('reviewer_token') || 'reviewer_lead_01');
+  const [reviewerToken, setReviewerToken] = useState<string>(() => sessionStorage.getItem('reviewer_token') || '');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState<boolean>(false);
   const [auditId, setAuditId] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export const CreateAbTestPage: React.FC = () => {
   };
 
   const handleApproveAndLaunch = async () => {
-    const token = sessionStorage.getItem('reviewer_token')?.trim();
+    const token = reviewerToken.trim() || sessionStorage.getItem('reviewer_token')?.trim();
     if (!projectId || !experimentId || !consentAcknowledged || !token) {
       setErrorMessage("Reviewer sign-in required before launch.");
       return;
@@ -64,7 +64,7 @@ export const CreateAbTestPage: React.FC = () => {
       const res = await fetch(`/api/v1/projects/${projectId}/experiments/${experimentId}:approve`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${sessionStorage.getItem('reviewer_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

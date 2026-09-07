@@ -5,3 +5,12 @@ static/
 public/frames/
 public/media/
 .git/
+
+# Environment & secret files
+.env
+.env.*
+!.env.example
+*.pw
+*.key
+*.pem
+*credentials*.json

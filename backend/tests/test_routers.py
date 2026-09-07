@@ -253,6 +253,18 @@ def test_render_variant_anomaly_window_resolves_os_names(isolate_firestore):
     assert data["variant_url"] is not None
 
 
+def test_veo_generation_route_is_absent():
+    """Asserts that POST /api/v1/media/veo-generate is absent (not a live route, returns 404/405, never 200 or 401)."""
+    response = client.post(
+        "/api/v1/media/veo-generate",
+        json={"prompt": "test", "duration_seconds": 5},
+        headers={"Authorization": "Bearer valid_reviewer_token_123"}
+    )
+    assert response.status_code not in (200, 401)
+    assert response.status_code in (404, 405)
+
+
+
 
 
 

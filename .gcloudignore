@@ -4,3 +4,12 @@ node_modules
 dist
 .brain
 .gemini
+
+# Environment & secret files
+.env
+.env.*
+!.env.example
+*.pw
+*.key
+*.pem
+*credentials*.json
