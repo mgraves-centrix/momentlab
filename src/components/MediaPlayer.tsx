@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Upload, Film, Youtube } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Upload, Film, Youtube, Loader2 } from 'lucide-react';
 import { useMobile } from '../hooks/useMobile';
 import { formatTimecodeSec } from '../utils/format';
 
@@ -31,6 +31,7 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [currentTimeSec, setCurrentTimeSec] = useState(initialTimecodeMs / 1000);
   const [durationSec, setDurationSec] = useState(0);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
   const isYouTube = Boolean(videoSrc && (videoSrc.includes('youtube.com') || videoSrc.includes('youtu.be')));
   const [showYoutubeInput, setShowYoutubeInput] = useState(false);
   const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
@@ -371,6 +372,11 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
+              onLoadStart={() => setIsVideoLoading(true)}
+              onWaiting={() => setIsVideoLoading(true)}
+              onCanPlay={() => setIsVideoLoading(false)}
+              onPlaying={() => setIsVideoLoading(false)}
+              onError={() => setIsVideoLoading(false)}
               muted={isMuted}
               onClick={handlePlayPause}
             />
@@ -395,7 +401,33 @@ export const MediaPlayer: React.FC<MediaPlayerProps> = ({
               SYNTHETIC
             </div>
 
-            {!isPlaying && (
+            {/* Loading Spinner Overlay */}
+            {isVideoLoading && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(8, 11, 14, 0.45)',
+                  pointerEvents: 'none',
+                  zIndex: 10,
+                  gap: '8px'
+                }}
+              >
+                <Loader2 size={28} color="var(--violet)" className="spin" />
+                <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 500 }}>
+                  Loading video...
+                </span>
+              </div>
+            )}
+
+            {!isPlaying && !isVideoLoading && (
               <div
                 onClick={handlePlayPause}
                 style={{
