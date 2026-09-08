@@ -3,8 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Film, ChevronDown, Bell, Settings, Check, X, Info } from 'lucide-react';
 import { MobileBottomNavigation } from './MobileBottomNavigation';
 import { useMobile } from '../hooks/useMobile';
-import { fetchRecentQueries, fetchHealth, HealthStatus } from '../api/client';
-import { QueryModal } from './QueryModal';
+import { fetchAgentRuns, fetchHealth, HealthStatus, AgentRun } from '../api/client';
 
 function formatRelativeTime(isoString: string): string {
   if (!isoString) return 'just now';
@@ -19,13 +18,6 @@ function formatRelativeTime(isoString: string): string {
   if (diffHr < 24) return `${diffHr}h ago`;
   const diffDay = Math.floor(diffHr / 24);
   return `${diffDay}d ago`;
-}
-
-function formatQueryPreview(query: string, maxLength: number = 52): string {
-  if (!query) return '';
-  const collapsed = query.replace(/\s+/g, ' ').trim();
-  if (collapsed.length <= maxLength) return collapsed;
-  return collapsed.slice(0, maxLength) + '...';
 }
 
 interface AppShellProps {
@@ -58,10 +50,10 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isAgentsOpen, setIsAgentsOpen] = useState(false);
-  const [selectedQueryId, setSelectedQueryId] = useState<string | null>(null);
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
   const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [queries, setQueries] = useState<any[]>([]);
+  const [agentRuns, setAgentRuns] = useState<AgentRun[]>([]);
   const [isDegraded, setIsDegraded] = useState(false);
 
   const projectMenuRef = useRef<HTMLDivElement>(null);
@@ -70,9 +62,9 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const loadAgentData = async () => {
     try {
-      const [healthRes, queriesRes] = await Promise.allSettled([
+      const [healthRes, runsRes] = await Promise.allSettled([
         fetchHealth(),
-        fetchRecentQueries()
+        fetchAgentRuns()
       ]);
 
       if (healthRes.status === 'fulfilled' && healthRes.value && healthRes.value.status === 'HEALTHY') {
@@ -83,24 +75,24 @@ export const AppShell: React.FC<AppShellProps> = ({
         setIsDegraded(true);
       }
 
-      if (queriesRes.status === 'fulfilled' && Array.isArray(queriesRes.value)) {
-        setQueries(queriesRes.value);
+      if (runsRes.status === 'fulfilled' && Array.isArray(runsRes.value)) {
+        setAgentRuns(runsRes.value);
       } else {
-        setQueries([]);
+        setAgentRuns([]);
       }
     } catch (_) {
       setIsDegraded(true);
-      setQueries([]);
+      setAgentRuns([]);
     }
   };
 
   useEffect(() => {
     loadAgentData();
     const interval = setInterval(() => {
-      fetchRecentQueries()
+      fetchAgentRuns()
         .then((res) => {
           if (Array.isArray(res)) {
-            setQueries(res);
+            setAgentRuns(res);
           }
         })
         .catch(() => {
@@ -183,9 +175,9 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const FIFTEEN_MINS_MS = 15 * 60 * 1000;
   const now = Date.now();
-  const recentRunCount = queries.filter((q) => {
-    if (!q || !q.timestamp) return false;
-    const t = new Date(q.timestamp).getTime();
+  const recentRunCount = agentRuns.filter((run) => {
+    if (!run || !run.started_at) return false;
+    const t = new Date(run.started_at).getTime();
     if (isNaN(t)) return false;
     const age = now - t;
     return age >= 0 && age <= FIFTEEN_MINS_MS;
@@ -484,7 +476,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                       Recent runs - last 15 min: {recentRunCount}
                     </div>
 
-                    {queries.length === 0 ? (
+                    {agentRuns.length === 0 ? (
                       <div
                         style={{
                           padding: '12px 8px',
@@ -493,54 +485,103 @@ export const AppShell: React.FC<AppShellProps> = ({
                           lineHeight: 1.4
                         }}
                       >
-                        No agent activity yet. The agent runs on demand when you generate a hypothesis or analysis.
+                        No agent runs yet. Generate a hypothesis or analysis and the run will appear here instantly.
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '280px', overflowY: 'auto' }}>
-                        {queries.slice(0, 8).map((q: any, idx: number) => {
-                          const timeStr = formatRelativeTime(q.timestamp);
-                          const queryPreview = formatQueryPreview(q.query, 52);
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
+                        {agentRuns.slice(0, 8).map((run: AgentRun, idx: number) => {
+                          const timeStr = formatRelativeTime(run.started_at);
+                          const projObj = AVAILABLE_PROJECTS.find(p => p.id === run.project_id);
+                          const projectLabel = projObj ? projObj.name : run.project_id;
+                          const isExpanded = expandedRunId === run.run_id;
+                          const isGrounded = run.grounded === 1 || run.decision === 'GROUNDED';
+
                           return (
-                            <button
-                              key={q.query_id || idx}
-                              onClick={() => {
-                                setSelectedQueryId(q.query_id);
-                                setIsAgentsOpen(false);
-                              }}
+                            <div
+                              key={run.run_id || idx}
                               style={{
                                 width: '100%',
-                                textAlign: 'left',
                                 backgroundColor: '#162029',
                                 border: '1px solid #1c262e',
                                 borderRadius: '6px',
                                 padding: '8px 10px',
-                                cursor: 'pointer',
-                                transition: 'background-color 0.15s, border-color 0.15s',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '4px'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#1e2c38';
-                                e.currentTarget.style.borderColor = '#283540';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = '#162029';
-                                e.currentTarget.style.borderColor = '#1c262e';
+                                boxSizing: 'border-box'
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: '#8d979f' }}>
-                                <span style={{ color: '#c4a7ff', fontWeight: 600 }}>{timeStr}</span>
-                                <span>
-                                  {q.rows !== undefined ? `${q.rows} rows` : ''}
-                                  {q.rows !== undefined && q.duration_ms !== undefined ? ' - ' : ''}
-                                  {q.duration_ms !== undefined ? `${q.duration_ms}ms` : ''}
-                                </span>
-                              </div>
-                              <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#d0d7de', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {queryPreview}
-                              </div>
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedRunId(isExpanded ? null : run.run_id)}
+                                style={{
+                                  width: '100%',
+                                  textAlign: 'left',
+                                  background: 'none',
+                                  border: 'none',
+                                  padding: 0,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '4px'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                                    <span style={{ color: '#c4a7ff', fontWeight: 600, flexShrink: 0 }}>{timeStr}</span>
+                                    <span style={{ color: '#8d979f', fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {projectLabel}
+                                    </span>
+                                  </div>
+                                  <span
+                                    style={{
+                                      fontSize: '9px',
+                                      fontWeight: 700,
+                                      letterSpacing: '0.04em',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      flexShrink: 0,
+                                      backgroundColor: isGrounded ? '#143820' : '#3d2f14',
+                                      color: isGrounded ? '#58c94b' : '#c9a24b',
+                                      border: `1px solid ${isGrounded ? '#1f592e' : '#5e481f'}`
+                                    }}
+                                  >
+                                    {isGrounded ? 'GROUNDED' : 'UNGROUNDED'}
+                                  </span>
+                                </div>
+
+                                <div style={{ fontSize: '10px', color: '#627280' }}>
+                                  {run.mcp_query_count} ClickHouse {run.mcp_query_count === 1 ? 'query' : 'queries'} - {run.duration_ms}ms
+                                </div>
+                              </button>
+
+                              {isExpanded && (
+                                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #283540', fontSize: '11px', color: '#d0d7de' }}>
+                                  <div style={{ fontSize: '10px', color: '#8d979f', marginBottom: '4px' }}>
+                                    {run.primary_rows} rows - {run.primary_ms}ms
+                                  </div>
+                                  <pre
+                                    style={{
+                                      fontFamily: 'monospace',
+                                      fontSize: '10px',
+                                      color: '#c4a7ff',
+                                      backgroundColor: '#0c1115',
+                                      border: '1px solid #1c262e',
+                                      padding: '6px 8px',
+                                      borderRadius: '4px',
+                                      whiteSpace: 'pre-wrap',
+                                      wordBreak: 'break-word',
+                                      overflowX: 'auto',
+                                      maxHeight: '120px',
+                                      overflowY: 'auto',
+                                      margin: '0 0 6px 0'
+                                    }}
+                                  >
+                                    {run.primary_query || '(no data query executed)'}
+                                  </pre>
+                                  <div style={{ fontSize: '10px', color: '#627280', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    run_id: {run.run_id}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           );
                         })}
                       </div>
@@ -701,8 +742,6 @@ export const AppShell: React.FC<AppShellProps> = ({
         </div>
       )}
 
-      {/* ClickHouse Query Provenance Modal */}
-      <QueryModal queryId={selectedQueryId} onClose={() => setSelectedQueryId(null)} />
     </div>
   );
 };

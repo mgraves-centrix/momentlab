@@ -109,9 +109,10 @@ async def on_startup():
     asyncio.create_task(_clickhouse_keepwarm_loop())
 app.include_router(export.router)
 app.include_router(telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"])
-from backend.routers import hypotheses, experiments
+from backend.routers import hypotheses, experiments, agent
 app.include_router(hypotheses.router, prefix="/api/v1", tags=["hypotheses"])
 app.include_router(experiments.router, prefix="/api/v1", tags=["experiments"])
+app.include_router(agent.router, prefix="/api/v1/agent", tags=["agent"])
 
 writer = ClickHouseBatchWriter()
 

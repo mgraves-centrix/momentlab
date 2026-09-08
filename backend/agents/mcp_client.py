@@ -106,6 +106,67 @@ def compute_grounding(run_queries: list) -> tuple[int, bool]:
     data_queries = [q for q in run_queries if _is_data_query(q)]
     return len(data_queries), len(data_queries) > 0
 
+AGENT_MODEL = "gemini-2.5-pro"
+
+def record_agent_run(
+    run_id: str,
+    started_at: datetime,
+    project_id: str,
+    experiment_id: str,
+    model: str,
+    decision: str,
+    grounded: int,
+    duration_ms: int,
+    mcp_query_count: int,
+    data_query_count: int,
+    primary_query: str,
+    primary_rows: int,
+    primary_ms: int,
+    ch_client=None,
+) -> bool:
+    """Best-effort insert of one row into momentlab.agent_runs ledger."""
+    try:
+        from backend.services.clickhouse import get_client
+        client = ch_client or get_client()
+        client.insert(
+            "momentlab.agent_runs",
+            [[
+                run_id,
+                started_at,
+                project_id,
+                experiment_id,
+                model,
+                decision,
+                grounded,
+                duration_ms,
+                mcp_query_count,
+                data_query_count,
+                primary_query,
+                primary_rows,
+                primary_ms,
+            ]],
+            column_names=[
+                "run_id",
+                "started_at",
+                "project_id",
+                "experiment_id",
+                "model",
+                "decision",
+                "grounded",
+                "duration_ms",
+                "mcp_query_count",
+                "data_query_count",
+                "primary_query",
+                "primary_rows",
+                "primary_ms",
+            ]
+        )
+        logger.info(f"Recorded agent run into momentlab.agent_runs run_id={run_id} decision={decision}")
+        return True
+    except Exception as err:
+        logger.warning(f"Failed to record agent run into momentlab.agent_runs: {err}")
+        return False
+
 MAX_POLL_SECONDS = 15
 
 async def generate_hypothesis(project_id: str, experiment_id: str) -> dict:
@@ -266,7 +327,7 @@ Respond strictly in valid JSON format with the following keys:
     # Initialize agent
     agent = Agent(
         name="momentlab_agent",
-        model="gemini-2.5-pro",
+        model=AGENT_MODEL,
         tools=[clickhouse_mcp],
         instruction=instruction,
         generate_content_config=generate_content_config,
@@ -607,6 +668,45 @@ Respond strictly in valid JSON format with the following keys:
     grounding_info = _perform_video_grounding(project_id, parsed_res)
     if grounding_info:
         parsed_res["visualGrounding"] = grounding_info
+
+    # 5. Best-effort insert into ClickHouse agent_runs ledger
+    try:
+        data_log_rows = [q for q in found_log_rows if _is_data_query(q)]
+        if data_log_rows:
+            best_q = max(data_log_rows, key=lambda q: int(q.get("read_rows") or 0))
+            raw_sql = best_q.get("query") or ""
+            p_query = re.sub(r'\s+', ' ', raw_sql).strip()[:500]
+            p_rows = int(best_q.get("read_rows") or 0)
+            p_ms = int(best_q.get("query_duration_ms") or 0)
+        else:
+            captured_data = [q for q in captured_mcp_queries if any(dt in q.lower() for dt in ["audience_events", "reaction_events", "retention_by_second", "reaction_anomalies"])]
+            if captured_data:
+                p_query = re.sub(r'\s+', ' ', captured_data[0]).strip()[:500]
+            else:
+                p_query = ""
+            p_rows = 0
+            p_ms = 0
+
+        run_start_dt = datetime.fromtimestamp(start_time, tz=timezone.utc)
+        run_duration_ms = int((time.time() - start_time) * 1000)
+
+        record_agent_run(
+            run_id=run_id,
+            started_at=run_start_dt,
+            project_id=project_id,
+            experiment_id=experiment_id,
+            model=AGENT_MODEL,
+            decision="GROUNDED" if is_grounded else "UNGROUNDED",
+            grounded=1 if is_grounded else 0,
+            duration_ms=run_duration_ms,
+            mcp_query_count=len(captured_mcp_queries),
+            data_query_count=successful_data_query_count,
+            primary_query=p_query,
+            primary_rows=p_rows,
+            primary_ms=p_ms,
+        )
+    except Exception as record_err:
+        logger.warning(f"Error preparing or saving agent run ledger entry: {record_err}")
 
     return parsed_res
 

@@ -98,6 +98,23 @@ class LocalClickHouseClient:
                 type TEXT
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS agent_runs (
+                run_id TEXT PRIMARY KEY,
+                started_at TEXT,
+                project_id TEXT,
+                experiment_id TEXT,
+                model TEXT,
+                decision TEXT,
+                grounded INTEGER,
+                duration_ms INTEGER,
+                mcp_query_count INTEGER,
+                data_query_count INTEGER,
+                primary_query TEXT,
+                primary_rows INTEGER,
+                primary_ms INTEGER
+            )
+        """)
         conn.commit()
         conn.close()
 

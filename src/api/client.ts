@@ -267,6 +267,32 @@ export async function fetchRecentQueries(): Promise<any[]> {
   }
 }
 
+export interface AgentRun {
+  run_id: string;
+  started_at: string;
+  project_id: string;
+  experiment_id: string;
+  model: string;
+  decision: string;
+  grounded: number;
+  duration_ms: number;
+  mcp_query_count: number;
+  data_query_count: number;
+  primary_query: string;
+  primary_rows: number;
+  primary_ms: number;
+}
+
+export async function fetchAgentRuns(): Promise<AgentRun[]> {
+  try {
+    const res = await fetch(`${API_BASE}/agent/runs`);
+    if (!res.ok) throw new Error('Failed to fetch agent runs');
+    return await res.json();
+  } catch (_) {
+    return [];
+  }
+}
+
 export async function fetchExperimentSummary(projectId: string, experimentId: string): Promise<ExperimentSummary> {
   try {
     const res = await fetch(`${API_BASE}/telemetry/summary?project_id=${projectId}&experiment_id=${experimentId}`);
