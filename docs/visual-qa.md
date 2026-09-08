@@ -52,7 +52,7 @@ WCAG 2.2 AA conformance.
   the capture.
 
 ## Generated Screenshots
-Captured against production (git_sha `915ac47`) by `tests/e2e/visual_qa.spec.ts`:
+Captured against production (git_sha `698a7e2`) by `tests/e2e/visual_qa.spec.ts`:
 - `momentlab-built.png` -- desktop Finding, 1568x1000
 - `momentlab-mobile-finding.png` -- mobile Finding, 390x844
 - `momentlab-mobile-evidence-390.png` and `momentlab-mobile-evidence-390-sql.png` -- mobile Evidence, 390x844
