@@ -22,7 +22,9 @@ test.describe('Visual QA Screenshots', () => {
     const queryBtn390 = page.locator('button:has-text("SOURCE QUERY ID")').first();
     if (await queryBtn390.isVisible()) {
       await queryBtn390.click();
-      await page.waitForTimeout(300);
+      try {
+        await page.getByText('Fetching ClickHouse SQL execution log').waitFor({ state: 'hidden', timeout: 20000 });
+      } catch {}
       await page.screenshot({ path: 'docs/images/momentlab-mobile-evidence-390-sql.png' });
       const closeBtn = page.locator('button:has-text("×")').first();
       if (await closeBtn.isVisible()) await closeBtn.click();
@@ -37,7 +39,9 @@ test.describe('Visual QA Screenshots', () => {
     const queryBtn375 = page.locator('button:has-text("SOURCE QUERY ID")').first();
     if (await queryBtn375.isVisible()) {
       await queryBtn375.click();
-      await page.waitForTimeout(300);
+      try {
+        await page.getByText('Fetching ClickHouse SQL execution log').waitFor({ state: 'hidden', timeout: 20000 });
+      } catch {}
       await page.screenshot({ path: 'docs/images/momentlab-mobile-evidence-375-sql.png' });
     }
 
