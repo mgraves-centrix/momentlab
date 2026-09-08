@@ -183,7 +183,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
 
   return (
     <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
         <div>
           <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Audience Response Timeline</h3>
           <p style={{ fontSize: '11px', color: 'var(--muted)', margin: '2px 0 0 0' }}>Synchronized retention rate (%) across scene timeline</p>
@@ -212,7 +212,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
           >
             {showTableView ? 'Chart View' : 'Table View'}
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--muted)', flexWrap: 'wrap' }}>
             <span style={{ display: 'inline-block', width: '12px', height: '3px', background: 'var(--violet)' }}></span>
             <span>Retention ({selectedCohort === 'all' ? 'All' : selectedCohort === '18_24' ? '18–24' : '25–34'})</span>
             {hasAnomaly && (
