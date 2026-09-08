@@ -8,7 +8,10 @@ the screenshots in `docs/images/`.
 Screenshots are captured by `tests/e2e/visual_qa.spec.ts` (Playwright) against the deployed
 application at `https://momentlab.ai`, at the viewports listed below. The ratings are a
 design review by the build team, not an automated metric. The accessibility row reflects the
-audited scope recorded in `docs/judge-proof.md`, not a conformance test.
+audited scope recorded in `docs/judge-proof.md`, not a conformance test. Note that the
+application scrolls inside an inner container rather than the document, so `fullPage`
+captures come out at viewport height; each image shows the top of its screen rather than the
+whole scrollable page.
 
 ## Score Matrix
 | Category | Desktop | Mobile Finding | Mobile Evidence | Mobile Test | Assessment |
@@ -43,8 +46,10 @@ WCAG 2.2 AA conformance.
   18-24, 25-34, 35-44 and 45+ cohorts -- remain legible.
 - **Mobile Evidence (390x844 and 375x667)**: The filmstrip scroll, cohort comparison cards
   and query-provenance drill-in render within the viewport at both widths.
-- **Mobile Test (390x844)**: Full-width comparison cards and the gated approval control
-  render correctly.
+- **Mobile Test (390x844)**: The A/B test configuration screen renders under a `CONFIG
+  DRAFT` state, with the control and variant cut cards laid out side by side above the
+  approval gate. The approval control itself sits below the fold and so is not visible in
+  the capture.
 
 ## Generated Screenshots
 Captured against production (git_sha `915ac47`) by `tests/e2e/visual_qa.spec.ts`:
