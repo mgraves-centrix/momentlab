@@ -13,7 +13,16 @@ This document maps the Agentic Cinema Hackathon judging criteria to concrete evi
 **Does the application have an intuitive, professional, and accessible user interface?**
 
 * **Visual Fidelity**: MomentLab reconstructed the premium editorial workstation reference designs with faithful fidelity (see `docs/visual-qa.md`).
-* **Responsive Mobile Experience**: Rather than a clunky collapse of the desktop dashboard, MomentLab provides three dedicated mobile routes (`Finding`, `Evidence`, `Test`) with a native-feeling persistent bottom navigation.
+* **Responsive Mobile Experience (verified at 375px)**: Rather than a clunky collapse of the
+  desktop dashboard, MomentLab ships purpose-built mobile layouts -- dedicated
+  `Finding` / `Evidence` / `Test` routes with a persistent bottom navigation, and a
+  mobile-specific screening consent + player. Every primary screen (projects dashboard,
+  finding, evidence, the mobile "More" menu, and the participant screening) was verified at
+  a 375px viewport with **zero horizontal overflow**. The Audience Response Timeline header
+  and legend wrap cleanly on narrow widths instead of crowding, and the screening video
+  shows a loading spinner while it buffers so it never appears frozen. Destructive operator
+  controls (telemetry reset) are removed from navigation and gated behind an explicit
+  operator flag, so the mobile participant flow exposes nothing dangerous.
 * **Accessibility**: The application conforms to WCAG 2.2 AA standards, ensuring keyboard-navigable charts, accessible tooltips, and appropriate contrast for the "dark mode" aesthetic.
 * **Honest evidence states (no overclaiming)**: Every figure is labeled by its epistemic state -- **PREDICTED** (a pre-test forecast) versus **MEASURED** (a post-experiment result), with agent hypotheses marked **GROUNDED / UNGROUNDED** by whether they are backed by real ClickHouse queries. The interface never labels a forecast or a statistical confidence as "verified"; that word is reserved for genuine system-state confirmations (e.g., server-side approval, materialized-view sync). Copy is filmmaker-first -- "Viewers disengage at 00:37", "A testable edit hypothesis", "drop-off" -- rather than raw system jargon, so the UI earns trust by describing exactly what each number is.
 
