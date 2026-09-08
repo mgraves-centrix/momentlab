@@ -18,6 +18,128 @@ import {
 import { useMobile } from '../hooks/useMobile';
 import { plural } from '../utils/format';
 
+const ProjectCardSkeleton: React.FC<{ isMobile: boolean }> = ({ isMobile }) => (
+  <div
+    style={{
+      backgroundColor: '#0d1318',
+      border: '1px solid #1e2830',
+      borderRadius: '10px',
+      overflow: 'hidden',
+      minWidth: 0,
+      width: '100%',
+      boxSizing: 'border-box'
+    }}
+  >
+    <div
+      style={{
+        padding: isMobile ? '16px' : '20px',
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '220px 1fr',
+        gap: '20px',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}
+    >
+      {/* Thumbnail Skeleton */}
+      <div
+        className="skeleton-shimmer"
+        style={{
+          height: '124px',
+          width: '100%',
+          borderRadius: '6px'
+        }}
+      />
+
+      {/* Details & Metrics Skeleton */}
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0, width: '100%', gap: '12px' }}>
+        <div>
+          {/* Title line & Status badge */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <div
+              className="skeleton-shimmer"
+              style={{ height: '20px', width: '45%', minWidth: '120px', borderRadius: '4px' }}
+            />
+            <div
+              className="skeleton-shimmer"
+              style={{ height: '18px', width: '56px', borderRadius: '3px' }}
+            />
+          </div>
+          {/* Description line */}
+          <div
+            className="skeleton-shimmer"
+            style={{ height: '12px', width: '65%', marginTop: '8px', borderRadius: '3px' }}
+          />
+        </div>
+
+        {/* 3 Metric Columns */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '70px 110px 1fr',
+            gap: '16px',
+            backgroundColor: '#131b22',
+            padding: '10px 14px',
+            borderRadius: '6px',
+            border: '1px solid #1c2630',
+            marginTop: '12px',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div>
+            <div className="skeleton-shimmer" style={{ height: '20px', width: '36px', marginBottom: '4px', borderRadius: '3px' }} />
+            <div className="skeleton-shimmer" style={{ height: '10px', width: '28px', borderRadius: '2px' }} />
+          </div>
+          <div>
+            <div className="skeleton-shimmer" style={{ height: '20px', width: '48px', marginBottom: '4px', borderRadius: '3px' }} />
+            <div className="skeleton-shimmer" style={{ height: '10px', width: '70px', borderRadius: '2px' }} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div className="skeleton-shimmer" style={{ height: '10px', width: '80px', marginBottom: '6px', borderRadius: '2px' }} />
+            <div className="skeleton-shimmer" style={{ height: '12px', width: '110px', borderRadius: '3px' }} />
+          </div>
+        </div>
+
+        {/* Status Banner & Action Button */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="skeleton-shimmer" style={{ width: '24px', height: '24px', borderRadius: '4px', flexShrink: 0 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div className="skeleton-shimmer" style={{ height: '12px', width: '100px', borderRadius: '3px' }} />
+              <div className="skeleton-shimmer" style={{ height: '10px', width: '130px', borderRadius: '2px' }} />
+            </div>
+          </div>
+          <div className="skeleton-shimmer" style={{ height: '32px', width: '128px', borderRadius: '6px' }} />
+        </div>
+      </div>
+    </div>
+
+    {/* Card Footer Row */}
+    <div
+      style={{
+        borderTop: '1px solid #1a232b',
+        padding: '10px 20px',
+        backgroundColor: '#090e12',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        fontSize: '11px',
+        color: '#8d979f',
+        flexWrap: 'wrap',
+        gap: '8px'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="skeleton-shimmer" style={{ height: '14px', width: '90px', borderRadius: '3px' }} />
+        <div className="skeleton-shimmer" style={{ height: '14px', width: '110px', borderRadius: '3px' }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="skeleton-shimmer" style={{ height: '14px', width: '140px', borderRadius: '3px' }} />
+      </div>
+    </div>
+  </div>
+);
+
 export const ProjectsDashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -27,6 +149,7 @@ export const ProjectsDashboard: React.FC = () => {
   const [healthData, setHealthData] = useState<HealthStatus | null>(null);
   const [resultsData, setResultsData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState('Connecting to ClickHouse Cloud...');
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'respondents'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     return (sessionStorage.getItem('momentlab_view_mode') as 'grid' | 'list') || 'grid';
@@ -34,6 +157,24 @@ export const ProjectsDashboard: React.FC = () => {
   const [starredProjects, setStarredProjects] = useState<Record<string, boolean>>({ proj_northlight_01: true });
   const navigate = useNavigate();
   const isMobile = useMobile();
+
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const timer1 = setTimeout(() => {
+      setStatusMessage('Waking analytics engine...');
+    }, 3000);
+
+    const timer2 = setTimeout(() => {
+      setStatusMessage('Loading projects...');
+    }, 10000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [isLoading]);
+
 
   const handleViewModeChange = (mode: 'grid' | 'list') => {
     setViewMode(mode);
@@ -211,8 +352,31 @@ export const ProjectsDashboard: React.FC = () => {
           {/* LEFT COLUMN: Project Cards List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
             {isLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-                <Loader2 className="spin" color="#8d979f" size={24} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', boxSizing: 'border-box' }}>
+                {[1, 2, 3].map(i => (
+                  <ProjectCardSkeleton key={i} isMobile={isMobile} />
+                ))}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '12px 16px',
+                    color: '#8d979f',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    textAlign: 'center',
+                    backgroundColor: '#0d1318',
+                    border: '1px solid #1e2830',
+                    borderRadius: '8px',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <Loader2 className="spin" size={14} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+                  <span>{statusMessage}</span>
+                </div>
               </div>
             ) : projects.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#8d979f', backgroundColor: '#0d1318', border: '1px solid #1e2830', borderRadius: '10px' }}>

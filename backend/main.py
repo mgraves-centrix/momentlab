@@ -2,11 +2,12 @@ import os
 import sys
 import uuid
 import logging
+import asyncio
 from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
 from slowapi.errors import RateLimitExceeded
@@ -76,12 +77,36 @@ app.include_router(projects.router)
 app.include_router(analytics.router)
 
 
+KEEPWARM_INTERVAL_SECONDS = 240
+
+async def _clickhouse_keepwarm_loop():
+    root_logger.info("ClickHouse keep-warm background loop initialized (interval=%ds)", KEEPWARM_INTERVAL_SECONDS)
+    last_connected: Optional[bool] = None
+    while True:
+        try:
+            res = await asyncio.to_thread(check_connection)
+            is_connected = bool(res.get("connected")) if isinstance(res, dict) else False
+            if last_connected is None:
+                last_connected = is_connected
+                root_logger.info("ClickHouse keep-warm initial status: connected=%s", is_connected)
+            elif last_connected != is_connected:
+                root_logger.info("ClickHouse keep-warm state changed: connected=%s -> connected=%s", last_connected, is_connected)
+                last_connected = is_connected
+        except Exception as e:
+            root_logger.debug("ClickHouse keep-warm ping exception caught: %s", e)
+            if last_connected is not False:
+                root_logger.info("ClickHouse keep-warm state changed: connected=%s -> connected=False", last_connected)
+                last_connected = False
+        
+        await asyncio.sleep(KEEPWARM_INTERVAL_SECONDS)
+
 @app.on_event("startup")
-def on_startup():
+async def on_startup():
     try:
         init_db()
     except Exception as e:
         print("ClickHouse init skipped or failed:", e)
+    asyncio.create_task(_clickhouse_keepwarm_loop())
 app.include_router(export.router)
 app.include_router(telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"])
 from backend.routers import hypotheses, experiments
