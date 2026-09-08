@@ -126,10 +126,10 @@ def test_telemetry_summary_database_outage_returns_503():
 def test_telemetry_timeline_cohort_null_without_fabrication():
     from unittest.mock import patch, MagicMock
     mock_client = MagicMock()
-    # Row format: [time_bucket, total_events, avg_all, avg_18_24, avg_25_34, avg_35_44, avg_sq]
+    # Row format: [time_bucket, total_events, avg_all, avg_18_24, avg_25_34, avg_35_44, avg_45_plus, avg_sq]
     # Here avg_18_24 is None (no 18-24 respondents), avg_all is 72.5
     mock_client.query.return_value.result_rows = [
-        [37000.0, 10, 72.5, None, 68.0, None, 5400.0]
+        [37000.0, 10, 72.5, None, 68.0, None, None, 5400.0]
     ]
     with patch("backend.services.clickhouse.get_client", return_value=mock_client):
         response = client.get("/api/v1/telemetry/timeline?project_id=proj_northlight_01&experiment_id=exp_23a&cohort=18_24")
@@ -141,6 +141,24 @@ def test_telemetry_timeline_cohort_null_without_fabrication():
         assert rows[0]["avg_value"] is None
         assert rows[0]["all_cohort"] == 72.5
         assert rows[0]["cohort_25_34"] == 68.0
+
+
+def test_telemetry_timeline_cohort_45_plus_returns_non_null():
+    """P76 regression test: single-cohort timeline branch with cohort=45_plus reads index 6 correctly and returns non-null avg_value."""
+    from unittest.mock import patch, MagicMock
+    mock_client = MagicMock()
+    # Row format: [time_bucket, total_events, avg_all, avg_18_24, avg_25_34, avg_35_44, avg_45_plus, avg_sq]
+    mock_client.query.return_value.result_rows = [
+        [1000.0, 15, 75.0, 70.0, 72.0, 78.0, 80.0, 5600.0]
+    ]
+    with patch("backend.services.clickhouse.get_client", return_value=mock_client):
+        response = client.get("/api/v1/telemetry/timeline?project_id=proj_northlight_01&experiment_id=exp_23a&cohort=45_plus")
+        assert response.status_code == 200
+        rows = response.json()
+        assert len(rows) == 1
+        assert rows[0]["cohort_45_plus"] == 80.0
+        assert rows[0]["avg_value"] == 80.0
+        assert rows[0]["all_cohort"] == 75.0
 
 
 def test_telemetry_query_by_id_cluster_replica_resolution():

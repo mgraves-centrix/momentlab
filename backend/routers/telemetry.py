@@ -215,9 +215,10 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                     toFloat32(toInt32(ae.media_time_ms / 1000) * 1000) AS time_bucket,
                     count() as total_events,
                     avg(ae.retention_score) as avg_all,
-                    avg(CASE WHEN ss.respondent_cohort = '18_24' THEN ae.retention_score ELSE NULL END) as avg_18_24,
-                    avg(CASE WHEN ss.respondent_cohort = '25_34' THEN ae.retention_score ELSE NULL END) as avg_25_34,
-                    avg(CASE WHEN ss.respondent_cohort = '35_44' THEN ae.retention_score ELSE NULL END) as avg_35_44,
+                    avg(CASE WHEN ss.respondent_cohort = '18_24'   THEN ae.retention_score ELSE NULL END) as avg_18_24,
+                    avg(CASE WHEN ss.respondent_cohort = '25_34'   THEN ae.retention_score ELSE NULL END) as avg_25_34,
+                    avg(CASE WHEN ss.respondent_cohort = '35_44'   THEN ae.retention_score ELSE NULL END) as avg_35_44,
+                    avg(CASE WHEN ss.respondent_cohort = '45_plus' THEN ae.retention_score ELSE NULL END) as avg_45_plus,
                     avg(ae.retention_score * ae.retention_score) as avg_sq
                 FROM {db_name}.audience_events ae
                 LEFT JOIN {db_name}.screening_sessions ss ON ae.session_id = ss.session_id
@@ -237,8 +238,8 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                 avg_18_24 = float(row[3]) if len(row) > 3 and row[3] is not None else None
                 avg_25_34 = float(row[4]) if len(row) > 4 and row[4] is not None else None
                 avg_35_44 = float(row[5]) if len(row) > 5 and row[5] is not None else None
-                avg_sq = float(row[6]) if len(row) > 6 and row[6] is not None else None
-                avg_45_plus = float(row[7]) if len(row) > 7 and row[7] is not None else None
+                avg_45_plus = float(row[6]) if len(row) > 6 and row[6] is not None else None
+                avg_sq = float(row[7]) if len(row) > 7 and row[7] is not None else None
                 
                 selected_val = (
                     avg_18_24 if cohort_val == "18_24"
