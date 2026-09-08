@@ -645,33 +645,33 @@ export const ProjectsDashboard: React.FC = () => {
                 </div>
 
                 {/* 3 Metric Boxes */}
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px', textAlign: 'center' }}>
-                  <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
-                    <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase' }}>ENGAGEMENT LIFT</div>
-                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: '8px', marginBottom: '12px', textAlign: 'center' }}>
+                  <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis' }}>ENGAGEMENT LIFT</div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis' }} className="tabular-nums">
                       {primaryLiftStr}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#58c94b', marginTop: '1px', fontWeight: 700 }}>
+                    <div style={{ fontSize: '11px', color: '#58c94b', marginTop: '1px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {resultsData?.key_results ? 'MEASURED' : 'SIMULATED'}
                     </div>
                   </div>
 
-                  <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
-                    <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase' }}>COMPLETION LIFT</div>
-                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
+                  <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis' }}>COMPLETION LIFT</div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis' }} className="tabular-nums">
                       {secondaryLiftStr}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#58c94b', marginTop: '1px', fontWeight: 700 }}>
+                    <div style={{ fontSize: '11px', color: '#58c94b', marginTop: '1px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {resultsData?.key_results ? 'MEASURED' : 'SIMULATED'}
                     </div>
                   </div>
 
-                  <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630' }}>
-                    <div style={{ fontSize: '11px', color: '#8d979f', textTransform: 'uppercase' }}>CONFIDENCE</div>
-                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px' }} className="tabular-nums">
+                  <div style={{ backgroundColor: '#090e12', padding: '8px', borderRadius: '4px', border: '1px solid #1c2630', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div style={{ fontSize: '10px', color: '#8d979f', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis' }}>CONFIDENCE</div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis' }} className="tabular-nums">
                       {confidenceVal}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '1px' }}>VERIFIED</div>
+                    <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis' }}>VERIFIED</div>
                   </div>
                 </div>
 
