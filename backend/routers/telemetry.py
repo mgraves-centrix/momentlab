@@ -290,7 +290,7 @@ async def get_recent_queries():
                AND query NOT LIKE '%system.query_log%'
                AND query NOT LIKE '%system.settings%'
             ORDER BY query_start_time DESC
-            LIMIT 10
+            LIMIT 50
         """
         query_cluster = query_local.replace(
             "FROM system.query_log",
