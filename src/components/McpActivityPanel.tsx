@@ -12,7 +12,7 @@ export const McpActivityPanel: React.FC<McpActivityPanelProps> = ({
   activities,
   status = 'CONNECTED'
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [pageSize, setPageSize] = useState<number>(10);
   const [page, setPage] = useState<number>(1);
 
