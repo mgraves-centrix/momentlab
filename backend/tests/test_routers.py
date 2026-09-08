@@ -213,6 +213,38 @@ def test_telemetry_query_by_id_cluster_fallback_to_local():
         assert data["rows"] == 100
 
 
+def test_telemetry_query_by_id_query_finish_filter():
+    """P84 regression test: query-by-id provenance lookup filters for type='QueryFinish' and ORDER BY query_start_time DESC."""
+    from unittest.mock import patch, MagicMock
+    mock_client = MagicMock()
+    executed_queries = []
+
+    def mock_query(sql, parameters=None):
+        executed_queries.append((sql, parameters))
+        mock_res = MagicMock()
+        mock_res.result_rows = [
+            ("8c716276-7c97-4890-ac1d-cc6fe6ffdff1", "2026-09-08 18:00:00", "SELECT * FROM momentlab.audience_events", 310, 4)
+        ]
+        return mock_res
+
+    mock_client.query.side_effect = mock_query
+
+    with patch("backend.services.clickhouse.get_client", return_value=mock_client):
+        response = client.get("/api/v1/telemetry/queries/8c716276-7c97-4890-ac1d-cc6fe6ffdff1")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["query_id"] == "8c716276-7c97-4890-ac1d-cc6fe6ffdff1"
+        assert data["rows"] == 310
+        assert data["duration_ms"] == 4
+
+        assert len(executed_queries) >= 1
+        sql, params = executed_queries[0]
+        assert "WHERE query_id = {query_id:String} AND type = 'QueryFinish'" in sql
+        assert "ORDER BY query_start_time DESC" in sql
+        assert params == {'query_id': '8c716276-7c97-4890-ac1d-cc6fe6ffdff1'}
+
+
+
 def test_telemetry_queries_filtering_and_empty_state():
     """Test P23: get_recent_queries filters by user='momentlab_mcp_reader', SELECT queries, excluding momentlab_test and probes, and returns [] when empty."""
     from unittest.mock import patch, MagicMock

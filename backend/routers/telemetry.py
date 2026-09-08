@@ -403,7 +403,8 @@ async def get_query_by_id(query_id: str):
                 read_rows,
                 query_duration_ms
             FROM system.query_log
-            WHERE query_id = {query_id:String}
+            WHERE query_id = {query_id:String} AND type = 'QueryFinish'
+            ORDER BY query_start_time DESC
             LIMIT 1
         """
         query_cluster = query_local.replace(
