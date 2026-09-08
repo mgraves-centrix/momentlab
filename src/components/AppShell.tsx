@@ -3,6 +3,30 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Film, ChevronDown, Bell, Settings, Check, X, Info } from 'lucide-react';
 import { MobileBottomNavigation } from './MobileBottomNavigation';
 import { useMobile } from '../hooks/useMobile';
+import { fetchRecentQueries, fetchHealth, HealthStatus } from '../api/client';
+import { QueryModal } from './QueryModal';
+
+function formatRelativeTime(isoString: string): string {
+  if (!isoString) return 'just now';
+  const t = new Date(isoString).getTime();
+  if (isNaN(t)) return 'just now';
+  const diffSec = Math.floor((Date.now() - t) / 1000);
+  if (diffSec < 0 || diffSec < 10) return 'just now';
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
+function formatQueryPreview(query: string, maxLength: number = 52): string {
+  if (!query) return '';
+  const collapsed = query.replace(/\s+/g, ' ').trim();
+  if (collapsed.length <= maxLength) return collapsed;
+  return collapsed.slice(0, maxLength) + '...';
+}
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -33,9 +57,58 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isAgentsOpen, setIsAgentsOpen] = useState(false);
+  const [selectedQueryId, setSelectedQueryId] = useState<string | null>(null);
+
+  const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [queries, setQueries] = useState<any[]>([]);
+  const [isDegraded, setIsDegraded] = useState(false);
 
   const projectMenuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const agentsRef = useRef<HTMLDivElement>(null);
+
+  const loadAgentData = async () => {
+    try {
+      const [healthRes, queriesRes] = await Promise.allSettled([
+        fetchHealth(),
+        fetchRecentQueries()
+      ]);
+
+      if (healthRes.status === 'fulfilled' && healthRes.value && healthRes.value.status === 'HEALTHY') {
+        setHealth(healthRes.value);
+        setIsDegraded(false);
+      } else {
+        setHealth(healthRes.status === 'fulfilled' ? healthRes.value : null);
+        setIsDegraded(true);
+      }
+
+      if (queriesRes.status === 'fulfilled' && Array.isArray(queriesRes.value)) {
+        setQueries(queriesRes.value);
+      } else {
+        setQueries([]);
+      }
+    } catch (_) {
+      setIsDegraded(true);
+      setQueries([]);
+    }
+  };
+
+  useEffect(() => {
+    loadAgentData();
+    const interval = setInterval(() => {
+      fetchRecentQueries()
+        .then((res) => {
+          if (Array.isArray(res)) {
+            setQueries(res);
+          }
+        })
+        .catch(() => {
+          setIsDegraded(true);
+        });
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Close menus on outside click or Escape key
   useEffect(() => {
@@ -43,6 +116,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       if (e.key === 'Escape') {
         setIsProjectMenuOpen(false);
         setIsNotifOpen(false);
+        setIsAgentsOpen(false);
       }
     };
     const handleClickOutside = (e: MouseEvent) => {
@@ -51,6 +125,9 @@ export const AppShell: React.FC<AppShellProps> = ({
       }
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setIsNotifOpen(false);
+      }
+      if (agentsRef.current && !agentsRef.current.contains(e.target as Node)) {
+        setIsAgentsOpen(false);
       }
     };
 
@@ -61,6 +138,34 @@ export const AppShell: React.FC<AppShellProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const handleToggleAgents = () => {
+    const nextState = !isAgentsOpen;
+    setIsAgentsOpen(nextState);
+    if (nextState) {
+      setIsNotifOpen(false);
+      setIsProjectMenuOpen(false);
+      loadAgentData();
+    }
+  };
+
+  const handleToggleNotif = () => {
+    const nextState = !isNotifOpen;
+    setIsNotifOpen(nextState);
+    if (nextState) {
+      setIsAgentsOpen(false);
+      setIsProjectMenuOpen(false);
+    }
+  };
+
+  const handleToggleProjectMenu = () => {
+    const nextState = !isProjectMenuOpen;
+    setIsProjectMenuOpen(nextState);
+    if (nextState) {
+      setIsAgentsOpen(false);
+      setIsNotifOpen(false);
+    }
+  };
 
   const currentProject = AVAILABLE_PROJECTS.find(p => p.id === activeProjectId) || AVAILABLE_PROJECTS[0];
 
@@ -75,6 +180,18 @@ export const AppShell: React.FC<AppShellProps> = ({
     { label: 'AUDIENCES', path: `/screen/demo_token_123` },
     { label: 'ASSETS', path: `/admin/demo` }
   ];
+
+  const FIFTEEN_MINS_MS = 15 * 60 * 1000;
+  const now = Date.now();
+  const recentRunCount = queries.filter((q) => {
+    if (!q || !q.timestamp) return false;
+    const t = new Date(q.timestamp).getTime();
+    if (isNaN(t)) return false;
+    const age = now - t;
+    return age >= 0 && age <= FIFTEEN_MINS_MS;
+  }).length;
+
+  const isHealthy = !isDegraded && health?.status === 'HEALTHY';
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--canvas)', color: 'var(--text)' }}>
@@ -110,7 +227,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             {/* Project Dropdown Selector Pill */}
             <div ref={projectMenuRef} style={{ position: 'relative' }}>
               <button
-                onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
+                onClick={handleToggleProjectMenu}
                 aria-expanded={isProjectMenuOpen}
                 aria-label="Select Project Menu"
                 style={{
@@ -231,31 +348,225 @@ export const AppShell: React.FC<AppShellProps> = ({
           {/* Right: Agents Pill, Notifications & User Avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px' }}>
             {!isMobile && (
-              <div
-                style={{
-                  backgroundColor: '#111b15',
-                  border: '1px solid #1f3a28',
-                  borderRadius: '14px',
-                  padding: '4px 10px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: '#58c94b',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  letterSpacing: '0.04em'
-                }}
-              >
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#58c94b', boxShadow: '0 0 6px #58c94b' }} />
-                <span>AGENTS ONLINE</span>
-                <span style={{ backgroundColor: '#1d4825', color: '#58c94b', padding: '1px 5px', borderRadius: '10px', fontSize: '11px' }}>4</span>
+              <div ref={agentsRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={handleToggleAgents}
+                  aria-haspopup="dialog"
+                  aria-expanded={isAgentsOpen}
+                  aria-label="View Agents Status and Recent Runs"
+                  style={{
+                    backgroundColor: isHealthy ? '#111b15' : '#1b1811',
+                    border: `1px solid ${isHealthy ? '#1f3a28' : '#3a301f'}`,
+                    borderRadius: '14px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: isHealthy ? '#58c94b' : '#c9a24b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    letterSpacing: '0.04em',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: isHealthy ? '#58c94b' : '#c9a24b',
+                      boxShadow: `0 0 6px ${isHealthy ? '#58c94b' : '#c9a24b'}`
+                    }}
+                  />
+                  <span>{isHealthy ? 'AGENTS ONLINE' : 'AGENT DEGRADED'}</span>
+                  {recentRunCount > 0 ? (
+                    <span
+                      style={{
+                        backgroundColor: isHealthy ? '#1d4825' : '#453518',
+                        color: isHealthy ? '#58c94b' : '#c9a24b',
+                        padding: '1px 6px',
+                        borderRadius: '10px',
+                        fontSize: '11px',
+                        fontWeight: 700
+                      }}
+                    >
+                      {recentRunCount}
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        backgroundColor: isHealthy ? '#162219' : '#262016',
+                        color: '#8d979f',
+                        padding: '1px 6px',
+                        borderRadius: '10px',
+                        fontSize: '10px',
+                        fontWeight: 500
+                      }}
+                    >
+                      idle
+                    </span>
+                  )}
+                </button>
+
+                {isAgentsOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      width: '360px',
+                      backgroundColor: '#0f171e',
+                      border: '1px solid #283540',
+                      borderRadius: '8px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                      padding: '14px',
+                      zIndex: 200
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        marginBottom: '12px',
+                        paddingBottom: '10px',
+                        borderBottom: '1px solid #1c262e'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
+                          MomentLab Agent
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '2px' }}>
+                          Google ADK - Gemini 2.5 Pro - ClickHouse MCP
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: isHealthy ? '#58c94b' : '#c9a24b',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              backgroundColor: isHealthy ? '#58c94b' : '#c9a24b'
+                            }}
+                          />
+                          {isHealthy ? 'Online' : 'Degraded'}
+                        </span>
+                        {health?.database_host && (
+                          <div style={{ fontSize: '10px', color: '#627280', marginTop: '2px' }}>
+                            {health.database_host}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#8d979f',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '8px'
+                      }}
+                    >
+                      Recent runs - last 15 min: {recentRunCount}
+                    </div>
+
+                    {queries.length === 0 ? (
+                      <div
+                        style={{
+                          padding: '12px 8px',
+                          fontSize: '11px',
+                          color: '#8d979f',
+                          lineHeight: 1.4
+                        }}
+                      >
+                        No agent activity yet. The agent runs on demand when you generate a hypothesis or analysis.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '280px', overflowY: 'auto' }}>
+                        {queries.slice(0, 8).map((q: any, idx: number) => {
+                          const timeStr = formatRelativeTime(q.timestamp);
+                          const queryPreview = formatQueryPreview(q.query, 52);
+                          return (
+                            <button
+                              key={q.query_id || idx}
+                              onClick={() => {
+                                setSelectedQueryId(q.query_id);
+                                setIsAgentsOpen(false);
+                              }}
+                              style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                backgroundColor: '#162029',
+                                border: '1px solid #1c262e',
+                                borderRadius: '6px',
+                                padding: '8px 10px',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.15s, border-color 0.15s',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '4px'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#1e2c38';
+                                e.currentTarget.style.borderColor = '#283540';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#162029';
+                                e.currentTarget.style.borderColor = '#1c262e';
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: '#8d979f' }}>
+                                <span style={{ color: '#c4a7ff', fontWeight: 600 }}>{timeStr}</span>
+                                <span>
+                                  {q.rows !== undefined ? `${q.rows} rows` : ''}
+                                  {q.rows !== undefined && q.duration_ms !== undefined ? ' - ' : ''}
+                                  {q.duration_ms !== undefined ? `${q.duration_ms}ms` : ''}
+                                </span>
+                              </div>
+                              <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#d0d7de', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {queryPreview}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        fontSize: '10px',
+                        color: '#627280',
+                        marginTop: '10px',
+                        paddingTop: '8px',
+                        borderTop: '1px solid #1c262e',
+                        textAlign: 'center'
+                      }}
+                    >
+                      Every agent query is traced in ClickHouse.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Notification Bell */}
             <div ref={notifRef} style={{ position: 'relative' }}>
               <button
-                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                onClick={handleToggleNotif}
                 aria-label="View System Notifications"
                 style={{ color: '#8d979f', display: 'flex', alignItems: 'center', padding: '6px', position: 'relative', cursor: 'pointer' }}
               >
@@ -389,6 +700,9 @@ export const AppShell: React.FC<AppShellProps> = ({
           <MobileBottomNavigation projectId={activeProjectId} experimentId={activeExperimentId} />
         </div>
       )}
+
+      {/* ClickHouse Query Provenance Modal */}
+      <QueryModal queryId={selectedQueryId} onClose={() => setSelectedQueryId(null)} />
     </div>
   );
 };
