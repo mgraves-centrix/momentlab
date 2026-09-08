@@ -49,6 +49,8 @@ export interface TimelineDataPoint {
   allCohort: number | null;
   cohort18_24: number | null;
   cohort25_34: number | null;
+  cohort35_44: number | null;
+  cohort45_plus: number | null;
   uncertaintyUpper: number | null;
   uncertaintyLower: number | null;
   sampleSize: number;
@@ -341,6 +343,8 @@ export async function fetchExperimentTimeline(
           : (d.avg_value !== null && d.avg_value !== undefined ? (d.avg_value > 1.0 ? Math.round(d.avg_value) : Math.round(d.avg_value * 100)) : null);
         const c18Val = (d.cohort_18_24 !== null && d.cohort_18_24 !== undefined) ? Math.round(d.cohort_18_24) : null;
         const c25Val = (d.cohort_25_34 !== null && d.cohort_25_34 !== undefined) ? Math.round(d.cohort_25_34) : null;
+        const c35Val = (d.cohort_35_44 !== null && d.cohort_35_44 !== undefined) ? Math.round(d.cohort_35_44) : null;
+        const c45Val = (d.cohort_45_plus !== null && d.cohort_45_plus !== undefined) ? Math.round(d.cohort_45_plus) : null;
         
         const uncUpper = (d.uncertainty_upper !== null && d.uncertainty_upper !== undefined) ? Math.round(d.uncertainty_upper) : null;
         const uncLower = (d.uncertainty_lower !== null && d.uncertainty_lower !== undefined) ? Math.round(d.uncertainty_lower) : null;
@@ -351,6 +355,8 @@ export async function fetchExperimentTimeline(
           allCohort: allVal,
           cohort18_24: c18Val,
           cohort25_34: c25Val,
+          cohort35_44: c35Val,
+          cohort45_plus: c45Val,
           uncertaintyUpper: uncUpper,
           uncertaintyLower: uncLower,
           sampleSize: d.total_events || d.sample_size || 0,
@@ -378,6 +384,8 @@ export async function fetchExperimentTimeline(
         allCohort: Math.round(baseVal),
         cohort18_24: Math.round(baseVal - 3),
         cohort25_34: Math.round(baseVal + 2),
+        cohort35_44: Math.round(baseVal - 1),
+        cohort45_plus: Math.round(baseVal - 5),
         uncertaintyUpper: Math.round(baseVal + 5),
         uncertaintyLower: Math.round(baseVal - 5),
         sampleSize: 4732,

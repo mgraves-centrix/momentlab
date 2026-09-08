@@ -160,7 +160,7 @@ class LocalClickHouseClient:
         translated_sql = re.sub(r'avgMerge\(retention_avg\)', r'avg(retention_score)', translated_sql)
         translated_sql = re.sub(r'quantileMerge\([0-9\.]+\)\(retention_median\)', r'avg(retention_score)', translated_sql)
         translated_sql = re.sub(r'sum\(sample_size\)', r'count(*)', translated_sql)
-        translated_sql = re.sub(r'retention_by_second_aggregated', r'audience_events', translated_sql)
+        translated_sql = re.sub(r'retention_by_second_aggregated', r'audience_events ae LEFT JOIN screening_sessions ss ON ae.session_id = ss.session_id', translated_sql)
         translated_sql = re.sub(r'reaction_anomalies_aggregated', r'reaction_events', translated_sql)
         translated_sql = re.sub(r'quantile\([0-9\.]+\)\(([a-zA-Z0-9_]+)\)', r'avg(\1)', translated_sql)
         translated_sql = re.sub(r'count\(\)', 'count(*)', translated_sql)

@@ -8,6 +8,23 @@ from backend.services.clickhouse import get_client, get_db_name
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("seed_clickhouse")
 
+RETENTION_MV_SELECT_BODY = """
+    SELECT
+        ae.project_id AS project_id,
+        ae.experiment_id AS experiment_id,
+        ae.scene_id AS scene_id,
+        coalesce(ss.respondent_cohort, 'unknown') AS respondent_cohort,
+        ae.media_time_ms AS media_time_ms,
+        count() AS sample_size,
+        avgState(ae.retention_score) AS retention_avg,
+        quantileState(0.5)(ae.retention_score) AS retention_median,
+        quantileState(0.1)(ae.retention_score) AS retention_p10,
+        quantileState(0.9)(ae.retention_score) AS retention_p90
+    FROM {db_name}.audience_events ae
+    LEFT JOIN {db_name}.screening_sessions ss ON ae.session_id = ss.session_id
+    GROUP BY project_id, experiment_id, scene_id, respondent_cohort, media_time_ms
+"""
+
 def main():
     logger.info("Initializing ClickHouse Seeder for MomentLab...")
     writer = ClickHouseBatchWriter()
@@ -51,22 +68,10 @@ def main():
                 ) ENGINE = AggregatingMergeTree()
                 ORDER BY (project_id, scene_id, experiment_id, respondent_cohort, media_time_ms);
             """)
-            writer.client.query(f"""
-                CREATE MATERIALIZED VIEW IF NOT EXISTS {db_name}.retention_by_second_mv TO {db_name}.retention_by_second_aggregated AS
-                SELECT
-                    project_id,
-                    experiment_id,
-                    scene_id,
-                    'ALL' AS respondent_cohort,
-                    media_time_ms,
-                    count() AS sample_size,
-                    avgState(retention_score) AS retention_avg,
-                    quantileState(0.5)(retention_score) AS retention_median,
-                    quantileState(0.1)(retention_score) AS retention_p10,
-                    quantileState(0.9)(retention_score) AS retention_p90
-                FROM {db_name}.audience_events
-                GROUP BY project_id, experiment_id, scene_id, media_time_ms;
-            """)
+            writer.client.query(
+                f"CREATE MATERIALIZED VIEW IF NOT EXISTS {db_name}.retention_by_second_mv TO {db_name}.retention_by_second_aggregated AS "
+                + RETENTION_MV_SELECT_BODY.format(db_name=db_name)
+            )
             writer.client.query(f"""
                 CREATE TABLE IF NOT EXISTS {db_name}.reaction_anomalies_aggregated (
                     project_id String,

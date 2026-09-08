@@ -7,7 +7,7 @@ interface ResponseTimelineProps {
   data: TimelineDataPoint[];
   currentTimeMs?: number;
   onTimeSelect?: (timeMs: number) => void;
-  selectedCohort?: 'all' | '18_24' | '25_34';
+  selectedCohort?: 'all' | '18_24' | '25_34' | '35_44' | '45_plus' | string;
   error?: string | null;
   onRetry?: () => void;
   mvDurationMs?: number;
@@ -16,6 +16,20 @@ interface ResponseTimelineProps {
   windowMode?: '10s' | '30s' | '1m';
   focusMs?: number;
 }
+
+interface CohortSeriesSpec {
+  id: string;
+  label: string;
+  color: string;
+  getValue: (d: TimelineDataPoint) => number | null;
+}
+
+const AGE_COHORTS: CohortSeriesSpec[] = [
+  { id: '18_24', label: '18–24', color: '#38bdf8', getValue: (d) => d.cohort18_24 },
+  { id: '25_34', label: '25–34', color: '#a3e635', getValue: (d) => d.cohort25_34 },
+  { id: '35_44', label: '35–44', color: '#f59e0b', getValue: (d) => d.cohort35_44 },
+  { id: '45_plus', label: '45+', color: '#f43f5e', getValue: (d) => d.cohort45_plus }
+];
 
 export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
   data = [],
@@ -146,29 +160,41 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
   const getCohortVal = (d: TimelineDataPoint) => {
     if (selectedCohort === '18_24') return d.cohort18_24;
     if (selectedCohort === '25_34') return d.cohort25_34;
+    if (selectedCohort === '35_44') return d.cohort35_44;
+    if (selectedCohort === '45_plus') return d.cohort45_plus;
     return d.allCohort;
   };
 
-  // Build line segments for active cohort series from ClickHouse (breaking line across null gaps)
-  const lineSegments: string[] = [];
-  let currentSegment: string[] = [];
+  const activeAgeCohorts = AGE_COHORTS.filter((c) =>
+    validData.some((d) => {
+      const v = c.getValue(d);
+      return typeof v === 'number' && !isNaN(v);
+    })
+  );
 
-  validData.forEach((d) => {
-    const val = getCohortVal(d);
-    if (typeof val === 'number' && !isNaN(val)) {
-      currentSegment.push(`${getX(d.timeMs).toFixed(1)},${getY(val).toFixed(1)}`);
-    } else {
-      if (currentSegment.length > 0) {
-        lineSegments.push(`M ${currentSegment.join(' L ')}`);
-        currentSegment = [];
+  const buildPathForCohort = (getValue: (d: TimelineDataPoint) => number | null) => {
+    const lineSegments: string[] = [];
+    let currentSegment: string[] = [];
+
+    validData.forEach((d) => {
+      const val = getValue(d);
+      if (typeof val === 'number' && !isNaN(val)) {
+        currentSegment.push(`${getX(d.timeMs).toFixed(1)},${getY(val).toFixed(1)}`);
+      } else {
+        if (currentSegment.length > 0) {
+          lineSegments.push(`M ${currentSegment.join(' L ')}`);
+          currentSegment = [];
+        }
       }
+    });
+    if (currentSegment.length > 0) {
+      lineSegments.push(`M ${currentSegment.join(' L ')}`);
     }
-  });
-  if (currentSegment.length > 0) {
-    lineSegments.push(`M ${currentSegment.join(' L ')}`);
-  }
-  const lineActivePath = lineSegments.join(' ');
-  const hasCohortPoints = lineSegments.length > 0;
+    return lineSegments.join(' ');
+  };
+
+  const lineActivePath = buildPathForCohort(getCohortVal);
+  const hasCohortPoints = lineActivePath.length > 0;
 
   // Build uncertainty band polygon
   const upperPoints = validData.filter(d => typeof d.uncertaintyUpper === 'number' && !isNaN(d.uncertaintyUpper)).map((d) => `${getX(d.timeMs).toFixed(1)},${getY(d.uncertaintyUpper!).toFixed(1)}`);
@@ -214,7 +240,25 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--muted)', flexWrap: 'wrap' }}>
             <span style={{ display: 'inline-block', width: '12px', height: '3px', background: 'var(--violet)' }}></span>
-            <span>Retention ({selectedCohort === 'all' ? 'All' : selectedCohort === '18_24' ? '18–24' : '25–34'})</span>
+            <span>
+              Retention ({selectedCohort === 'all'
+                ? 'All'
+                : selectedCohort === '18_24'
+                ? '18–24'
+                : selectedCohort === '25_34'
+                ? '25–34'
+                : selectedCohort === '35_44'
+                ? '35–44'
+                : selectedCohort === '45_plus'
+                ? '45+'
+                : selectedCohort})
+            </span>
+            {selectedCohort === 'all' && activeAgeCohorts.map(c => (
+              <React.Fragment key={c.id}>
+                <span style={{ display: 'inline-block', width: '12px', height: '2px', background: c.color, marginLeft: '4px' }}></span>
+                <span>{c.label}</span>
+              </React.Fragment>
+            ))}
             {hasAnomaly && (
               <>
                 <span style={{ display: 'inline-block', width: '12px', height: '12px', background: 'rgba(255, 102, 82, 0.2)', border: '1px solid var(--coral)', marginLeft: '8px' }}></span>
@@ -245,7 +289,7 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
               </g>
             ))}
 
-            {/* Clipped chart layers: Anomaly Highlight, Uncertainty Band, Main Line */}
+            {/* Clipped chart layers: Anomaly Highlight, Uncertainty Band, Cohort Lines & Main Line */}
             <g clipPath="url(#timeline-chart-clip)">
               {hasAnomaly && (
                 <rect
@@ -261,6 +305,21 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
               )}
 
               {uncertaintyPath && <path d={uncertaintyPath} fill="rgba(139, 92, 246, 0.1)" />}
+
+              {selectedCohort === 'all' && activeAgeCohorts.map(c => {
+                const cPath = buildPathForCohort(c.getValue);
+                return cPath ? (
+                  <path
+                    key={c.id}
+                    d={cPath}
+                    fill="none"
+                    stroke={c.color}
+                    strokeWidth="1.5"
+                    strokeOpacity="0.85"
+                  />
+                ) : null;
+              })}
+
               {lineActivePath && <path d={lineActivePath} fill="none" stroke="var(--violet)" strokeWidth="3" />}
             </g>
 
@@ -432,6 +491,18 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                     {getCohortVal(hoveredPoint) !== null ? `${getCohortVal(hoveredPoint)}%` : 'Insufficient Sample'}
                     {hoveredPoint.isAnomaly && <span style={{ fontSize: '11px', marginLeft: '4px' }}>CLIFF</span>}
                   </div>
+                  {selectedCohort === 'all' && activeAgeCohorts.length > 0 && (
+                    <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: '2px', display: 'flex', gap: '6px' }}>
+                      {activeAgeCohorts.map(c => {
+                        const val = c.getValue(hoveredPoint);
+                        return val !== null ? (
+                          <span key={c.id} style={{ color: c.color }}>
+                            {c.label}: {val}%
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })()
@@ -447,6 +518,8 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                 <th style={{ padding: '6px 8px' }}>All Cohorts</th>
                 <th style={{ padding: '6px 8px' }}>18–24</th>
                 <th style={{ padding: '6px 8px' }}>25–34</th>
+                <th style={{ padding: '6px 8px' }}>35–44</th>
+                <th style={{ padding: '6px 8px' }}>45+</th>
                 <th style={{ padding: '6px 8px' }}>Status</th>
               </tr>
             </thead>
@@ -465,6 +538,8 @@ export const ResponseTimeline: React.FC<ResponseTimelineProps> = ({
                   <td style={{ padding: '6px 8px', color: 'var(--violet)' }} className="tabular-nums">{d.allCohort !== null ? `${d.allCohort}%` : '—'}</td>
                   <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort18_24 !== null ? `${d.cohort18_24}%` : '—'}</td>
                   <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort25_34 !== null ? `${d.cohort25_34}%` : '—'}</td>
+                  <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort35_44 !== null ? `${d.cohort35_44}%` : '—'}</td>
+                  <td style={{ padding: '6px 8px' }} className="tabular-nums">{d.cohort45_plus !== null ? `${d.cohort45_plus}%` : '—'}</td>
                   <td style={{ padding: '6px 8px' }}>
                     {d.isAnomaly ? (
                       <span style={{ color: 'var(--coral)', fontWeight: 700 }}>CLIFF ANOMALY</span>

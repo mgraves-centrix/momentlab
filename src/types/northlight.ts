@@ -14,6 +14,8 @@ export interface TimelineDataPoint {
   allCohort: number | null;
   cohort18_24: number | null;
   cohort25_34: number | null;
+  cohort35_44: number | null;
+  cohort45_plus: number | null;
   uncertaintyUpper: number | null;
   uncertaintyLower: number | null;
   sampleSize: number;

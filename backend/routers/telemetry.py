@@ -143,20 +143,72 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
             cohort_val = "all"
 
         if cohort_val == "all":
-            query = f"""
+            query_overall = f"""
                 SELECT 
                     media_time_ms AS time_bucket,
                     sum(sample_size) as total_events,
-                    avgMerge(retention_avg) as avg_all,
-                    avgMerge(retention_avg) as avg_18_24,
-                    avgMerge(retention_avg) as avg_25_34,
-                    avgMerge(retention_avg) as avg_35_44,
-                    avgMerge(retention_avg) * avgMerge(retention_avg) as avg_sq
+                    avgMerge(retention_avg) as avg_all
                 FROM {db_name}.retention_by_second_aggregated
                 WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
                 GROUP BY time_bucket
                 ORDER BY time_bucket
             """
+            query_cohort = f"""
+                SELECT 
+                    media_time_ms AS time_bucket,
+                    respondent_cohort,
+                    avgMerge(retention_avg) as cohort_avg
+                FROM {db_name}.retention_by_second_aggregated
+                WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
+                GROUP BY time_bucket, respondent_cohort
+                ORDER BY time_bucket, respondent_cohort
+            """
+            t0 = time.perf_counter()
+            result_overall = client.query(query_overall, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+            result_cohort = client.query(query_cohort, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+            mv_duration_ms = max(1, int((time.perf_counter() - t0) * 1000))
+
+            cohort_pivot = {}
+            for row in result_cohort.result_rows:
+                t_ms = int(row[0])
+                c_name = str(row[1]) if row[1] is not None else ""
+                c_val = float(row[2]) if row[2] is not None else None
+                if c_name and c_val is not None:
+                    if t_ms not in cohort_pivot:
+                        cohort_pivot[t_ms] = {}
+                    cohort_pivot[t_ms][c_name] = c_val
+
+            raw_rows = []
+            for row in result_overall.result_rows:
+                t_ms = int(row[0])
+                n_events = max(1, int(row[1]))
+                avg_all = float(row[2]) if row[2] is not None else None
+
+                c_map = cohort_pivot.get(t_ms, {})
+                c_18_24 = c_map.get("18_24")
+                c_25_34 = c_map.get("25_34")
+                c_35_44 = c_map.get("35_44")
+                c_45_plus = c_map.get("45_plus")
+
+                point = {
+                    "media_time_ms": t_ms,
+                    "total_events": n_events,
+                    "avg_value": round(avg_all, 2) if avg_all is not None else None,
+                    "all_cohort": round(avg_all, 2) if avg_all is not None else None,
+                    "cohort_18_24": round(c_18_24, 2) if c_18_24 is not None else None,
+                    "cohort_25_34": round(c_25_34, 2) if c_25_34 is not None else None,
+                    "cohort_35_44": round(c_35_44, 2) if c_35_44 is not None else None,
+                    "cohort_45_plus": round(c_45_plus, 2) if c_45_plus is not None else None,
+                    "uncertainty_lower": None,
+                    "uncertainty_upper": None,
+                    "sample_size": n_events
+                }
+                for c_name, c_val in c_map.items():
+                    if c_name not in ("ALL", "all") and c_val is not None:
+                        key = f"cohort_{c_name}"
+                        if key not in point:
+                            point[key] = round(c_val, 2)
+                raw_rows.append(point)
         else:
             query = f"""
                 SELECT 
@@ -173,68 +225,53 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                 GROUP BY time_bucket
                 ORDER BY time_bucket
             """
-        t0 = time.perf_counter()
-        result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
-        mv_duration_ms = max(1, int((time.perf_counter() - t0) * 1000))
+            t0 = time.perf_counter()
+            result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+            mv_duration_ms = max(1, int((time.perf_counter() - t0) * 1000))
 
-        # Measure unaggregated raw scan time as comparison over audience_events
-        t1 = time.perf_counter()
-        raw_query = f"""
-            SELECT toFloat32(toInt32(media_time_ms / 1000) * 1000) AS time_bucket, count() as total_events, avg(retention_score) as avg_all
-            FROM {db_name}.audience_events
-            WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
-            GROUP BY time_bucket
-        """
-        try:
-            client.query(raw_query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
-            raw_duration_ms = max(mv_duration_ms + 15, int((time.perf_counter() - t1) * 1000))
-        except Exception:
-            raw_duration_ms = max(120, mv_duration_ms + 75)
-
-        if response:
-            response.headers["X-MV-Duration-Ms"] = str(mv_duration_ms)
-            response.headers["X-Raw-Duration-Ms"] = str(raw_duration_ms)
-            response.headers["Access-Control-Expose-Headers"] = "X-MV-Duration-Ms, X-Raw-Duration-Ms"
-        
-        raw_rows = []
-        for row in result.result_rows:
-            t_ms = int(row[0])
-            n_events = max(1, int(row[1]))
-            avg_all = float(row[2]) if row[2] is not None else None
-            avg_18_24 = float(row[3]) if row[3] is not None else None
-            avg_25_34 = float(row[4]) if row[4] is not None else None
-            avg_35_44 = float(row[5]) if row[5] is not None else None
-            avg_sq = float(row[6]) if row[6] is not None else None
-            
-            selected_val = (
-                avg_18_24 if cohort_val == "18_24"
-                else avg_25_34 if cohort_val == "25_34"
-                else avg_35_44 if cohort_val == "35_44"
-                else avg_all
-            )
-            
-            if selected_val is not None and avg_sq is not None:
-                var_val = max(0.0, avg_sq - (selected_val * selected_val))
-                std_dev = math.sqrt(var_val)
-                std_err = std_dev / math.sqrt(n_events)
-                moe = 1.96 * std_err
-                unc_lower = max(0.0, round(selected_val - moe, 2))
-                unc_upper = min(100.0, round(selected_val + moe, 2))
-            else:
-                unc_lower = None
-                unc_upper = None
-            
-            raw_rows.append({
-                "media_time_ms": t_ms,
-                "total_events": n_events,
-                "avg_value": round(selected_val, 2) if selected_val is not None else None,
-                "all_cohort": round(avg_all, 2) if avg_all is not None else None,
-                "cohort_18_24": round(avg_18_24, 2) if avg_18_24 is not None else None,
-                "cohort_25_34": round(avg_25_34, 2) if avg_25_34 is not None else None,
-                "uncertainty_lower": unc_lower,
-                "uncertainty_upper": unc_upper,
-                "sample_size": n_events
-            })
+            raw_rows = []
+            for row in result.result_rows:
+                t_ms = int(row[0])
+                n_events = max(1, int(row[1]))
+                avg_all = float(row[2]) if row[2] is not None else None
+                avg_18_24 = float(row[3]) if len(row) > 3 and row[3] is not None else None
+                avg_25_34 = float(row[4]) if len(row) > 4 and row[4] is not None else None
+                avg_35_44 = float(row[5]) if len(row) > 5 and row[5] is not None else None
+                avg_sq = float(row[6]) if len(row) > 6 and row[6] is not None else None
+                avg_45_plus = float(row[7]) if len(row) > 7 and row[7] is not None else None
+                
+                selected_val = (
+                    avg_18_24 if cohort_val == "18_24"
+                    else avg_25_34 if cohort_val == "25_34"
+                    else avg_35_44 if cohort_val == "35_44"
+                    else avg_45_plus if cohort_val == "45_plus"
+                    else avg_all
+                )
+                
+                if selected_val is not None and avg_sq is not None:
+                    var_val = max(0.0, avg_sq - (selected_val * selected_val))
+                    std_dev = math.sqrt(var_val)
+                    std_err = std_dev / math.sqrt(n_events)
+                    moe = 1.96 * std_err
+                    unc_lower = max(0.0, round(selected_val - moe, 2))
+                    unc_upper = min(100.0, round(selected_val + moe, 2))
+                else:
+                    unc_lower = None
+                    unc_upper = None
+                
+                raw_rows.append({
+                    "media_time_ms": t_ms,
+                    "total_events": n_events,
+                    "avg_value": round(selected_val, 2) if selected_val is not None else None,
+                    "all_cohort": round(avg_all, 2) if avg_all is not None else None,
+                    "cohort_18_24": round(avg_18_24, 2) if avg_18_24 is not None else None,
+                    "cohort_25_34": round(avg_25_34, 2) if avg_25_34 is not None else None,
+                    "cohort_35_44": round(avg_35_44, 2) if avg_35_44 is not None else None,
+                    "cohort_45_plus": round(avg_45_plus, 2) if avg_45_plus is not None else None,
+                    "uncertainty_lower": unc_lower,
+                    "uncertainty_upper": unc_upper,
+                    "sample_size": n_events
+                })
 
         # Dynamic anomaly detection from data drops
         non_null_all = [r["all_cohort"] for r in raw_rows if r["all_cohort"] is not None]

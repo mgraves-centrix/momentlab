@@ -14,6 +14,8 @@ class TimelinePoint(BaseModel):
     allCohort: float
     cohort18_24: float
     cohort25_34: float
+    cohort35_44: Optional[float] = None
+    cohort45_plus: Optional[float] = None
     uncertaintyUpper: float
     uncertaintyLower: float
     sampleSize: int

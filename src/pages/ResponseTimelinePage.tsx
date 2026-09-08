@@ -363,7 +363,7 @@ export const ResponseTimelinePage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--surface-1)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                     <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Cohort:</span>
-                    {(['all', '18_24', '25_34'] as const).map((c) => (
+                    {(['all', '18_24', '25_34', '35_44', '45_plus'] as const).map((c) => (
                       <button
                         key={c}
                         onClick={() => updateQueryParams({ cohort: c })}
@@ -378,7 +378,12 @@ export const ResponseTimelinePage: React.FC = () => {
                           border: 'none'
                         }}
                       >
-                        {c === 'all' ? (totalRespondents > 0 ? `All (${totalRespondents.toLocaleString()})` : 'All') : c === '18_24' ? '18–24' : '25–34'}
+                        {c === 'all'
+                          ? (totalRespondents > 0 ? `All (${totalRespondents.toLocaleString()})` : 'All')
+                          : c === '18_24' ? '18–24'
+                          : c === '25_34' ? '25–34'
+                          : c === '35_44' ? '35–44'
+                          : '45+'}
                       </button>
                     ))}
                   </div>
