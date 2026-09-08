@@ -22,6 +22,7 @@ export const AdminDemoPage: React.FC = () => {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [activeState, setActiveState] = useState<StateType>('insufficient_sample');
   const isMobile = useMobile();
+  const operatorMode = new URLSearchParams(window.location.search).get('admin') === '1';
 
   const fetchHealth = () => {
     setIsHealthLoading(true);
@@ -155,7 +156,7 @@ export const AdminDemoPage: React.FC = () => {
         </div>
 
         {/* Top Controls Grid: Live Health Panel & Telemetry Reset Panel */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile || !operatorMode ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
           
           {/* 1. Live Health Panel */}
           <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
@@ -220,63 +221,65 @@ export const AdminDemoPage: React.FC = () => {
           </div>
 
           {/* 2. Telemetry Reset & Seeder Panel */}
-          <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <Activity size={16} color="#ff654a" />
-                <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Audience Telemetry Reset
-                </h3>
+          {operatorMode && (
+            <div style={{ backgroundColor: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <Activity size={16} color="#ff654a" />
+                  <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Audience Telemetry Reset
+                  </h3>
+                </div>
+
+                <p style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: '1.5', margin: '0 0 12px 0' }}>
+                  <strong>Blast Radius:</strong> Clears all 30,358+ rows for Northlight (<code>exp_23a</code>) in ClickHouse <code>audience_events</code> and re-seeds clean, second-by-second telemetry with the 00:37 cliff (-28.0%, N=525).
+                </p>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text)', cursor: 'pointer', marginBottom: '16px' }}>
+                  <input
+                    type="checkbox"
+                    checked={resetConfirmed}
+                    onChange={(e) => setResetConfirmed(e.target.checked)}
+                    style={{ accentColor: 'var(--lime)', cursor: 'pointer' }}
+                  />
+                  <span>I confirm resetting telemetry for <strong>proj_northlight_01 / exp_23a</strong></span>
+                </label>
               </div>
 
-              <p style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: '1.5', margin: '0 0 12px 0' }}>
-                <strong>Blast Radius:</strong> Clears all 30,358+ rows for Northlight (<code>exp_23a</code>) in ClickHouse <code>audience_events</code> and re-seeds clean, second-by-second telemetry with the 00:37 cliff (-28.0%, N=525).
-              </p>
+              <div>
+                {resetMessage && (
+                  <div style={{ fontSize: '11px', color: 'var(--lime)', backgroundColor: 'rgba(183, 227, 61, 0.1)', padding: '8px 12px', borderRadius: '4px', marginBottom: '12px' }}>
+                    {resetMessage}
+                  </div>
+                )}
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text)', cursor: 'pointer', marginBottom: '16px' }}>
-                <input
-                  type="checkbox"
-                  checked={resetConfirmed}
-                  onChange={(e) => setResetConfirmed(e.target.checked)}
-                  style={{ accentColor: 'var(--lime)', cursor: 'pointer' }}
-                />
-                <span>I confirm resetting telemetry for <strong>proj_northlight_01 / exp_23a</strong></span>
-              </label>
+                <button
+                  onClick={handleResetTelemetry}
+                  disabled={!resetConfirmed || isResetting}
+                  style={{
+                    width: '100%',
+                    backgroundColor: resetConfirmed ? 'var(--lime)' : 'var(--surface-3)',
+                    color: resetConfirmed ? '#000000' : 'var(--muted)',
+                    border: 'none',
+                    padding: '12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    cursor: resetConfirmed && !isResetting ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {isResetting ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={14} />}
+                  RESEED AUDIENCE TELEMETRY (N=525)
+                </button>
+              </div>
             </div>
-
-            <div>
-              {resetMessage && (
-                <div style={{ fontSize: '11px', color: 'var(--lime)', backgroundColor: 'rgba(183, 227, 61, 0.1)', padding: '8px 12px', borderRadius: '4px', marginBottom: '12px' }}>
-                  {resetMessage}
-                </div>
-              )}
-
-              <button
-                onClick={handleResetTelemetry}
-                disabled={!resetConfirmed || isResetting}
-                style={{
-                  width: '100%',
-                  backgroundColor: resetConfirmed ? 'var(--lime)' : 'var(--surface-3)',
-                  color: resetConfirmed ? '#000000' : 'var(--muted)',
-                  border: 'none',
-                  padding: '12px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  letterSpacing: '0.04em',
-                  cursor: resetConfirmed && !isResetting ? 'pointer' : 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                {isResetting ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={14} />}
-                RESEED AUDIENCE TELEMETRY (N=525)
-              </button>
-            </div>
-          </div>
+          )}
 
         </div>
 

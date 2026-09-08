@@ -169,8 +169,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const mainNavItems = [
     { label: 'PROJECTS', path: '/projects' },
     { label: 'EXPERIMENTS', path: `/projects/${activeProjectId}/experiments/${activeExperimentId}/finding` },
-    { label: 'AUDIENCES', path: `/screen/demo_token_123` },
-    { label: 'ASSETS', path: `/admin/demo` }
+    { label: 'AUDIENCES', path: `/screen/demo_token_123` }
   ];
 
   const FIFTEEN_MINS_MS = 15 * 60 * 1000;

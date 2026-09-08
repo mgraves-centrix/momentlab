@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart2, Film, Sliders, HelpCircle, ChevronRight, X } from 'lucide-react';
+import { BarChart2, Film, HelpCircle, ChevronRight, X } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
 
 export const MobileMorePage: React.FC = () => {
@@ -62,32 +62,6 @@ export const MobileMorePage: React.FC = () => {
               <div>
                 <div style={{ fontWeight: 700, fontSize: '13px' }}>Project Dashboard</div>
                 <div style={{ fontSize: '11px', color: '#8d979f' }}>Overview of all active film projects</div>
-              </div>
-            </div>
-            <ChevronRight size={16} color="#8d979f" />
-          </Link>
-
-          <Link
-            to="/admin/demo"
-            style={{
-              backgroundColor: '#0c1115',
-              border: '1px solid #1c2630',
-              borderRadius: '8px',
-              padding: '16px',
-              color: '#f1f3f2',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '6px', backgroundColor: 'rgba(242, 184, 75, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Sliders size={20} color="#f2b84b" />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '13px' }}>Demo Controls & Health Board</div>
-                <div style={{ fontSize: '11px', color: '#8d979f' }}>Deterministic state fixtures and system status</div>
               </div>
             </div>
             <ChevronRight size={16} color="#8d979f" />
