@@ -122,6 +122,10 @@ import logging
 
 logger = logging.getLogger("momentlab.telemetry")
 
+# Matches the "MINIMUM COHORT SIZE 10" k-anonymity floor shown on the screening
+# consent screen; buckets below this are not plotted.
+MIN_BUCKET_SAMPLE = 10
+
 @router.get("/timeline")
 async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str] = "all", window: Optional[str] = None, response: Response = None):
     try:
@@ -157,7 +161,8 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                 SELECT 
                     media_time_ms AS time_bucket,
                     respondent_cohort,
-                    avgMerge(retention_avg) as cohort_avg
+                    avgMerge(retention_avg) as cohort_avg,
+                    sum(sample_size) as cohort_samples
                 FROM {db_name}.retention_by_second_aggregated
                 WHERE project_id = {{project_id:String}} AND experiment_id = {{experiment_id:String}}
                 GROUP BY time_bucket, respondent_cohort
@@ -173,22 +178,32 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                 t_ms = int(row[0])
                 c_name = str(row[1]) if row[1] is not None else ""
                 c_val = float(row[2]) if row[2] is not None else None
+                c_samples = int(row[3]) if len(row) > 3 and row[3] is not None else 0
                 if c_name and c_val is not None:
                     if t_ms not in cohort_pivot:
                         cohort_pivot[t_ms] = {}
-                    cohort_pivot[t_ms][c_name] = c_val
+                    cohort_pivot[t_ms][c_name] = (c_val, c_samples)
 
             raw_rows = []
             for row in result_overall.result_rows:
                 t_ms = int(row[0])
                 n_events = max(1, int(row[1]))
-                avg_all = float(row[2]) if row[2] is not None else None
+                avg_all_raw = float(row[2]) if row[2] is not None else None
+                avg_all = avg_all_raw if (avg_all_raw is not None and n_events >= MIN_BUCKET_SAMPLE) else None
 
                 c_map = cohort_pivot.get(t_ms, {})
-                c_18_24 = c_map.get("18_24")
-                c_25_34 = c_map.get("25_34")
-                c_35_44 = c_map.get("35_44")
-                c_45_plus = c_map.get("45_plus")
+                def get_c_val(c_key: str) -> Optional[float]:
+                    item = c_map.get(c_key)
+                    if item is not None:
+                        val, s_count = item
+                        if s_count >= MIN_BUCKET_SAMPLE:
+                            return val
+                    return None
+
+                c_18_24 = get_c_val("18_24")
+                c_25_34 = get_c_val("25_34")
+                c_35_44 = get_c_val("35_44")
+                c_45_plus = get_c_val("45_plus")
 
                 point = {
                     "media_time_ms": t_ms,
@@ -203,11 +218,13 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                     "uncertainty_upper": None,
                     "sample_size": n_events
                 }
-                for c_name, c_val in c_map.items():
-                    if c_name not in ("ALL", "all") and c_val is not None:
-                        key = f"cohort_{c_name}"
-                        if key not in point:
-                            point[key] = round(c_val, 2)
+                for c_name, item in c_map.items():
+                    if c_name not in ("ALL", "all"):
+                        c_val, c_samples = item
+                        if c_val is not None and c_samples >= MIN_BUCKET_SAMPLE:
+                            key = f"cohort_{c_name}"
+                            if key not in point:
+                                point[key] = round(c_val, 2)
                 raw_rows.append(point)
         else:
             query = f"""
@@ -219,7 +236,8 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                     avg(CASE WHEN ss.respondent_cohort = '25_34'   THEN ae.retention_score ELSE NULL END) as avg_25_34,
                     avg(CASE WHEN ss.respondent_cohort = '35_44'   THEN ae.retention_score ELSE NULL END) as avg_35_44,
                     avg(CASE WHEN ss.respondent_cohort = '45_plus' THEN ae.retention_score ELSE NULL END) as avg_45_plus,
-                    avg(ae.retention_score * ae.retention_score) as avg_sq
+                    avg(ae.retention_score * ae.retention_score) as avg_sq,
+                    countIf(ss.respondent_cohort = {{cohort_val:String}}) as cohort_n
                 FROM {db_name}.audience_events ae
                 LEFT JOIN {db_name}.screening_sessions ss ON ae.session_id = ss.session_id
                 WHERE ae.project_id = {{project_id:String}} AND ae.experiment_id = {{experiment_id:String}}
@@ -227,9 +245,19 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                 ORDER BY time_bucket
             """
             t0 = time.perf_counter()
-            result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id})
+            result = client.query(query, parameters={'project_id': project_id, 'experiment_id': experiment_id, 'cohort_val': cohort_val})
             mv_duration_ms = max(1, int((time.perf_counter() - t0) * 1000))
 
+            # SELECT column order for non-"all" (single cohort) branch:
+            # row[0]: time_bucket
+            # row[1]: total_events
+            # row[2]: avg_all
+            # row[3]: avg_18_24
+            # row[4]: avg_25_34
+            # row[5]: avg_35_44
+            # row[6]: avg_45_plus
+            # row[7]: avg_sq
+            # row[8]: cohort_n
             raw_rows = []
             for row in result.result_rows:
                 t_ms = int(row[0])
@@ -240,14 +268,17 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                 avg_35_44 = float(row[5]) if len(row) > 5 and row[5] is not None else None
                 avg_45_plus = float(row[6]) if len(row) > 6 and row[6] is not None else None
                 avg_sq = float(row[7]) if len(row) > 7 and row[7] is not None else None
+                cohort_n = int(row[8]) if len(row) > 8 and row[8] is not None else n_events
                 
-                selected_val = (
+                raw_selected = (
                     avg_18_24 if cohort_val == "18_24"
                     else avg_25_34 if cohort_val == "25_34"
                     else avg_35_44 if cohort_val == "35_44"
                     else avg_45_plus if cohort_val == "45_plus"
                     else avg_all
                 )
+
+                selected_val = raw_selected if cohort_n >= MIN_BUCKET_SAMPLE else None
                 
                 if selected_val is not None and avg_sq is not None:
                     var_val = max(0.0, avg_sq - (selected_val * selected_val))
@@ -264,11 +295,11 @@ async def get_timeline(project_id: str, experiment_id: str, cohort: Optional[str
                     "media_time_ms": t_ms,
                     "total_events": n_events,
                     "avg_value": round(selected_val, 2) if selected_val is not None else None,
-                    "all_cohort": round(avg_all, 2) if avg_all is not None else None,
-                    "cohort_18_24": round(avg_18_24, 2) if avg_18_24 is not None else None,
-                    "cohort_25_34": round(avg_25_34, 2) if avg_25_34 is not None else None,
-                    "cohort_35_44": round(avg_35_44, 2) if avg_35_44 is not None else None,
-                    "cohort_45_plus": round(avg_45_plus, 2) if avg_45_plus is not None else None,
+                    "all_cohort": round(avg_all, 2) if (avg_all is not None and n_events >= MIN_BUCKET_SAMPLE) else None,
+                    "cohort_18_24": round(selected_val, 2) if (cohort_val == "18_24" and selected_val is not None) else (round(avg_18_24, 2) if (cohort_val != "18_24" and avg_18_24 is not None) else None),
+                    "cohort_25_34": round(selected_val, 2) if (cohort_val == "25_34" and selected_val is not None) else (round(avg_25_34, 2) if (cohort_val != "25_34" and avg_25_34 is not None) else None),
+                    "cohort_35_44": round(selected_val, 2) if (cohort_val == "35_44" and selected_val is not None) else (round(avg_35_44, 2) if (cohort_val != "35_44" and avg_35_44 is not None) else None),
+                    "cohort_45_plus": round(selected_val, 2) if (cohort_val == "45_plus" and selected_val is not None) else (round(avg_45_plus, 2) if (cohort_val != "45_plus" and avg_45_plus is not None) else None),
                     "uncertainty_lower": unc_lower,
                     "uncertainty_upper": unc_upper,
                     "sample_size": n_events

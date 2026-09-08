@@ -374,6 +374,67 @@ def test_get_variant_unauthenticated_no_anomaly():
             assert "ffmpeg" not in args
 
 
+def test_telemetry_timeline_min_sample_guard_suppresses_under_sampled_buckets():
+    """P77 regression test: buckets below MIN_BUCKET_SAMPLE (10) emit null values (not plotted), while buckets >= 10 yield values."""
+    from unittest.mock import patch, MagicMock
+    
+    # Test cohort="all" branch
+    mock_client_all = MagicMock()
+    mock_res_overall = MagicMock()
+    mock_res_overall.result_rows = [
+        [1000.0, 30, 75.0],
+        [62000.0, 5, 0.0]
+    ]
+    mock_res_cohort = MagicMock()
+    mock_res_cohort.result_rows = [
+        [1000.0, "18_24", 70.0, 15],
+        [62000.0, "18_24", 0.0, 5]
+    ]
+    mock_client_all.query.side_effect = [mock_res_overall, mock_res_cohort]
+
+    with patch("backend.services.clickhouse.get_client", return_value=mock_client_all):
+        response = client.get("/api/v1/telemetry/timeline?project_id=proj_northlight_01&experiment_id=exp_23a&cohort=all")
+        assert response.status_code == 200
+        rows = response.json()
+        assert len(rows) == 2
+        # Bucket 1 (>= 10) retains value
+        assert rows[0]["avg_value"] == 75.0
+        assert rows[0]["all_cohort"] == 75.0
+        assert rows[0]["cohort_18_24"] == 70.0
+        assert rows[0]["sample_size"] == 30
+
+        # Bucket 2 (< 10) suppresses under-sampled values to None, preserving sample_size
+        assert rows[1]["avg_value"] is None
+        assert rows[1]["all_cohort"] is None
+        assert rows[1]["cohort_18_24"] is None
+        assert rows[1]["sample_size"] == 5
+
+    # Test single-cohort branch (e.g. cohort=18_24)
+    mock_client_single = MagicMock()
+    mock_res_single = MagicMock()
+    mock_res_single.result_rows = [
+        [1000.0, 30, 75.0, 70.0, 72.0, 78.0, 80.0, 5600.0, 15],
+        [62000.0, 5, 0.0, 0.0, None, None, None, 0.0, 5]
+    ]
+    mock_client_single.query.return_value = mock_res_single
+
+    with patch("backend.services.clickhouse.get_client", return_value=mock_client_single):
+        response = client.get("/api/v1/telemetry/timeline?project_id=proj_northlight_01&experiment_id=exp_23a&cohort=18_24")
+        assert response.status_code == 200
+        rows = response.json()
+        assert len(rows) == 2
+        # Bucket 1 (cohort_n = 15 >= 10) retains value
+        assert rows[0]["avg_value"] == 70.0
+        assert rows[0]["cohort_18_24"] == 70.0
+        assert rows[0]["sample_size"] == 30
+
+        # Bucket 2 (cohort_n = 5 < 10) suppresses value to None
+        assert rows[1]["avg_value"] is None
+        assert rows[1]["cohort_18_24"] is None
+        assert rows[1]["sample_size"] == 5
+
+
+
 
 
 
