@@ -7,13 +7,14 @@ import {
   fetchProjects,
   fetchExperimentHypothesis,
   fetchExperimentTimeline,
-  fetchRecentQueries,
+  fetchAgentRuns,
   fetchHealth,
   fetchExperimentResults,
   Project,
   Hypothesis,
   TimelineDataPoint,
-  HealthStatus
+  HealthStatus,
+  AgentRun
 } from '../api/client';
 import { useMobile } from '../hooks/useMobile';
 import { plural } from '../utils/format';
@@ -145,7 +146,7 @@ export const ProjectsDashboard: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [northlightHypothesis, setNorthlightHypothesis] = useState<Hypothesis | null>(null);
   const [northlightTimeline, setNorthlightTimeline] = useState<TimelineDataPoint[]>([]);
-  const [recentQueries, setRecentQueries] = useState<any[]>([]);
+  const [agentRuns, setAgentRuns] = useState<AgentRun[]>([]);
   const [healthData, setHealthData] = useState<HealthStatus | null>(null);
   const [resultsData, setResultsData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -198,8 +199,8 @@ export const ProjectsDashboard: React.FC = () => {
       .then(setNorthlightTimeline)
       .catch(console.error);
 
-    fetchRecentQueries()
-      .then(setRecentQueries)
+    fetchAgentRuns()
+      .then(setAgentRuns)
       .catch(console.error);
 
     fetchHealth()
@@ -244,8 +245,8 @@ export const ProjectsDashboard: React.FC = () => {
   }
   const derivedDataSource = dbHost ? 'ClickHouse Cloud' : 'ClickHouse Cloud';
 
-  const lastSyncStr = recentQueries.length > 0 && recentQueries[0].timestamp
-    ? new Date(recentQueries[0].timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+  const lastSyncStr = agentRuns.length > 0 && agentRuns[0].started_at
+    ? new Date(agentRuns[0].started_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
     : healthData ? new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
 
   const startedDateStr = northlightProject?.created_at
@@ -735,20 +736,20 @@ export const ProjectsDashboard: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '11px' }}>
-                {recentQueries.length === 0 ? (
+                {agentRuns.length === 0 ? (
                   <div style={{ color: '#8d979f', fontSize: '11px', fontStyle: 'italic', padding: '4px 0' }}>
-                    no agent queries yet; generate a hypothesis to see live query activity
+                    no agent runs yet; generate a hypothesis to see live run activity
                   </div>
                 ) : (
-                  recentQueries.slice(0, 5).map((run: any, idx: number) => {
-                    const queryText = run.query || 'SELECT ...';
-                    const durationStr = run.duration_ms != null
-                      ? (run.duration_ms < 1000 ? `${run.duration_ms}ms` : `${(run.duration_ms / 1000).toFixed(1)}s`)
+                  agentRuns.slice(0, 5).map((run: AgentRun) => {
+                    const queryText = run.primary_query || 'SELECT ...';
+                    const durationStr = run.primary_ms != null
+                      ? (run.primary_ms < 1000 ? `${run.primary_ms}ms` : `${(run.primary_ms / 1000).toFixed(1)}s`)
                       : '0ms';
-                    const rowsStr = run.rows != null ? `${run.rows} ${plural(run.rows, 'row')}` : '';
+                    const rowsStr = run.primary_rows != null ? `${run.primary_rows} ${plural(run.primary_rows, 'row')}` : '';
 
                     return (
-                      <div key={run.query_id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'monospace', color: '#8d979f', gap: '12px' }}>
+                      <div key={run.run_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'monospace', color: '#8d979f', gap: '12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', minWidth: 0 }}>
                           <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#58c94b', flexShrink: 0 }} />
                           <span style={{ color: '#58c94b', fontWeight: 700, flexShrink: 0 }}>{durationStr}</span>
