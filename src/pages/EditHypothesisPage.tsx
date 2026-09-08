@@ -340,7 +340,7 @@ export const EditHypothesisPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: '#c4a7ff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     <Sparkles size={14} color="#c4a7ff" />
-                    <span>SIMULATED TARGETS</span>
+                    <span>PREDICTED TARGETS</span>
                   </div>
                   <span className="badge badge-simulated">SIMULATED</span>
                 </div>

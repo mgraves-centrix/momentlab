@@ -152,7 +152,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
             Cut Comparison & Timeline Shift
           </h3>
           <span style={{ backgroundColor: '#1c2630', color: '#8d979f', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-            NO ANOMALY DETECTED
+            NO DROP-OFF DETECTED
           </span>
         </div>
         <div style={{ padding: '16px', backgroundColor: '#131b22', border: '1px solid #1c2630', borderRadius: '6px', color: '#8d979f', fontSize: '13px', lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: '10px' }}>

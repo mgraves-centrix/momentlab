@@ -653,7 +653,7 @@ export const ProjectsDashboard: React.FC = () => {
                       {primaryLiftStr}
                     </div>
                     <div style={{ fontSize: '11px', color: '#58c94b', marginTop: '1px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {resultsData?.key_results ? 'MEASURED' : 'SIMULATED'}
+                      {resultsData?.key_results ? 'MEASURED' : 'PREDICTED'}
                     </div>
                   </div>
 
@@ -663,7 +663,7 @@ export const ProjectsDashboard: React.FC = () => {
                       {secondaryLiftStr}
                     </div>
                     <div style={{ fontSize: '11px', color: '#58c94b', marginTop: '1px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {resultsData?.key_results ? 'MEASURED' : 'SIMULATED'}
+                      {resultsData?.key_results ? 'MEASURED' : 'PREDICTED'}
                     </div>
                   </div>
 
@@ -672,7 +672,7 @@ export const ProjectsDashboard: React.FC = () => {
                     <div style={{ fontSize: '16px', fontWeight: 800, color: '#58c94b', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis' }} className="tabular-nums">
                       {confidenceVal}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis' }}>VERIFIED</div>
+                    <div style={{ fontSize: '11px', color: '#8d979f', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{resultsData?.key_results ? 'MEASURED' : 'PREDICTED'}</div>
                   </div>
                 </div>
 

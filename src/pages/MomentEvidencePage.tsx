@@ -384,7 +384,7 @@ export const MomentEvidencePage: React.FC = () => {
                 </div>
                 <div style={{ backgroundColor: 'rgba(88, 201, 75, 0.15)', border: '1px solid rgba(88, 201, 75, 0.3)', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', color: '#58c94b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ShieldCheck size={14} />
-                  <span>AUDIT VERIFIED</span>
+                  <span>CLICKHOUSE-TRACED</span>
                 </div>
               </div>
             </div>

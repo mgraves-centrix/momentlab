@@ -83,7 +83,7 @@ export const QueryModal: React.FC<QueryModalProps> = ({ queryId, onClose }) => {
 
         {loading ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#8d979f', fontSize: '12px' }}>
-            Fetching verified ClickHouse SQL execution log...
+            Fetching ClickHouse SQL execution log...
           </div>
         ) : error ? (
           <div style={{ padding: '16px', backgroundColor: '#211210', border: '1px solid #4a201c', borderRadius: '6px', color: '#ff654a', fontSize: '12px' }}>

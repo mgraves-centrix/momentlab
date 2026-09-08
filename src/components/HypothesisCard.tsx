@@ -34,7 +34,7 @@ export const HypothesisCard: React.FC<HypothesisCardProps> = ({
         }}
       >
         <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-          Gemini Edit Proposal deferred.
+          Edit hypothesis deferred.
         </span>
         <button
           onClick={() => setIsDismissed(false)}
@@ -71,7 +71,7 @@ export const HypothesisCard: React.FC<HypothesisCardProps> = ({
             <Sparkles size={16} />
           </div>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--violet-soft)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Gemini Edit Proposal
+            A testable edit hypothesis
           </span>
         </div>
 
@@ -88,7 +88,7 @@ export const HypothesisCard: React.FC<HypothesisCardProps> = ({
 
           {hypothesis.isSimulated && (
             <span className="badge badge-simulated">
-              SIMULATED FORECAST
+              PREDICTED EFFECT
             </span>
           )}
         </div>

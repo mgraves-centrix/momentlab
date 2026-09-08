@@ -266,10 +266,10 @@ export const CreateAbTestPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sparkles size={14} color="#c4a7ff" />
                   <span style={{ fontSize: '11px', fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    SIMULATED FORECAST
+                    PREDICTED EFFECT
                   </span>
                 </div>
-                <span className="badge badge-simulated">SIMULATED</span>
+                <span className="badge badge-simulated">PREDICTED</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

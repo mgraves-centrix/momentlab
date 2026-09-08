@@ -641,7 +641,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     <div style={{ padding: '8px', backgroundColor: '#162029', borderRadius: '4px', fontSize: '11px', color: '#c4a7ff', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                       <Info size={14} color="#8b5cf6" style={{ marginTop: '2px', flexShrink: 0 }} />
                       <div>
-                        <strong>Cut B Anomaly Detected</strong>
+                        <strong>Cut B: viewers disengage at 00:37</strong>
                         <div style={{ color: '#8d979f', fontSize: '11px', marginTop: '2px' }}>Pacing cliff at 00:37 (-18.1% drop). Analysis ready.</div>
                       </div>
                     </div>

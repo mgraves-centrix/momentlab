@@ -271,7 +271,7 @@ export const ResponseTimelinePage: React.FC = () => {
                   Response Finding — {projectData?.title || 'Film Project'}
                 </h1>
                 <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0 0' }}>
-                  {projectData?.project_id === 'proj_northlight_01' ? 'Int. Apartment – Night · 00:37 Anomaly Detected' : `${projectData?.title || 'Film'} · Scene Screening Evaluation`}
+                  {projectData?.project_id === 'proj_northlight_01' ? 'Int. Apartment – Night · Viewers disengage at 00:37' : `${projectData?.title || 'Film'} · Scene Screening Evaluation`}
                 </p>
               </div>
 
