@@ -5,7 +5,7 @@ Built for the Agentic Cinema: The Blockbuster Hackathon, ClickHouse track.
 
 **Live app**: [https://momentlab.ai](https://momentlab.ai)
 **Cloud Run origin**: [https://momentlab-web-qa24oxtrrq-uc.a.run.app](https://momentlab-web-qa24oxtrrq-uc.a.run.app)
-**Demo video**: REPLACE_WITH_YOUTUBE_URL (3 min) | [script and storyboard](docs/demo-script.md)
+**Demo video**: [https://youtu.be/Yt4zgnYt3vk](https://youtu.be/Yt4zgnYt3vk) (2:29) | [script and storyboard](docs/demo-script.md)
 
 ![Desktop Built](docs/images/momentlab-built.png)
 
