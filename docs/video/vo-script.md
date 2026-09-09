@@ -9,7 +9,7 @@ match the narration exactly on the first take.
 **As cut:** each generated clip is trimmed to a 0.10s pad so its own trailing silence does not
 stack on the gap, segments are separated by 1.6 seconds of silence, and a 5-second end card
 crossfades in over the closing narration. Measured gaps in the render are 1.65-1.81s. Final
-runtime is 2:48.16, inside the 3-minute limit. `momentlab-demo.srt` is timed to this
+runtime is 2:48.29, inside the 3-minute limit. `momentlab-demo.srt` is timed to this
 arrangement and was verified against the rendered audio -- all eleven segment onsets align
 within 0.11s.
 
@@ -20,7 +20,9 @@ care: write an initialism that must be spelled out with periods, as "I.D.", neve
 "I D" -- spaces make the voice pause between the letters. The caption spells it `ID`. Watch
 homographs too: "rows" alone was read as the word meaning a quarrel, so the line places it
 mid-phrase as "rows returned". SSML phoneme tags are not a workaround -- `eleven_multilingual_v2`
-does not honor them reliably.
+does not honor them reliably. Quotation marks are inaudible: never rely on them to mark a
+quoted phrase in narration. The closing line originally quoted "it dragged" and listeners heard a
+grammatical error, so it now completes the cold open's own sentence instead.
 
 Every figure below is measured against production, not estimated.
 
@@ -74,8 +76,9 @@ thousand five hundred respondents per arm. Only then is it labeled measured.
 
 ## 11 — Close (~19s)
 No cameras. No facial recognition. Only consented in-player reactions, aggregated behind a
-minimum cohort size of ten. The demo runs on a seeded dataset — the agent, the queries and the
-measurement path are real. MomentLab turns "it dragged" into a frame range you can act on.
+minimum cohort size of ten. The demo runs on a seeded dataset. The agent, the queries and the
+measurement path are real. A screening tells you the audience got bored. MomentLab tells you
+where.
 
 ---
 
