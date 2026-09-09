@@ -83,77 +83,77 @@ This is the agent's actual work, not a
 summary of it.
 
 19
-00:01:22,492 --> 00:01:29,073
+00:01:22,492 --> 00:01:28,834
 Open any one of them and you get the query
-ID, the execution time, the rows read,
+ID, the execution time, the row count,
 
 20
-00:01:29,073 --> 00:01:32,649
+00:01:28,834 --> 00:01:32,983
 and the exact SQL. 3 milliseconds, 737
-rows.
+rows returned.
 
 21
-00:01:32,649 --> 00:01:36,630
+00:01:32,983 --> 00:01:36,820
 You can verify the number instead of
 trusting it.
 
 22
-00:01:38,230 --> 00:01:44,438
+00:01:38,420 --> 00:01:44,628
 Every figure carries its state. PREDICTED
 means a forecast. MEASURED means a result.
 
 23
-00:01:44,438 --> 00:01:47,911
+00:01:44,628 --> 00:01:48,101
 GROUNDED means real ClickHouse queries
 back it.
 
 24
-00:01:47,911 --> 00:01:52,863
+00:01:48,101 --> 00:01:53,053
 Nothing is called verified unless the
 system actually confirmed it.
 
 25
-00:01:54,463 --> 00:01:57,136
+00:01:54,653 --> 00:01:57,326
 The agent proposes. A person approves.
 
 26
-00:01:57,136 --> 00:02:02,622
+00:01:57,326 --> 00:02:02,812
 This edit is a testable proposal with a
 predicted effect and a reviewer gate —
 
 27
-00:02:02,622 --> 00:02:03,958
+00:02:02,812 --> 00:02:04,148
 not an instruction.
 
 28
-00:02:05,558 --> 00:02:13,283
+00:02:05,748 --> 00:02:13,473
 The cut measured an 11.1% engagement lift,
 with a 95% confidence interval from
 
 29
-00:02:13,283 --> 00:02:21,602
+00:02:13,473 --> 00:02:21,792
 10.9% to 11.4%, across 17,500 respondents
 per arm. Only then is it labeled MEASURED.
 
 30
-00:02:23,202 --> 00:02:25,682
+00:02:23,392 --> 00:02:25,872
 No cameras. No facial recognition.
 
 31
-00:02:25,682 --> 00:02:31,663
+00:02:25,872 --> 00:02:31,853
 Only consented in-player reactions,
 aggregated behind a minimum cohort size of
 
 32
-00:02:31,663 --> 00:02:34,217
+00:02:31,853 --> 00:02:34,407
 The demo runs on a seeded dataset —
 
 33
-00:02:34,217 --> 00:02:38,374
+00:02:34,407 --> 00:02:38,564
 the agent, the queries and the measurement
 path are real.
 
 34
-00:02:38,374 --> 00:02:42,970
+00:02:38,564 --> 00:02:43,160
 MomentLab turns “it dragged” into a frame
 range you can act on.
