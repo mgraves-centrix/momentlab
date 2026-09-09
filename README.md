@@ -38,6 +38,10 @@ consent → stream telemetry → detect → investigate with ClickHouse MCP → 
 
 ## ⚡ Runtime Infrastructure (Google Cloud & ClickHouse)
 
+![MomentLab architecture](docs/images/momentlab-architecture.png)
+
+Four runtime stages: consented capture, cohort-keyed aggregation in ClickHouse, agent investigation over MCP, then human approval.
+
 MomentLab runs real analytical queries against ClickHouse Cloud at runtime. The pieces that matter:
 
 * **Google Agent Development Kit (`google-adk`)** orchestrates the agent and its multi-step tool use.

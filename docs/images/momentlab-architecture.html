@@ -1,0 +1,76 @@
+<!doctype html><meta charset="utf-8">
+<style>
+ :root{--bg:#050a0e;--panel:#0c1115;--line:#1c2630;--text:#f1f3f2;--mut:#8d979f;
+       --lime:#b7e33d;--vio:#c4a7ff;--dim:#56626d;}
+ html,body{margin:0;width:1920px;height:1280px;overflow:hidden;background:var(--bg);color:var(--text);
+   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;}
+ .page{padding:52px 64px 44px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;}
+ h1{font-size:40px;font-weight:800;letter-spacing:-.02em;margin:0;}
+ h1 span{color:var(--vio);}
+ .sub{font-size:21px;color:var(--mut);margin:10px 0 30px;}
+ .bands{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;}
+ .band{}
+ .btag{font-size:17px;font-weight:800;letter-spacing:.15em;color:var(--dim);text-transform:uppercase;margin-bottom:14px;}
+ .row{display:flex;align-items:stretch;gap:0;}
+ .box{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:24px 26px;flex:1;min-width:0;}
+ .box .t{font-size:24px;font-weight:700;line-height:1.2;}
+ .box .d{font-size:17px;color:var(--mut);margin-top:6px;line-height:1.35;}
+ .box.g{border-color:#3b2f5c;} .box.g .t{color:var(--vio);}
+ .box.c{border-color:#3f4d1f;} .box.c .t{color:var(--lime);}
+ .arw{flex:0 0 74px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--dim);}
+ .arw .g{font-size:30px;line-height:1;}
+ .arw .l{font-size:13px;color:var(--dim);margin-top:5px;text-align:center;letter-spacing:.03em;line-height:1.25;}
+ .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;
+   border-top:1px solid var(--line);padding-top:18px;font-size:15px;color:var(--dim);}
+ .key span{display:inline-block;margin-right:22px;}
+ .dotg,.dotc{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:1px;}
+ .dotg{background:var(--vio);} .dotc{background:var(--lime);}
+ .mark{font-size:19px;font-weight:800;color:var(--text);}
+ .mark i{font-style:normal;color:var(--vio);}
+</style>
+<div class="page">
+  <h1>Moment<span>Lab</span> architecture</h1>
+  <div class="sub">Consented playback telemetry to an approved, measured edit. Every arrow is a call that happens at runtime.</div>
+
+  <div class="bands">
+  <div class="band"><div class="btag">1 &nbsp;Capture</div><div class="row">
+    <div class="box"><div class="t">Screening participant</div><div class="d">Consent recorded first, then the in-player reactions and playback events they opted into</div></div>
+    <div class="arw"><div class="g">&rarr;</div><div class="l">consent<br>+ events</div></div>
+    <div class="box"><div class="t">FastAPI on Cloud Run</div><div class="d">Validates the session's prior consent before any event is stored</div></div>
+    <div class="arw"><div class="g">&rarr;</div><div class="l">insert</div></div>
+    <div class="box c"><div class="t">ClickHouse Cloud</div><div class="d"><code>screening_sessions</code>, <code>audience_events</code></div></div>
+  </div></div>
+
+  <div class="band"><div class="btag">2 &nbsp;Aggregate and detect</div><div class="row">
+    <div class="box c"><div class="t">AggregatingMergeTree view</div><div class="d"><code>retention_by_second_aggregated</code>, keyed by project, experiment, scene, respondent_cohort, media_time_ms</div></div>
+    <div class="arw"><div class="g">&rarr;</div><div class="l">avgMerge<br>~48ms</div></div>
+    <div class="box"><div class="t">Server-side detector</div><div class="d">Finds retention cliffs, ignores buckets under a 10-respondent floor</div></div>
+    <div class="arw"><div class="g">&rarr;</div><div class="l">writes</div></div>
+    <div class="box c"><div class="t">Anomaly table</div><div class="d"><code>reaction_anomalies_aggregated</code></div></div>
+  </div></div>
+
+  <div class="band"><div class="btag">3 &nbsp;Investigate</div><div class="row">
+    <div class="box g"><div class="t">Google ADK agent</div><div class="d"><code>Agent</code> + <code>Runner</code> invoked at runtime, on Gemini 2.5 Pro through Vertex AI</div></div>
+    <div class="arw"><div class="g">&harr;</div><div class="l">stdio<br>tool calls</div></div>
+    <div class="box c"><div class="t">ClickHouse MCP server</div><div class="d">Official <code>ClickHouse/mcp-clickhouse</code></div></div>
+    <div class="arw"><div class="g">&harr;</div><div class="l">SQL</div></div>
+    <div class="box c"><div class="t">ClickHouse Cloud</div><div class="d">Each execution logged, then surfaced as query provenance in the UI</div></div>
+  </div></div>
+
+  <div class="band"><div class="btag">4 &nbsp;Decide and measure</div><div class="row">
+    <div class="box"><div class="t">Hypothesis</div><div class="d">Written to Firestore; the run is written to <code>momentlab.agent_runs</code></div></div>
+    <div class="arw"><div class="g">&rarr;</div><div class="l">reviewer<br>token</div></div>
+    <div class="box"><div class="t">Human approval gate</div><div class="d">Server-signed. Nothing runs until a person approves</div></div>
+    <div class="arw"><div class="g">&rarr;</div><div class="l">A/B test</div></div>
+    <div class="box"><div class="t">Measured result</div><div class="d">Reported against the prediction, labeled MEASURED only afterwards</div></div>
+  </div></div>
+
+  </div>
+  <div class="foot">
+    <div class="key">
+      <span><i class="dotg"></i>Google Cloud AI</span>
+      <span><i class="dotc"></i>ClickHouse (partner track)</span>
+    </div>
+    <div class="mark">MOMENT<i>LAB</i></div>
+  </div>
+</div>
