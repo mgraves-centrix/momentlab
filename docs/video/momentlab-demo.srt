@@ -9,151 +9,151 @@ MomentLab answers that question with a
 timestamp.
 
 3
-00:00:09,008 --> 00:00:12,420
+00:00:09,008 --> 00:00:12,456
 35,001 respondents watched this scene.
 
 4
-00:00:12,420 --> 00:00:19,513
+00:00:12,456 --> 00:00:19,626
 Across roughly 2 million playback events,
 retention drops 18.1% at 37 seconds —
 
 5
-00:00:19,513 --> 00:00:22,745
-inside a window from 00:33 to 00:41.
+00:00:19,626 --> 00:00:23,074
+inside a window from 33 to 41 seconds.
 
 6
-00:00:24,345 --> 00:00:28,768
+00:00:24,674 --> 00:00:29,097
 Retention is aggregated per age cohort
 inside ClickHouse, in an
 
 7
-00:00:28,768 --> 00:00:31,506
+00:00:29,097 --> 00:00:31,835
 AggregatingMergeTree materialized view.
 
 8
-00:00:31,506 --> 00:00:35,647
+00:00:31,835 --> 00:00:35,976
 The curve you're seeing came back in about
 45 milliseconds.
 
 9
-00:00:35,647 --> 00:00:40,421
+00:00:35,976 --> 00:00:40,750
 The same question against raw events takes
 roughly three times that.
 
 10
-00:00:42,021 --> 00:00:47,115
+00:00:42,350 --> 00:00:47,444
 This is a Google ADK agent running Gemini
 2.5 Pro on Vertex AI.
 
 11
-00:00:47,115 --> 00:00:53,664
+00:00:47,444 --> 00:00:53,993
 When I re-run the analysis, it queries
 ClickHouse through the official ClickHouse
 
 12
-00:00:53,664 --> 00:00:57,950
+00:00:53,993 --> 00:00:58,279
 MCP server and forms a hypothesis from
 what it finds.
 
 13
-00:00:59,550 --> 00:01:01,588
+00:00:59,879 --> 00:01:01,917
 The indicator is not decorative.
 
 14
-00:01:01,588 --> 00:01:06,939
+00:01:01,917 --> 00:01:07,268
 It reflects real service health and the
 number of agent runs in the last 15
 
 15
-00:01:06,939 --> 00:01:09,169
+00:01:07,268 --> 00:01:09,498
 When nothing has run, it says idle.
 
 16
-00:01:10,769 --> 00:01:13,459
+00:01:11,098 --> 00:01:13,788
 Every query the agent ran is recorded —
 
 17
-00:01:13,459 --> 00:01:16,907
+00:01:13,788 --> 00:01:17,236
 up to 50 executions, with duration and row
 counts.
 
 18
-00:01:16,907 --> 00:01:20,563
+00:01:17,236 --> 00:01:20,892
 This is the agent's actual work, not a
 summary of it.
 
 19
-00:01:22,163 --> 00:01:29,536
+00:01:22,492 --> 00:01:29,865
 Open any one of them and you get the query
 ID, the execution time, the rows read,
 
 20
-00:01:29,536 --> 00:01:33,541
+00:01:29,865 --> 00:01:33,870
 and the exact SQL. 3 milliseconds, 737
 rows.
 
 21
-00:01:33,541 --> 00:01:38,001
+00:01:33,870 --> 00:01:38,330
 You can verify the number instead of
 trusting it.
 
 22
-00:01:39,601 --> 00:01:45,809
+00:01:39,930 --> 00:01:46,138
 Every figure carries its state. PREDICTED
 means a forecast. MEASURED means a result.
 
 23
-00:01:45,809 --> 00:01:49,282
+00:01:46,138 --> 00:01:49,611
 GROUNDED means real ClickHouse queries
 back it.
 
 24
-00:01:49,282 --> 00:01:54,234
+00:01:49,611 --> 00:01:54,563
 Nothing is called verified unless the
 system actually confirmed it.
 
 25
-00:01:55,834 --> 00:01:58,507
+00:01:56,163 --> 00:01:58,836
 The agent proposes. A person approves.
 
 26
-00:01:58,507 --> 00:02:03,993
+00:01:58,836 --> 00:02:04,322
 This edit is a testable proposal with a
 predicted effect and a reviewer gate —
 
 27
-00:02:03,993 --> 00:02:05,329
+00:02:04,322 --> 00:02:05,658
 not an instruction.
 
 28
-00:02:06,929 --> 00:02:15,064
+00:02:07,258 --> 00:02:14,983
 The cut measured an 11.1% engagement lift,
-95% confidence interval from +10.9% to
+with a 95% confidence interval from
 
 29
-00:02:15,064 --> 00:02:22,697
-+11.4%, across 17,500 respondents per arm.
-Only then is it labeled MEASURED.
+00:02:14,983 --> 00:02:23,302
+10.9% to 11.4%, across 17,500 respondents
+per arm. Only then is it labeled MEASURED.
 
 30
-00:02:24,297 --> 00:02:26,777
+00:02:24,902 --> 00:02:27,382
 No cameras. No facial recognition.
 
 31
-00:02:26,777 --> 00:02:32,758
+00:02:27,382 --> 00:02:33,363
 Only consented in-player reactions,
 aggregated behind a minimum cohort size of
 
 32
-00:02:32,758 --> 00:02:35,312
+00:02:33,363 --> 00:02:35,917
 The demo runs on a seeded dataset —
 
 33
-00:02:35,312 --> 00:02:39,469
+00:02:35,917 --> 00:02:40,074
 the agent, the queries and the measurement
 path are real.
 
 34
-00:02:39,469 --> 00:02:44,065
+00:02:40,074 --> 00:02:44,670
 MomentLab turns “it dragged” into a frame
 range you can act on.

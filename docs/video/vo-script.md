@@ -9,7 +9,7 @@ match the narration exactly on the first take.
 **As cut:** each generated clip is trimmed to a 0.10s pad so its own trailing silence does not
 stack on the gap, segments are separated by 1.6 seconds of silence, and a 5-second end card
 crossfades in over the closing narration. Measured gaps in the render are 1.65-1.81s. Final
-runtime is 2:49.07, inside the 3-minute limit. `momentlab-demo.srt` is timed to this
+runtime is 2:49.67, inside the 3-minute limit. `momentlab-demo.srt` is timed to this
 arrangement and was verified against the rendered audio -- all eleven segment onsets align
 within 0.11s.
 
@@ -27,8 +27,8 @@ MomentLab answers that question with a timestamp.
 
 ## 02 — The finding (~18s)
 Thirty-five thousand and one respondents watched this scene. Across roughly two million
-playback events, retention drops eighteen point one percent at thirty-seven seconds — inside a
-window from thirty-three to forty-one.
+playback events, retention drops eighteen point one percent at thirty-seven seconds, inside a
+window from thirty-three to forty-one seconds.
 
 ## 03 — Cohorts and speed (~17s)
 Retention is aggregated per age cohort inside ClickHouse, in an Aggregating Merge Tree
@@ -63,9 +63,9 @@ The agent proposes. A person approves. This edit is a testable proposal with a p
 and a reviewer gate — not an instruction.
 
 ## 10 — The measured result (~18s)
-The cut measured an eleven point one percent engagement lift, ninety-five percent confidence
-interval from ten point nine to eleven point four, across seventeen thousand five hundred
-respondents per arm. Only then is it labeled measured.
+The cut measured an eleven point one percent engagement lift, with a ninety-five percent
+confidence interval from ten point nine to eleven point four percent, across seventeen
+thousand five hundred respondents per arm. Only then is it labeled measured.
 
 ## 11 — Close (~19s)
 No cameras. No facial recognition. Only consented in-player reactions, aggregated behind a
