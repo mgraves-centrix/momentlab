@@ -301,9 +301,39 @@ export const ResponseTimelinePage: React.FC = () => {
                 </p>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span className="badge badge-simulated">Synthetic Footage</span>
-                <span className="badge badge-connected">ClickHouse MCP Connected</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <span className="badge badge-simulated">Synthetic Footage</span>
+                  <span className="badge badge-connected">ClickHouse MCP Connected</span>
+                  <button
+                    onClick={handleGenerateHypothesis}
+                    disabled={isGenerating}
+                    style={{
+                      backgroundColor: isGenerating ? '#1c2630' : '#b7e33d',
+                      color: isGenerating ? '#8d979f' : '#050a0e',
+                      border: 'none',
+                      padding: '8px 14px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      cursor: isGenerating ? 'default' : 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {isGenerating
+                      ? 'ANALYZING TELEMETRY...'
+                      : hypothesisData
+                        ? 'RE-RUN AGENT ANALYSIS'
+                        : 'INVESTIGATE & GENERATE HYPOTHESIS'}
+                  </button>
+                </div>
+                {generateError && (
+                  <div ref={generateErrorRef} role="alert" style={{ fontSize: '11px', color: '#ff654a', display: 'flex', alignItems: 'flex-start', gap: '4px', maxWidth: '360px', textAlign: 'left' }}>
+                    <AlertCircle size={12} style={{ flexShrink: 0, marginTop: '1px' }} />
+                    <span>{generateError}</span>
+                  </div>
+                )}
               </div>
             </div>
 
