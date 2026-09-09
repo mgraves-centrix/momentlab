@@ -37,3 +37,5 @@ public/media/
 public/frames/*/scene_cut_b.mp4
 public/frames/*/scene_cut_b.json
 
+# Rendered demo video (hosted on YouTube; captions and script are tracked)
+docs/video/*.mp4

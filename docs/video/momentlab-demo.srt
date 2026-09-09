@@ -1,0 +1,155 @@
+1
+00:00:00,000 --> 00:00:04,735
+A test screening tells you the audience
+got bored. It does not tell you where.
+
+2
+00:00:04,735 --> 00:00:07,709
+MomentLab answers that question with a
+timestamp.
+
+3
+00:00:09,709 --> 00:00:13,192
+35,001 respondents watched this scene.
+
+4
+00:00:13,192 --> 00:00:20,434
+Across roughly 2 million playback events,
+retention drops 18.1% at 37 seconds —
+
+5
+00:00:20,434 --> 00:00:23,734
+inside a window from 00:33 to 00:41.
+
+6
+00:00:25,734 --> 00:00:31,175
+Retention is aggregated per age cohort in
+ClickHouse, in an AggregatingMergeTree
+
+7
+00:00:31,175 --> 00:00:36,480
+materialized view. The curve you're seeing
+came back in about 45 milliseconds.
+
+8
+00:00:36,480 --> 00:00:41,105
+The same question against raw events takes
+roughly three times that.
+
+9
+00:00:43,105 --> 00:00:48,199
+This is a Google ADK agent running Gemini
+2.5 Pro on Vertex AI.
+
+10
+00:00:48,199 --> 00:00:54,749
+When I re-run the analysis, it queries
+ClickHouse through the official ClickHouse
+
+11
+00:00:54,749 --> 00:00:59,034
+MCP server and forms a hypothesis from
+what it finds.
+
+12
+00:01:01,034 --> 00:01:03,131
+The indicator is not decorative.
+
+13
+00:01:03,131 --> 00:01:08,633
+It reflects real service health and the
+number of agent runs in the last 15
+
+14
+00:01:08,633 --> 00:01:10,926
+When nothing has run, it says idle.
+
+15
+00:01:12,926 --> 00:01:15,732
+Every query the agent ran is recorded —
+
+16
+00:01:15,732 --> 00:01:19,330
+up to 50 executions, with duration and row
+counts.
+
+17
+00:01:19,330 --> 00:01:23,143
+This is the agent's actual work, not a
+summary of it.
+
+18
+00:01:25,143 --> 00:01:32,666
+Open any one of them and you get the query
+ID, the execution time, the rows read,
+
+19
+00:01:32,666 --> 00:01:36,753
+and the exact SQL. 3 milliseconds, 737
+rows.
+
+20
+00:01:36,753 --> 00:01:41,304
+You can verify the number instead of
+trusting it.
+
+21
+00:01:43,304 --> 00:01:49,648
+Every figure carries its state. PREDICTED
+means a forecast. MEASURED means a result.
+
+22
+00:01:49,648 --> 00:01:53,198
+GROUNDED means real ClickHouse queries
+back it.
+
+23
+00:01:53,198 --> 00:01:58,258
+Nothing is called verified unless the
+system actually confirmed it.
+
+24
+00:02:00,258 --> 00:02:03,029
+The agent proposes. A person approves.
+
+25
+00:02:03,029 --> 00:02:08,717
+This edit is a testable proposal with a
+predicted effect and a reviewer gate —
+
+26
+00:02:08,717 --> 00:02:10,103
+not an instruction.
+
+27
+00:02:12,103 --> 00:02:20,393
+The cut measured an 11.1% engagement lift,
+95% confidence interval from +10.9% to
+
+28
+00:02:20,393 --> 00:02:28,171
++11.4%, across 17,500 respondents per arm.
+Only then is it labeled MEASURED.
+
+29
+00:02:30,171 --> 00:02:32,682
+No cameras. No facial recognition.
+
+30
+00:02:32,682 --> 00:02:38,739
+Only consented in-player reactions,
+aggregated behind a minimum cohort size of
+
+31
+00:02:38,739 --> 00:02:41,324
+The demo runs on a seeded dataset —
+
+32
+00:02:41,324 --> 00:02:45,534
+the agent, the queries and the measurement
+path are real.
+
+33
+00:02:45,534 --> 00:02:50,187
+MomentLab turns “it dragged” into a frame
+range you can act on.
