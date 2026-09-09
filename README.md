@@ -234,7 +234,7 @@ The mobile workflow is built for reviewing a finding and approving a test away f
 - [Hackathon Submission & Features](docs/submission.md)
 - [Judging Criteria Proof](docs/judge-proof.md)
 - [3-Minute Video Script](docs/demo-script.md)
-- [Visual QA Scorecard (99/100)](docs/visual-qa.md)
+- [Visual QA Report](docs/visual-qa.md)
 - [Hackathon Compliance Matrix](docs/compliance-matrix.md)
 - [Technology Compliance & Denylist Lock](docs/technology-compliance.md)
 - [Architecture Decision Records (ADR-001)](docs/decisions.md)
