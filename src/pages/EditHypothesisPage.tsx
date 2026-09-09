@@ -335,7 +335,7 @@ export const EditHypothesisPage: React.FC = () => {
             )}
 
             {/* ROW 4: SUCCESS METRICS & GUARDRAILS */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '8px', padding: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: '#c4a7ff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -379,7 +379,7 @@ export const EditHypothesisPage: React.FC = () => {
               <div style={{ fontSize: '11px', fontWeight: 800, color: '#8d979f', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
                 UNCERTAINTY BOUNDS & POTENTIAL CONFOUNDERS
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', fontSize: '12px' }}>
                 <div style={{ padding: '12px', backgroundColor: '#131b22', borderRadius: '6px', border: '1px solid #1c2630' }}>
                   <div style={{ color: '#c4a7ff', fontWeight: 700, marginBottom: '4px' }}>Uncertainty & Sample Size</div>
                   <div style={{ color: '#8d979f', lineHeight: 1.4 }}>

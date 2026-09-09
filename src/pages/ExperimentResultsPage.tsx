@@ -725,7 +725,7 @@ export const ExperimentResultsPage: React.FC = () => {
         {activeTab !== 'SUPPORTED' ? (
            <div style={{ padding: '64px', textAlign: 'center', color: '#8d979f' }}>No results for this category.</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
             {/* Main Grid: 40% | 40% | 20% */}
             
             {/* LEFT COLUMN */}
@@ -804,7 +804,7 @@ export const ExperimentResultsPage: React.FC = () => {
             </div>
 
             {/* MIDDLE COLUMN */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
               
               {/* ENGAGEMENT OVER TIME */}
               <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '6px', padding: '16px', position: 'relative' }}>
@@ -877,7 +877,7 @@ export const ExperimentResultsPage: React.FC = () => {
             </div>
 
             {/* RIGHT COLUMN */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
               
               {/* KEY RESULTS */}
               <div style={{ backgroundColor: '#0c1115', border: '1px solid #1c2630', borderRadius: '6px', padding: '16px' }}>

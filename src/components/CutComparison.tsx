@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Check, PlayCircle, Video, Loader2, AlertCircle } from 'lucide-react';
+import { useMobile } from '../hooks/useMobile';
 
 interface CutComparisonProps {
   anomalyWindow?: string;
@@ -49,6 +50,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
   const [isRendering, setIsRendering] = useState<boolean>(false);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [noAnomaly, setNoAnomaly] = useState<boolean>(false);
+  const isMobile = useMobile();
 
   useEffect(() => {
     if (initialVariantVideoUrl) {
@@ -194,7 +196,7 @@ export const CutComparison: React.FC<CutComparisonProps> = ({
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
         {/* Control Cut A */}
         <div
           onClick={() => handleSelect('A')}
