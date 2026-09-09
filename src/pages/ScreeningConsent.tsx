@@ -364,11 +364,6 @@ export const ScreeningConsentPage: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ backgroundColor: 'transparent', border: '1px solid #1f3a28', borderRadius: '14px', padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: '#8d979f', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.04em' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#58c94b' }} />
-                  <span>AGENTS ONLINE</span>
-                  <span style={{ backgroundColor: '#1d4825', color: '#58c94b', padding: '2px 6px', borderRadius: '10px', fontSize: '11px' }}>4</span>
-                </div>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #1c262e', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8d979f' }}>
                   <HelpCircle size={14} />
                 </div>
