@@ -128,6 +128,7 @@ export const ResponseTimelinePage: React.FC = () => {
   };
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [generateError, setGenerateError] = React.useState<string | null>(null);
+  const generateErrorRef = React.useRef<HTMLDivElement | null>(null);
 
   const handleGenerateHypothesis = async () => {
     if (!projectId || !experimentId) return;
@@ -151,6 +152,12 @@ export const ResponseTimelinePage: React.FC = () => {
       setIsGenerating(false);
     }
   };
+
+  React.useEffect(() => {
+    if (generateError && generateErrorRef.current) {
+      generateErrorRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [generateError]);
 
   const isMobile = useMobile();
 
@@ -276,7 +283,7 @@ export const ResponseTimelinePage: React.FC = () => {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#050a0e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
             </button>
             {generateError && (
-              <div role="alert" style={{ marginTop: '8px', fontSize: '11px', color: '#ff654a', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+              <div ref={generateErrorRef} role="alert" style={{ marginTop: '8px', fontSize: '11px', color: '#ff654a', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
                 <AlertCircle size={12} style={{ flexShrink: 0, marginTop: '1px' }} />
                 <span>{generateError}</span>
               </div>
