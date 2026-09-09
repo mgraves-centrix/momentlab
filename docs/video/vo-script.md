@@ -9,13 +9,15 @@ match the narration exactly on the first take.
 **As cut:** each generated clip is trimmed to a 0.10s pad so its own trailing silence does not
 stack on the gap, segments are separated by 1.6 seconds of silence, and a 5-second end card
 crossfades in over the closing narration. Measured gaps in the render are 1.65-1.81s. Final
-runtime is 2:49.67, inside the 3-minute limit. `momentlab-demo.srt` is timed to this
+runtime is 2:47.97, inside the 3-minute limit. `momentlab-demo.srt` is timed to this
 arrangement and was verified against the rendered audio -- all eleven segment onsets align
 within 0.11s.
 
 Write technical terms the way they should be *heard* in the narration and the way they should
 be *read* in the captions: the voice track says "Aggregating Merge Tree" so the engine name is
-not slurred, while `momentlab-demo.srt` spells it `AggregatingMergeTree`.
+not slurred, while `momentlab-demo.srt` spells it `AggregatingMergeTree`. Acronyms need the same
+care: write an initialism that must be spelled out with periods, as "I.D.", never with spaces as
+"I D" -- spaces make the voice pause between the letters. The caption spells it `ID`.
 
 Every figure below is measured against production, not estimated.
 
@@ -49,9 +51,9 @@ Every query the agent ran is recorded — up to fifty executions, with duration 
 This is the agent's actual work, not a summary of it.
 
 ## 07 — Provenance (~15s)
-Open any one of them and you get the query ID, the execution time, the rows read, and the exact
-SQL. Three milliseconds, seven hundred and thirty-seven rows. You can verify the number instead
-of trusting it.
+Open any one of them and you get the query I.D., the execution time, the rows read, and the
+exact SQL. Three milliseconds, seven hundred and thirty-seven rows. You can verify the number
+instead of trusting it.
 
 ## 08 — Honest labels (~18s)
 Every figure carries its state. Predicted means a forecast. Measured means a result. Grounded
