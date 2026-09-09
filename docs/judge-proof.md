@@ -1,6 +1,13 @@
 # Judging Criteria Proof
 
-This document maps the Agentic Cinema Hackathon judging criteria to concrete evidence in the MomentLab repository and demonstration.
+This document maps the Agentic Cinema Hackathon judging criteria to concrete evidence in the
+MomentLab repository and demonstration.
+
+**About the data:** the demo runs on a seeded, reproducible telemetry set -- 35,001
+respondents for the Northlight experiment, spread across four age cohorts -- and on
+synthetic scene footage, labeled SYNTHETIC wherever it appears in the UI. The screening flow
+also accepts live respondents. The agent, the ClickHouse queries, the aggregation and the
+measurement path are real; the viewers in the demo dataset are generated.
 
 ## 1. Technological Implementation (25%)
 **Does the project use the official ClickHouse MCP server, Google Cloud Agent Builder (via Google ADK), and Vertex AI as required?**
@@ -14,35 +21,22 @@ This document maps the Agentic Cinema Hackathon judging criteria to concrete evi
 **Does the application have an intuitive, professional, and accessible user interface?**
 
 * **Visual Fidelity**: MomentLab reconstructed the premium editorial workstation reference designs with faithful fidelity (see `docs/visual-qa.md`).
-* **Responsive Mobile Experience (verified at 375px)**: Rather than a clunky collapse of the
-  desktop dashboard, MomentLab ships purpose-built mobile layouts -- dedicated
-  `Finding` / `Evidence` / `Test` routes with a persistent bottom navigation, and a
-  mobile-specific screening consent + player. Every primary screen (projects dashboard,
-  finding, evidence, the mobile "More" menu, and the participant screening) was verified at
-  a 375px viewport with **zero horizontal overflow**. The Audience Response Timeline header
-  and legend wrap cleanly on narrow widths instead of crowding, and the screening video
-  shows a loading spinner while it buffers so it never appears frozen. Destructive operator
-  controls (telemetry reset) are removed from navigation and gated behind an explicit
-  operator flag, so the mobile participant flow exposes nothing dangerous. The per-cohort
-  retention chart was verified at 375px as well: all five series -- overall retention
-  plus the 18-24, 25-34, 35-44 and 45+ age cohorts -- render with distinct colors, and
-  the expanded legend wraps onto a second line rather than crowding. An element-level
-  sweep found no node extending past the viewport. Because the mobile Finding view has
-  no cohort selector, it always shows the combined view, so a phone reader sees the
-  full cohort comparison at once.
+* **Responsive Mobile Experience (verified at 375px)**: Purpose-built mobile layouts rather than a collapsed desktop grid -- dedicated `Finding` / `Evidence` / `Test` routes with persistent bottom navigation, plus a mobile-specific screening consent and player. Every primary screen was verified at a 375px viewport with **zero horizontal overflow**, confirmed by an element-level sweep for nodes extending past the viewport. The timeline header and legend wrap rather than crowd, all five retention series stay legible, and the screening video shows a loading spinner while it buffers so it never appears frozen. Destructive operator controls (telemetry reset) are absent from navigation and gated behind an explicit operator flag, so the participant flow exposes nothing dangerous.
 * **Accessibility (WCAG 2.2 AA as the target)**: MomentLab targets WCAG 2.2 AA and ships concrete pieces of it today: the Audience Response Timeline provides a keyboard-reachable **Table View** toggle so chart data is available as text, interactive controls carry `aria-label` / `aria-expanded` / `aria-haspopup` attributes, and the dark theme was tuned for legible contrast. We do **not** claim full AA conformance yet -- known remaining work includes dialog focus trapping and dialog semantics on the project-creation overlay, skip navigation, and a complete screen-reader and 200%-zoom pass.
-* **Honest evidence states (no overclaiming)**: Every figure is labeled by its epistemic state -- **PREDICTED** (a pre-test forecast) versus **MEASURED** (a post-experiment result), with agent hypotheses marked **GROUNDED / UNGROUNDED** by whether they are backed by real ClickHouse queries. The interface never labels a forecast or a statistical confidence as "verified"; that word is reserved for genuine system-state confirmations (e.g., server-side approval, materialized-view sync). Copy is filmmaker-first -- "Viewers disengage at 00:37", "A testable edit hypothesis", "drop-off" -- rather than raw system jargon, so the UI earns trust by describing exactly what each number is. The same rule applies to status indicators, not just figures. The "AGENTS ONLINE" pill in the operator shell is driven by real service health and by the number of agent runs recorded in the last fifteen minutes, showing an "idle" chip rather than a number when there has been no recent activity. A second, purely decorative copy of that pill -- with a hardcoded count -- previously sat in the header of the public participant screening page; it has been removed rather than wired up, because a research respondent has no use for agent telemetry and an invented number has no place beside a privacy guarantee. A search of the codebase now finds exactly one such indicator, the live one.
-* **Provenance you can scan, not drown in**: The ClickHouse MCP Telemetry Trail shows the agent's real query-level provenance -- up to 50 recent executions with per-query duration and row counts. Instead of rendering one long wall that buries the analysis beside it, the panel paginates at **10 or 25 per page** with Previous / Next and a "Showing X-Y of Z" count, and it **starts collapsed to a single bar** (retaining the query count) so the hypothesis and evidence next to it are visible immediately, expanding to the full trail in one click. The same shared panel backs both the Finding and Evidence views. On mobile (verified at 375px) the panel opens as a 90px collapsed bar reading "(50 queries)", and when expanded the "Showing 1-10 of 50" count, the 10/25 page-size selector, and the Previous / "Page 1 of 5" / Next controls each fit on a single line with zero horizontal overflow and correctly disabled end states. The mobile Finding view intentionally omits the trail to keep the participant-facing analysis lean; provenance remains one tap away on the Evidence tab.
+* **Honest evidence states (no overclaiming)**: Every figure carries its epistemic state -- **PREDICTED** (a pre-test forecast) or **MEASURED** (a post-experiment result) -- and agent hypotheses are marked **GROUNDED / UNGROUNDED** by whether real ClickHouse queries back them. "Verified" is reserved for genuine system-state confirmations such as server-side approval or materialized-view sync, never for a forecast or a confidence figure. Status indicators follow the same rule: the "AGENTS ONLINE" pill reflects real service health and the count of agent runs in the last fifteen minutes, showing an "idle" chip when there has been none, and it appears only in the operator shell -- the public participant screening page carries no agent telemetry. Copy is filmmaker-first: "Viewers disengage at 00:37", not "anomaly detected".
+* **Provenance you can scan, not drown in**: The ClickHouse MCP Telemetry Trail exposes the agent's real query-level provenance -- up to 50 recent executions with per-query duration and row counts, and a drill-in showing the exact SQL for any one of them. It starts collapsed to a single bar carrying the query count, so the hypothesis beside it is visible immediately, and expands to a trail paginated at **10 or 25 per page**. The same shared panel backs the Finding and Evidence views and was verified at 375px, where the count, the page-size selector and the Previous / Next controls each fit on one line with no overflow. The mobile Finding view omits the trail to keep the participant-facing analysis lean; provenance stays one tap away on the Evidence tab.
 
 ## 3. Potential Impact (25%)
 **Does this tool solve a real problem for the target audience?**
 
-* **Cost Reduction**: Re-shoots and failed test screenings cost studios millions. MomentLab minimizes the guesswork by tying explicit audience drop-offs directly to the exact frame and timeline.
-* **Data-Driven Confidence**: By providing falsifiable hypotheses -- the live Northlight run proposes "Cut the scene between 33s and 41s" against a measured -18.1% retention drop at 00:37 -- it empowers editors to make changes backed by statistical confidence rather than intuition alone.
-* **Privacy-First**: The solution completely avoids invasive biometrics (no cameras or facial recognition), relying solely on explicit, consented in-player reactions.
+* **From "it dragged" to a timestamp**: A traditional test screening returns adjectives. MomentLab returns a bounded interval -- a **-18.1%** retention drop at **00:37**, window **00:33-00:41**, at 95% calibrated confidence, computed across roughly 2.08 million playback events. An editor gets a frame range to act on rather than a feeling to interpret.
+* **Cost Reduction**: Re-shoots and failed test screenings are expensive and slow, and their feedback arrives too coarse to act on. Tying a drop-off to an exact frame range lets an editor test one targeted change instead of guessing, then measure whether it actually worked.
+* **Falsifiable, not advisory**: Each hypothesis ships as a testable proposal with a predicted effect and a human approval gate -- the agent proposes, a person approves, and the outcome is measured against the prediction rather than assumed. In the demo experiment the proposed cut measured a **+11.1%** engagement lift (95% CI **[+10.9%, +11.4%]**, 99% confidence, 17,500 respondents per arm), and only then was it reported as MEASURED.
+* **Privacy-First**: No cameras, no facial recognition, no gaze tracking, no vocal analysis. Only explicit, consented in-player reactions and playback events, aggregated behind a minimum cohort size of 10 so no plotted bucket can describe a single respondent.
 
 ## 4. Quality of the Idea (25%)
 **Is the concept creative, original, and well-suited to the ClickHouse track?**
 
-* **Originality**: Instead of building a generic "chat-with-your-database" interface, MomentLab utilizes the AI agent as a proactive, background data analyst that discovers anomalies and presents *proposed experiments* to the human.
-* **ClickHouse Synergy**: The solution perfectly leverages ClickHouse. By processing high-throughput, time-series telemetry (scrubbing, pausing, reacting) at millisecond precision, ClickHouse provides the raw speed necessary for the Gemini agent to investigate anomalies across distinct demographic cohorts in near real-time.
+* **Originality**: Not a chat-with-your-database wrapper. The agent works as a background analyst: it detects the retention anomaly, queries ClickHouse for corroborating evidence, and presents a *proposed experiment* for a human to approve or reject. The person stays the decision-maker; the agent supplies the evidence.
+* **ClickHouse Synergy**: Second-by-second retention over millisecond-stamped playback events is precisely an `AggregatingMergeTree` workload. Cohort-keyed aggregate states let one table serve both the overall curve and four cohort curves without rescanning raw events, and the UI prints the comparison it actually measured on each request -- on a representative load, the materialized view answered in ~48ms against a ~128ms raw scan of the same window. That headroom is what makes the agent's investigation interactive instead of an overnight batch.
+* **Reproducible by design**: The demo dataset is seeded and the aggregates are rebuildable from raw events by scripts in the repository (`backend/scripts/seed_clickhouse.py`, `backend/scripts/rebuild_materialized_views.py`), so every number the interface shows can be reconstructed from source rather than taken on trust.
