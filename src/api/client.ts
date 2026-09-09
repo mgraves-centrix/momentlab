@@ -471,7 +471,11 @@ export async function generateHypothesis(projectId: string, experimentId: string
     method: 'POST',
     headers: getAuthHeaders()
   });
-  if (!res.ok) throw new Error('Failed to generate hypothesis');
+  if (!res.ok) {
+    const err = new Error(`Failed to generate hypothesis (${res.status})`) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
   const data = await res.json();
   return data.hypothesis || data;
 }

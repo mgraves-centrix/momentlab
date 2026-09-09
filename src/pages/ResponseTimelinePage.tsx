@@ -15,6 +15,7 @@ import { useMobile } from '../hooks/useMobile';
 
 import { plural } from '../utils/format';
 import { StatePanel } from '../components/StatePanel';
+import { AlertCircle } from 'lucide-react';
 
 export const ResponseTimelinePage: React.FC = () => {
   const { projectId, experimentId } = useParams();
@@ -126,15 +127,27 @@ export const ResponseTimelinePage: React.FC = () => {
     setSearchParams(newParams, { replace: true });
   };
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [generateError, setGenerateError] = React.useState<string | null>(null);
 
   const handleGenerateHypothesis = async () => {
     if (!projectId || !experimentId) return;
+    setGenerateError(null);
     setIsGenerating(true);
     try {
       await generateHypothesis(projectId, experimentId);
       navigate(`/projects/${projectId}/experiments/${experimentId}/evidence${location.search}`);
     } catch (e) {
       console.error(e);
+      const status = (e as { status?: number })?.status;
+      if (status === 401 || status === 403) {
+        setGenerateError('Reviewer authorization required. Enter your reviewer token on the Test tab, then try again.');
+      } else if (status === 429) {
+        setGenerateError('Too many requests. Wait a moment and try again.');
+      } else if (status === 503) {
+        setGenerateError('Reviewer authentication is not configured on the server.');
+      } else {
+        setGenerateError('Could not generate a hypothesis. Please try again.');
+      }
       setIsGenerating(false);
     }
   };
@@ -262,6 +275,12 @@ export const ResponseTimelinePage: React.FC = () => {
               <span>{isGenerating ? 'ANALYZING TELEMETRY...' : 'INVESTIGATE & GENERATE HYPOTHESIS'}</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#050a0e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
             </button>
+            {generateError && (
+              <div role="alert" style={{ marginTop: '8px', fontSize: '11px', color: '#ff654a', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                <AlertCircle size={12} style={{ flexShrink: 0, marginTop: '1px' }} />
+                <span>{generateError}</span>
+              </div>
+            )}
           </div>
         ) : (
           <>
