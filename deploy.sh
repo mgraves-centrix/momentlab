@@ -56,8 +56,26 @@ echo "Image Latest: ${IMAGE_LATEST}"
 echo "ClickHouse: ${CH_HOST}:${CH_PORT}"
 echo "=========================================="
 
-# 1. Validate Required Secret Manager Secrets
-echo "[1/6] Validating Secret Manager secrets in project ${PROJECT_ID}..."
+# 1. Verify gcloud credentials
+GCLOUD_ERR="$(mktemp "${TMPDIR:-/tmp}/momentlab-deploy-err.XXXXXX")"
+trap 'rm -f "${GCLOUD_ERR}"' EXIT
+
+echo "[1/7] Verifying gcloud credentials for ${GCP_ACCOUNT}..."
+if ! gcloud auth print-access-token --account="${GCP_ACCOUNT}" >/dev/null 2>"${GCLOUD_ERR}"; then
+    echo "ERROR: gcloud cannot authenticate as ${GCP_ACCOUNT}." >&2
+    echo "gcloud reported:" >&2
+    sed 's/^/  /' "${GCLOUD_ERR}" >&2
+    echo "" >&2
+    echo "If the token expired, re-authenticate that specific account:" >&2
+    echo "    gcloud auth login ${GCP_ACCOUNT}" >&2
+    echo "Note that 'gcloud auth login' with no argument refreshes the ACTIVE account," >&2
+    echo "which may not be ${GCP_ACCOUNT}. Check with: gcloud auth list" >&2
+    exit 1
+fi
+echo "Credentials OK for ${GCP_ACCOUNT}."
+
+# 2. Validate Required Secret Manager Secrets
+echo "[2/7] Validating Secret Manager secrets in project ${PROJECT_ID}..."
 REQUIRED_SECRETS=(
     "clickhouse-default-password"
     "clickhouse-writer-credentials"
@@ -66,15 +84,18 @@ REQUIRED_SECRETS=(
 )
 
 for secret in "${REQUIRED_SECRETS[@]}"; do
-    if ! gcloud secrets describe "${secret}" --project="${PROJECT_ID}" --account="${GCP_ACCOUNT}" >/dev/null 2>&1; then
-        echo "ERROR: Required secret '${secret}' is missing in Secret Manager (project ${PROJECT_ID})." >&2
+    if ! gcloud secrets describe "${secret}" --project="${PROJECT_ID}" --account="${GCP_ACCOUNT}" >/dev/null 2>"${GCLOUD_ERR}"; then
+        echo "ERROR: cannot read secret '${secret}' in Secret Manager (project ${PROJECT_ID})." >&2
+        echo "This means the secret is missing OR ${GCP_ACCOUNT} lacks access to it." >&2
+        echo "gcloud reported:" >&2
+        sed 's/^/  /' "${GCLOUD_ERR}" >&2
         exit 1
     fi
     echo "Secret confirmed present: ${secret}"
 done
 
-# 2. Enable Required GCP APIs
-echo "[2/6] Enabling Google Cloud APIs..."
+# 3. Enable Required GCP APIs
+echo "[3/7] Enabling Google Cloud APIs..."
 gcloud services enable \
     run.googleapis.com \
     artifactregistry.googleapis.com \
@@ -83,8 +104,8 @@ gcloud services enable \
     --project="${PROJECT_ID}" \
     --account="${GCP_ACCOUNT}"
 
-# 3. Create Artifact Registry Docker repository if not exists
-echo "[3/6] Ensuring Artifact Registry repository exists..."
+# 4. Create Artifact Registry Docker repository if not exists
+echo "[4/7] Ensuring Artifact Registry repository exists..."
 gcloud artifacts repositories describe "${REPO_NAME}" --location="${REGION}" --project="${PROJECT_ID}" --account="${GCP_ACCOUNT}" >/dev/null 2>&1 || \
 gcloud artifacts repositories create "${REPO_NAME}" \
     --repository-format=docker \
@@ -93,18 +114,18 @@ gcloud artifacts repositories create "${REPO_NAME}" \
     --project="${PROJECT_ID}" \
     --account="${GCP_ACCOUNT}"
 
-# 4. Configure Docker GCP Authentication
-echo "[4/6] Authenticating Docker with Artifact Registry..."
+# 5. Configure Docker GCP Authentication
+echo "[5/7] Authenticating Docker with Artifact Registry..."
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --account="${GCP_ACCOUNT}" --quiet
 
-# 5. Build and Push Container Image using local Docker
-echo "[5/6] Building and pushing Docker container image locally..."
+# 6. Build and Push Container Image using local Docker
+echo "[6/7] Building and pushing Docker container image locally..."
 docker build --platform linux/amd64 --build-arg GIT_SHA="${GIT_SHA}" -t "${IMAGE_SHA}" -t "${IMAGE_LATEST}" .
 docker push "${IMAGE_SHA}"
 docker push "${IMAGE_LATEST}"
 
-# 6. Deploy to Cloud Run
-echo "[6/6] Deploying image to Cloud Run with Secret Manager references..."
+# 7. Deploy to Cloud Run
+echo "[7/7] Deploying image to Cloud Run with Secret Manager references..."
 DEPLOY_TS="$(date +%s)"
 gcloud run deploy "${SERVICE_NAME}" \
     --image="${IMAGE_SHA}" \
