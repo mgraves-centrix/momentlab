@@ -140,6 +140,7 @@ When deploying or seeding a new environment, execute commands in the following r
 
 ```bash
 # 1. Build and deploy container image to GCP Cloud Run
+# (Executes 7-step automated deployment including gcloud auth preflight & Secret Manager verification)
 ./deploy.sh
 
 # 2. Grant ClickHouse permissions required for evidence query log inspection and multi-replica provenance resolution
@@ -202,7 +203,7 @@ make verify
 # Reset Database State
 make reset-demo
 
-# Deploy to Cloud Run
+# Deploy to Cloud Run via Cloud Build (Note: ./deploy.sh is the primary local-driven deployment script)
 make deploy
 
 # Smoke test deployment and seed data
@@ -239,6 +240,7 @@ The mobile workflow is built for reviewing a finding and approving a test away f
 - [Judging Criteria Proof](docs/judge-proof.md)
 - [3-Minute Video Script](docs/demo-script.md)
 - [Visual QA Report](docs/visual-qa.md)
+- [Accessibility Conformance (WCAG 2.2 AA Target)](docs/accessibility.md)
 - [Hackathon Compliance Matrix](docs/compliance-matrix.md)
 - [Technology Compliance & Denylist Lock](docs/technology-compliance.md)
 - [Architecture Decision Records (ADR-001)](docs/decisions.md)
