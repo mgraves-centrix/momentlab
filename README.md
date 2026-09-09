@@ -1,11 +1,11 @@
-# MomentLab — Autonomous Audience-Experiment Agent
+# MomentLab
 
-> **Turn consented, second-by-second audience behavior into the next controlled edit experiment.**  
-> Built for the **Agentic Cinema: The Blockbuster Hackathon (ClickHouse Track)**.
+Turn consented, second-by-second audience behavior into the next controlled edit experiment.
+Built for the Agentic Cinema: The Blockbuster Hackathon, ClickHouse track.
 
-🔗 **Live Hosted App**: [https://momentlab.ai](https://momentlab.ai)  
-🌐 **Origin Cloud Run URL**: [https://momentlab-web-qa24oxtrrq-uc.a.run.app](https://momentlab-web-qa24oxtrrq-uc.a.run.app)  
-🎥 **Demo Video**: Demo video: to be added before submission (YouTube, 3 min) | [Demo Script & Storyboard](docs/demo-script.md)
+**Live app**: [https://momentlab.ai](https://momentlab.ai)
+**Cloud Run origin**: [https://momentlab-web-qa24oxtrrq-uc.a.run.app](https://momentlab-web-qa24oxtrrq-uc.a.run.app)
+**Demo video**: REPLACE_WITH_YOUTUBE_URL (3 min) | [script and storyboard](docs/demo-script.md)
 
 ![Desktop Built](docs/images/momentlab-built.png)
 
@@ -13,9 +13,11 @@
 
 ## 💡 What MomentLab Is
 
-MomentLab is an autonomous AI agent system for film editors and studio executives. It captures second-by-second consented audience telemetry across screening cuts, registers valid screening sessions into ClickHouse Cloud, ingests telemetry streams, detects engagement cliffs, and uses an autonomous Google ADK agent with Gemini 2.5 Pro to query ClickHouse via the official `ClickHouse/mcp-clickhouse` server protocol.
+MomentLab watches how a test audience actually behaves, second by second, and turns that into a specific edit worth testing.
 
-The agent investigates raw audience events, formulates evidence-backed edit hypotheses (e.g. *"MOVE REVEAL 6S EARLIER"*), attaches verifiable ClickHouse query provenance records, and gates A/B testing behind an authenticated human approval mechanism.
+Screening sessions register into ClickHouse Cloud with consent recorded first, and playback telemetry streams in behind that consent. A server-side detector finds the points where attention falls off. A Google ADK agent running Gemini 2.5 Pro then investigates those points by querying ClickHouse through the official `ClickHouse/mcp-clickhouse` server.
+
+What comes out is a falsifiable hypothesis, something like *"MOVE REVEAL 6S EARLIER"*, with the ClickHouse query provenance attached so the reasoning can be checked. Nothing runs as an A/B test until a human holding a reviewer token approves it.
 
 ---
 
@@ -36,13 +38,13 @@ consent → stream telemetry → detect → investigate with ClickHouse MCP → 
 
 ## ⚡ Runtime Infrastructure (Google Cloud & ClickHouse)
 
-MomentLab executes real analytical queries against ClickHouse Cloud at runtime using the following core architecture:
+MomentLab runs real analytical queries against ClickHouse Cloud at runtime. The pieces that matter:
 
-* **Google Agent Development Kit (`google-adk`)**: Autonomous agent orchestration engine driving tool usage and multi-step investigation loops.
-* **Vertex AI / Gemini 2.5 Pro (`gemini-2.5-pro`)**: Native model inference evaluating audience events and generating structured hypothesis specifications.
-* **Official ClickHouse MCP Server (`ClickHouse/mcp-clickhouse`)**: Stdio-based Model Context Protocol transport executing real SQL queries against ClickHouse Cloud.
-* **ClickHouse Cloud Database**: High-performance analytical column store hosting `momentlab.screening_sessions`, `momentlab.audience_events`, `momentlab.reaction_events`, and `system.query_log`.
-* **GCP Cloud Run**: Containerized deployment hosting the FastAPI backend and React Vite single-page application (`--min-instances=1` configured for judging week to eliminate cold starts; should be reverted to `0` post-judging to control cost).
+* **Google Agent Development Kit (`google-adk`)** orchestrates the agent and its multi-step tool use.
+* **Vertex AI / Gemini 2.5 Pro (`gemini-2.5-pro`)** reads the audience events and writes the hypothesis spec.
+* **Official ClickHouse MCP server (`ClickHouse/mcp-clickhouse`)** carries SQL over stdio to ClickHouse Cloud.
+* **ClickHouse Cloud** holds `momentlab.screening_sessions`, `momentlab.audience_events`, `momentlab.reaction_events`, and `system.query_log`.
+* **Cloud Run** hosts the FastAPI backend and the React/Vite SPA. It runs with `--min-instances=1` during judging week so there are no cold starts; set it back to `0` afterwards to control cost.
 
 ---
 
@@ -178,7 +180,7 @@ make verify
 
 ## 🚀 Hackathon Commands (Makefile)
 
-We have provided a comprehensive `Makefile` to quickly exercise all paths:
+There is a `Makefile` covering the common paths:
 
 ```bash
 # Start local demo environment (frontend + backend)
@@ -207,7 +209,7 @@ make smoke
 
 ## 📱 Mobile Experience
 
-MomentLab includes a fully responsive mobile workflow for reviewing findings and approving tests on the go.
+The mobile workflow is built for reviewing a finding and approving a test away from a desk.
 
 <div style="display: flex; gap: 10px;">
   <img src="docs/images/momentlab-mobile-finding.png" width="30%" alt="Mobile Finding">
@@ -219,10 +221,10 @@ MomentLab includes a fully responsive mobile workflow for reviewing findings and
 
 ## 🛡️ Truthfulness, Synthetic Media & Privacy Disclosures
 
-- **Synthetic Footage & Simulated Audience Data**: In compliance with hackathon rules, all screening footage and audience responses in default test configurations are synthetic assets and deterministic simulated behavioral fixtures. All AI-generated media is explicitly labeled `SYNTHETIC`.
-- **Zero Biometric Tracking**: MomentLab enforces a strict policy against collecting, inferring, or storing biometric, facial, gaze, voice-stress, or emotion-recognition data. All telemetry consists strictly of consented media timecodes, play/pause states, and explicit button reactions.
-- **Backend-Mediated Firestore Access**: Direct client access to Firestore is disabled; all database operations are secured and routed exclusively through service account credentials within the backend API.
-- **Google Veo Status**: Video GENERATION is intentionally not exposed at runtime to avoid unbounded model spend; scene assets are generated out-of-band with `veo-3.1-generate-001` and served from Cloud Storage.
+- **Synthetic footage and simulated audience data**: under the hackathon rules, all screening footage and audience responses in the default test configuration are synthetic assets and deterministic simulated fixtures. AI-generated media is labeled `SYNTHETIC` in the UI.
+- **No biometric tracking**: MomentLab does not collect, infer or store biometric, facial, gaze, voice-stress or emotion-recognition data. Telemetry is consented media timecodes, play and pause states, and explicit button reactions.
+- **Firestore access is backend-only**: clients never touch Firestore directly. Every database operation goes through service account credentials inside the backend API.
+- **Google Veo**: video generation is deliberately not exposed at runtime, to avoid unbounded model spend. Scene assets are generated out of band with `veo-3.1-generate-001` and served from Cloud Storage.
 
 
 ---
