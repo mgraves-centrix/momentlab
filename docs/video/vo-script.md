@@ -6,10 +6,16 @@ Generate **one audio file per segment**, named `01.mp3` … `11.mp3`. Per-segmen
 edit sync each shot independently — a single continuous track would force the screen action to
 match the narration exactly on the first take.
 
-**As cut:** segments are separated by 2.0 seconds of silence, followed by a 5-second end card
-that crossfades in over the closing narration. Final runtime is 2:55.19, inside the 3-minute
-limit. `momentlab-demo.srt` is timed to this arrangement and was verified against the rendered
-audio -- all eleven segment onsets align within 0.11s.
+**As cut:** each generated clip is trimmed to a 0.10s pad so its own trailing silence does not
+stack on the gap, segments are separated by 1.6 seconds of silence, and a 5-second end card
+crossfades in over the closing narration. Measured gaps in the render are 1.65-1.81s. Final
+runtime is 2:49.07, inside the 3-minute limit. `momentlab-demo.srt` is timed to this
+arrangement and was verified against the rendered audio -- all eleven segment onsets align
+within 0.11s.
+
+Write technical terms the way they should be *heard* in the narration and the way they should
+be *read* in the captions: the voice track says "Aggregating Merge Tree" so the engine name is
+not slurred, while `momentlab-demo.srt` spells it `AggregatingMergeTree`.
 
 Every figure below is measured against production, not estimated.
 
@@ -25,9 +31,9 @@ playback events, retention drops eighteen point one percent at thirty-seven seco
 window from thirty-three to forty-one.
 
 ## 03 — Cohorts and speed (~17s)
-Retention is aggregated per age cohort in ClickHouse, in an AggregatingMergeTree materialized
-view. The curve you are seeing came back in about forty-five milliseconds. The same question
-against raw events takes roughly three times that.
+Retention is aggregated per age cohort inside ClickHouse, in an Aggregating Merge Tree
+materialized view. The curve you are seeing came back in about forty-five milliseconds. The
+same question against raw events takes roughly three times that.
 
 ## 04 — Invoke the agent (~16s)
 This is a Google ADK agent running Gemini two point five Pro on Vertex AI. When I re-run the
