@@ -211,7 +211,7 @@ MomentLab includes a fully responsive mobile workflow for reviewing findings and
 
 <div style="display: flex; gap: 10px;">
   <img src="docs/images/momentlab-mobile-finding.png" width="30%" alt="Mobile Finding">
-  <img src="docs/images/momentlab-mobile-evidence.png" width="30%" alt="Mobile Evidence">
+  <img src="docs/images/momentlab-mobile-evidence-390.png" width="30%" alt="Mobile Evidence">
   <img src="docs/images/momentlab-mobile-test.png" width="30%" alt="Mobile Test">
 </div>
 
